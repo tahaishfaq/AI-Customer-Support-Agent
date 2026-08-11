@@ -1,13 +1,13 @@
 "use client";
 
-import { AuthProvider } from "@/context/AuthContext";
+import { SessionProvider } from "@/components/session/SessionProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 export function Providers({ children }) {
   return (
-    <AuthProvider>
+    <SessionProvider>
       {children}
       <Toaster />
-    </AuthProvider>
+    </SessionProvider>
   );
 }

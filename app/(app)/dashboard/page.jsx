@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">

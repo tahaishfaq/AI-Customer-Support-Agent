@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 
 export function AppHeader() {
   const router = useRouter();
-  const { user, logout, loading } = useAuth();
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
+  const logout = useAuthStore((s) => s.logout);
 
   async function handleLogout() {
     await logout();

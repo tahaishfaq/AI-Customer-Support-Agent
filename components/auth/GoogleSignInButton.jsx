@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 
 const SCRIPT_ID = "google-gsi-script";
 
@@ -10,7 +10,7 @@ export function GoogleSignInButton({
   onSuccess,
   text = "continue_with",
 }) {
-  const { loginWithGoogle } = useAuth();
+  const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
   const onErrorRef = useRef(onError);

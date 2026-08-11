@@ -25,7 +25,7 @@ export function LandingHero() {
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/login?mode=register"
+            href="/register"
             className={cn(buttonVariants({ size: "lg" }), "px-6")}
           >
             Get started

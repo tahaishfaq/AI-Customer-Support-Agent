@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 
@@ -11,9 +12,9 @@ const fieldClass =
 
 const labelClass = "mb-2 block text-sm font-medium text-[#0f172a]";
 
-export function RegisterForm({ onSwitchToLogin }) {
+export function RegisterForm() {
   const router = useRouter();
-  const { register } = useAuth();
+  const register = useAuthStore((s) => s.register);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -147,13 +148,12 @@ export function RegisterForm({ onSwitchToLogin }) {
 
       <p className="text-center text-sm text-[#475569]">
         Already have an account?{" "}
-        <button
-          type="button"
-          onClick={onSwitchToLogin}
+        <Link
+          href="/login"
           className="font-medium text-[var(--color-primary)] underline underline-offset-2"
         >
           Log in
-        </button>
+        </Link>
       </p>
     </div>
   );
