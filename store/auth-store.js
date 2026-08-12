@@ -1,7 +1,17 @@
 "use client";
 
 import { create } from "zustand";
+import { getSession, signIn, signOut } from "next-auth/react";
 import { apiFetch } from "@/lib/api-client";
+
+function toStoreUser(sessionUser) {
+  if (!sessionUser?.id && !sessionUser?.email) return null;
+  return {
+    id: sessionUser.id,
+    name: sessionUser.name,
+    email: sessionUser.email,
+  };
+}
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -15,22 +25,12 @@ export const useAuthStore = create((set, get) => ({
 
   hydrate: async () => {
     try {
-      const data = await apiFetch("/api/auth/me");
-      set({ user: data.user, loading: false, sessionExpired: false });
-      return data.user;
-    } catch (error) {
-      // Cookie may still exist after JWT expiry; Proxy only checks presence.
-      // On app pages, treat /me 401 as expired session UI.
-      const onAppPage =
-        typeof window !== "undefined" &&
-        (window.location.pathname.startsWith("/dashboard") ||
-          window.location.pathname.startsWith("/agents") ||
-          window.location.pathname.startsWith("/chat") ||
-          window.location.pathname.startsWith("/analytics"));
-
-      if (error?.status === 401 && onAppPage) {
-        set({ user: null, sessionExpired: true, loading: false });
-      } else if (!get().sessionExpired) {
+      const session = await getSession();
+      const user = toStoreUser(session?.user);
+      set({ user, loading: false, sessionExpired: false });
+      return user;
+    } catch {
+      if (!get().sessionExpired) {
         set({ user: null, loading: false });
       }
       return null;
@@ -38,39 +38,70 @@ export const useAuthStore = create((set, get) => ({
   },
 
   login: async (email, password) => {
-    const data = await apiFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
     });
-    set({ user: data.user, loading: false, sessionExpired: false });
-    return data.user;
+
+    if (result?.error) {
+      const err = new Error("Invalid email or password");
+      err.status = 401;
+      throw err;
+    }
+
+    const user = await get().hydrate();
+    if (!user) {
+      throw new Error("Unable to login");
+    }
+    return user;
   },
 
   register: async (payload) => {
-    const data = await apiFetch("/api/auth/register", {
+    await apiFetch("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    set({ user: data.user, loading: false, sessionExpired: false });
-    return data.user;
+
+    const result = await signIn("credentials", {
+      email: payload.email,
+      password: payload.password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      throw new Error("Account created but login failed. Please log in.");
+    }
+
+    const user = await get().hydrate();
+    if (!user) {
+      throw new Error("Account created but session failed. Please log in.");
+    }
+    return user;
   },
 
   loginWithGoogle: async (idToken) => {
-    const data = await apiFetch("/api/auth/google", {
-      method: "POST",
-      body: JSON.stringify({ idToken }),
+    const result = await signIn("google-id-token", {
+      idToken,
+      redirect: false,
     });
-    set({ user: data.user, loading: false, sessionExpired: false });
-    return data.user;
+
+    if (result?.error) {
+      const err = new Error("Google sign-in failed");
+      err.status = 401;
+      throw err;
+    }
+
+    const user = await get().hydrate();
+    if (!user) {
+      throw new Error("Google sign-in failed");
+    }
+    return user;
   },
 
   logout: async () => {
-    try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // clear local state anyway
-    }
-    set({ user: null, sessionExpired: false });
+    await signOut({ redirect: false });
+    set({ user: null, sessionExpired: false, loading: false });
   },
 
   refreshUser: async () => get().hydrate(),

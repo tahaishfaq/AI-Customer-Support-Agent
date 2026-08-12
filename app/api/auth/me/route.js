@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest, toPublicUser } from "@/lib/auth";
+import { auth } from "@/auth";
 
-export async function GET(request) {
+/** Current NextAuth session user (for clients that prefer REST). */
+export async function GET() {
   try {
-    const user = await getUserFromRequest(request);
-    if (!user) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: { message: "Missing or invalid token", details: {} } },
+        { error: { message: "Missing or invalid session", details: {} } },
         { status: 401 }
       );
     }
 
     return NextResponse.json(
-      { user: toPublicUser(user) },
+      {
+        user: {
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {

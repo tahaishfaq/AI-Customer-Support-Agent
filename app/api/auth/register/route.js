@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { setAuthCookie } from "@/lib/auth-cookie";
 import { registerUser } from "@/lib/services/auth.service";
 import { registerSchema, zodErrorDetails } from "@/lib/validations/auth";
 
@@ -21,9 +20,7 @@ export async function POST(request) {
     }
 
     const result = await registerUser(parsed.data);
-    const response = NextResponse.json(result, { status: 201 });
-    setAuthCookie(response, result.token);
-    return response;
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error.status === 409) {
       return NextResponse.json(

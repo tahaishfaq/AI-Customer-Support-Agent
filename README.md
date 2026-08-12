@@ -20,17 +20,23 @@ Next.js fullstack MVP (UI + API in one app).
 
 ## Phase 1 Backend status
 
-- [x] Register / login / logout / me
-- [x] JWT + bcrypt
-- [x] Google route (`POST /api/auth/google`)
-- [x] httpOnly cookie `hapy_token` (set on login/register/google, clear on logout)
+- [x] Register (`POST /api/auth/register`) + bcrypt passwords
+- [x] **Auth.js (NextAuth v5)** session (Credentials + Google id-token)
+- [x] `GET /api/auth/me` from NextAuth session
+- [x] DIY JWT / `hapy_token` removed
 
 ## Phase 1 Frontend status
 
 - [x] Landing page
-- [x] Login / Register + Google button
-- [x] Dashboard shell + logout
-- [x] Cookie-based session (`credentials: "include"`)
+- [x] Login / Register + Google button (`signIn`)
+- [x] Dashboard shell + logout (`signOut`)
+- [x] NextAuth `SessionProvider` + cookie session (`credentials: "include"`)
+
+## Phase 2 Backend status
+
+- [x] Agents CRUD APIs
+- [x] `GET /api/analytics/overview`
+- [x] Protected with NextAuth `auth()` / `requireAuth`
 
 ## Setup
 
