@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Bot } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bot, Search } from "lucide-react";
 import { listAgents } from "@/lib/api/agents";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export function AgentList() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
 
   async function load() {
     setLoading(true);
@@ -31,13 +33,21 @@ export function AgentList() {
     load();
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return agents;
+    return agents.filter((agent) =>
+      (agent.name || "").toLowerCase().includes(q)
+    );
+  }, [agents, query]);
+
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[1, 2, 3].map((i) => (
           <Skeleton
             key={i}
-            className="h-52 w-full rounded-2xl bg-[var(--color-border)]"
+            className="h-56 w-full rounded-xl bg-[var(--color-border)]"
           />
         ))}
       </div>
@@ -46,7 +56,7 @@ export function AgentList() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-6 py-8 text-center">
+      <div className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-6 py-8 text-center">
         <p className="text-sm text-[var(--color-danger)]">{error}</p>
         <button
           type="button"
@@ -61,42 +71,58 @@ export function AgentList() {
 
   if (agents.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-16 text-center">
-        <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-          <Bot className="size-7" />
+      <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-16 text-center">
+        <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <Bot className="size-5" />
         </span>
-        <h2 className="mt-5 font-[family-name:var(--font-display)] text-2xl font-semibold text-[var(--color-text)]">
-          No agents yet
+        <h2 className="mt-4 text-sm font-semibold text-[var(--color-text)]">
+          No agents yet.
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
+        <p className="mx-auto mt-1 max-w-md text-[13px] text-[var(--color-text-secondary)]">
           Create your first AI support agent with a name, system prompt, and
           welcome message.
         </p>
         <Link
           href="/agents/new"
-          className={cn(buttonVariants({ size: "lg" }), "mt-7 inline-flex")}
+          className={cn(buttonVariants({ size: "sm" }), "mt-5 inline-flex")}
         >
-          Create your first agent
+          New agent
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {agents.map((agent, index) => (
-        <div
-          key={agent.id}
-          className={cn(
-            "h-full",
-            index === 0 && "animate-fade-up",
-            index === 1 && "animate-fade-up-delay-1",
-            index >= 2 && "animate-fade-up-delay-2"
-          )}
-        >
-          <AgentCard agent={agent} />
+    <div>
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[var(--color-muted)]" />
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search agents…"
+          aria-label="Search agents"
+          className="h-9 border-[var(--color-border)] bg-[var(--color-surface)] pl-9 shadow-none"
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="mt-10 text-center text-sm text-[var(--color-muted)]">
+          No agents match “{query.trim()}”.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              onDeleted={(id) =>
+                setAgents((prev) => prev.filter((item) => item.id !== id))
+              }
+            />
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

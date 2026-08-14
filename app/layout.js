@@ -22,10 +22,10 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${instrumentSans.variable} ${dmSans.variable} h-full antialiased`}
+      className={`${instrumentSans.variable} ${dmSans.variable} min-h-dvh antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -12,7 +12,7 @@ const DEFAULTS = {
   name: "Hapy Support Assistant",
   description: "AI assistant for answering Hapy customer questions.",
   systemPrompt:
-    "You are a helpful customer support agent for Hapy. Answer clearly using the knowledge provided. If you are unsure, say so.",
+    "You are a helpful customer support agent for Hapy. Answer clearly using only the knowledge provided. If you are unsure, say so. Keep replies concise and professional.",
   welcomeMessage: "Hi! How can I help you today?",
 };
 
@@ -85,7 +85,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm sm:p-8"
+      className="space-y-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] sm:p-6"
     >
       <div>
         <Label htmlFor="name" className="text-[var(--color-text)]">
@@ -174,8 +174,8 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-3 border-t border-[var(--color-border)] pt-6 sm:flex-row">
-        <Button type="submit" disabled={loading} size="lg" className="sm:min-w-40">
+      <div className="flex flex-col gap-3 border-t border-[var(--color-border)] pt-5 sm:flex-row">
+        <Button type="submit" disabled={loading} className="sm:min-w-36">
           {loading
             ? "Saving…"
             : mode === "edit"
@@ -185,7 +185,6 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
         <Button
           type="button"
           variant="outline"
-          size="lg"
           disabled={loading}
           onClick={() => router.push("/agents")}
         >

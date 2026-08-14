@@ -72,16 +72,19 @@ export function AddTextKnowledgeDialog({
         onOpenChange?.(next);
       }}
     >
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle>Add Text / FAQ</DialogTitle>
             <DialogDescription>
               Add plain text knowledge your agent can use when answering.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
             <div>
               <Label htmlFor="knowledge-name">Name</Label>
               <Input
@@ -105,8 +108,8 @@ export function AddTextKnowledgeDialog({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 disabled={loading}
-                rows={6}
-                className="mt-1.5"
+                rows={8}
+                className="mt-1.5 h-48 max-h-48 min-h-48 resize-none overflow-y-auto field-sizing-fixed"
                 required
               />
               {fieldErrors.content ? (
@@ -120,7 +123,7 @@ export function AddTextKnowledgeDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="shrink-0 border-t border-[var(--color-border)] px-6 py-4">
             <Button
               type="button"
               variant="outline"

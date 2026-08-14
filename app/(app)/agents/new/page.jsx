@@ -3,22 +3,23 @@ import { AgentForm } from "@/components/agents/AgentForm";
 
 export default function NewAgentPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <div className="animate-fade-up mx-auto max-w-2xl">
+    <main className="hapy-page">
+      <header>
         <Link
           href="/agents"
-          className="text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline"
+          className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
         >
-          ← Back to agents
+          ← Agents
         </Link>
-        <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)] sm:text-4xl">
-          Create Agent
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-[var(--color-text)] sm:text-2xl">
+          New agent
         </h1>
-        <p className="mt-2 mb-8 text-[var(--color-text-secondary)]">
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Give your assistant a clear role, voice, and first message.
         </p>
-      </div>
-      <div className="animate-fade-up-delay-1">
+      </header>
+
+      <div className="mt-6 max-w-2xl">
         <AgentForm mode="create" />
       </div>
     </main>

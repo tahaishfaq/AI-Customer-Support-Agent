@@ -42,11 +42,11 @@ export function KnowledgeList({ agentId }) {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
           <Skeleton
             key={i}
-            className="h-28 w-full rounded-2xl bg-[var(--color-border)]"
+            className="h-16 w-full rounded-xl bg-[var(--color-border)]"
           />
         ))}
       </div>
@@ -54,21 +54,27 @@ export function KnowledgeList({ agentId }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button
-          type="button"
-          className="gap-2"
-          onClick={() => setTextOpen(true)}
-        >
-          <Plus className="size-4" />
-          Add Text / FAQ
-        </Button>
-        <UploadPdfKnowledge agentId={agentId} onUploaded={handleCreated} />
+    <div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          FAQ text and PDFs this agent can use.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setTextOpen(true)}
+          >
+            <Plus className="size-3.5" />
+            Add Text / FAQ
+          </Button>
+          <UploadPdfKnowledge agentId={agentId} onUploaded={handleCreated} />
+        </div>
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">
+        <div className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">
           <p className="text-sm text-[var(--color-danger)]">{error}</p>
           <button
             type="button"
@@ -81,19 +87,16 @@ export function KnowledgeList({ agentId }) {
       ) : null}
 
       {documents.length === 0 && !error ? (
-        <div className="rounded-3xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-            <BookOpen className="size-6" />
+        <div className="hapy-card mt-4 px-6 py-12 text-center">
+          <span className="mx-auto flex size-10 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <BookOpen className="size-5" />
           </span>
-          <h2 className="mt-4 font-[family-name:var(--font-display)] text-xl font-semibold text-[var(--color-text)]">
-            No knowledge yet
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
-            Add FAQ text or upload a PDF so your agent has information to use.
+          <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
+            No knowledge yet. Add FAQ text or upload a PDF.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="hapy-card mt-4 overflow-hidden">
           {documents.map((doc) => (
             <KnowledgeItem
               key={doc.id}

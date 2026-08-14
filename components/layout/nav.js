@@ -1,0 +1,89 @@
+export const PRIMARY_NAV = [
+  { href: "/dashboard", label: "Home" },
+  { href: "/agents", label: "Agents" },
+];
+
+export const MONITOR_NAV = [
+  { href: "/chat", label: "Chat" },
+  { href: "/conversations", label: "Conversations" },
+  { href: "/analytics", label: "Analytics" },
+];
+
+export function isNavActive(pathname, href) {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function getBreadcrumbs(pathname, { agentName } = {}) {
+  const workspace = { href: "/dashboard", label: "Hapy" };
+  const agentLabel = agentName || "Agent";
+
+  if (!pathname || pathname === "/dashboard") {
+    return [workspace, { label: "Home" }];
+  }
+
+  if (pathname === "/agents") {
+    return [workspace, { label: "Agents" }];
+  }
+  if (pathname === "/agents/new") {
+    return [workspace, { href: "/agents", label: "Agents" }, { label: "New" }];
+  }
+
+  const analyticsMatch = pathname.match(/^\/agents\/([^/]+)\/analytics/);
+  if (analyticsMatch) {
+    return [
+      workspace,
+      { href: "/agents", label: "Agents" },
+      { href: `/agents/${analyticsMatch[1]}`, label: agentLabel },
+      { label: "Analytics" },
+    ];
+  }
+
+  const knowledgeMatch = pathname.match(/^\/agents\/([^/]+)\/knowledge/);
+  if (knowledgeMatch) {
+    return [
+      workspace,
+      { href: "/agents", label: "Agents" },
+      { href: `/agents/${knowledgeMatch[1]}`, label: agentLabel },
+      { label: "Knowledge" },
+    ];
+  }
+
+  const editMatch = pathname.match(/^\/agents\/([^/]+)\/edit/);
+  if (editMatch) {
+    return [
+      workspace,
+      { href: "/agents", label: "Agents" },
+      { href: `/agents/${editMatch[1]}`, label: agentLabel },
+      { label: "Edit" },
+    ];
+  }
+
+  const agentMatch = pathname.match(/^\/agents\/([^/]+)$/);
+  if (agentMatch) {
+    return [workspace, { href: "/agents", label: "Agents" }, { label: agentLabel }];
+  }
+
+  if (pathname === "/chat") {
+    return [workspace, { label: "Chat" }];
+  }
+
+  if (pathname === "/conversations") {
+    return [workspace, { label: "Conversations" }];
+  }
+  if (pathname.startsWith("/conversations/")) {
+    return [
+      workspace,
+      { href: "/conversations", label: "Conversations" },
+      { label: "Detail" },
+    ];
+  }
+
+  if (pathname === "/analytics" || pathname.startsWith("/analytics/")) {
+    return [workspace, { label: "Analytics" }];
+  }
+
+  return [workspace, { label: "Home" }];
+}

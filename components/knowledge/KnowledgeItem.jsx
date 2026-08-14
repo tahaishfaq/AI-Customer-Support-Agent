@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Eye, ExternalLink, FileText, FileType2, Trash2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { DeleteKnowledgeDialog } from "@/components/knowledge/DeleteKnowledgeDialog";
 import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
 import { cn } from "@/lib/utils";
@@ -11,7 +10,6 @@ function formatDate(value) {
   if (!value) return "";
   try {
     return new Date(value).toLocaleDateString(undefined, {
-      year: "numeric",
       month: "short",
       day: "numeric",
     });
@@ -28,34 +26,34 @@ export function KnowledgeItem({ document, onDeleted }) {
 
   return (
     <>
-      <article className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <article className="flex items-center gap-3 border-b border-[var(--color-border)] px-4 py-2.5 last:border-b-0">
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
-          className="flex min-w-0 flex-1 gap-3 rounded-xl text-left transition hover:bg-[var(--color-bg)]/80"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
           <span
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl",
+              "flex size-8 shrink-0 items-center justify-center rounded-lg",
               isPdf
                 ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
                 : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
             )}
           >
             {isPdf ? (
-              <FileType2 className="size-5" />
+              <FileType2 className="size-4" />
             ) : (
-              <FileText className="size-5" />
+              <FileText className="size-4" />
             )}
           </span>
-          <div className="min-w-0 py-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate font-semibold text-[var(--color-text)]">
+          <span className="min-w-0">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm font-medium text-[var(--color-text)]">
                 {document.name}
-              </h3>
+              </span>
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                   isPdf
                     ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
                     : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
@@ -63,51 +61,41 @@ export function KnowledgeItem({ document, onDeleted }) {
               >
                 {document.type}
               </span>
-            </div>
-            <p className="mt-1 line-clamp-2 text-sm text-[var(--color-text-secondary)]">
-              {document.content}
-            </p>
-            <p className="mt-2 text-xs text-[var(--color-muted)]">
-              Added {formatDate(document.createdAt)} · Click to preview
-            </p>
-          </div>
+            </span>
+            <span className="mt-0.5 block text-[11px] text-[var(--color-muted)]">
+              {formatDate(document.createdAt)}
+            </span>
+          </span>
         </button>
 
-        <div className="flex flex-wrap gap-2 self-start">
-          <Button
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
             onClick={() => setPreviewOpen(true)}
           >
-            <Eye className="size-3.5" />
+            <Eye className="size-3" />
             Preview
-          </Button>
+          </button>
           {fileUrl ? (
             <a
               href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "gap-1.5"
-              )}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
             >
-              <ExternalLink className="size-3.5" />
+              <ExternalLink className="size-3" />
               Open PDF
             </a>
           ) : null}
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--color-danger)]"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
             onClick={() => setDeleteOpen(true)}
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 className="size-3" />
             Delete
-          </Button>
+          </button>
         </div>
       </article>
 

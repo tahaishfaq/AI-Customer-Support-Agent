@@ -101,11 +101,12 @@ export function UploadPdfKnowledge({ agentId, onUploaded, disabled }) {
       <Button
         type="button"
         variant="outline"
+        size="sm"
         disabled={disabled}
-        className="gap-2"
+        className="gap-1.5"
         onClick={() => setOpen(true)}
       >
-        <Upload className="size-4" />
+        <Upload className="size-3.5" />
         Upload PDF
       </Button>
 

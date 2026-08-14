@@ -2,10 +2,23 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Pencil, Trash2, ArrowUpRight, BookOpen, MessageSquare } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import {
+  BarChart3,
+  BookOpen,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { DeleteAgentDialog } from "@/components/agents/DeleteAgentDialog";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 function formatDate(value) {
@@ -31,91 +44,116 @@ function monogram(name) {
     .join("");
 }
 
-export function AgentCard({ agent }) {
+function IconTip({ label, children }) {
+  return (
+    <span className="group/tip relative inline-flex">
+      {children}
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--color-text)] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity group-hover/tip:opacity-100">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+export function AgentCard({ agent, onDeleted }) {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
-      <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[var(--color-primary)]/25 hover:shadow-md">
-        <div className="flex flex-1 flex-col p-5">
-          <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 font-[family-name:var(--font-display)] text-sm font-semibold text-[var(--color-primary)]">
+      <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] transition-colors hover:border-[var(--color-primary)]/25">
+        <div
+          className="px-5 pt-5 pb-4"
+          style={{
+            background:
+              "linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, white) 0%, white 100%)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)] font-[family-name:var(--font-display)] text-sm font-semibold text-white shadow-sm">
               {monogram(agent.name)}
             </span>
-            <div className="min-w-0 flex-1">
-              <Link
-                href={`/agents/${agent.id}`}
-                className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--color-text)] transition hover:text-[var(--color-primary)]"
-              >
-                {agent.name}
-              </Link>
-              <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                {agent.description || "No description yet"}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-2 border-t border-[var(--color-border)] pt-4">
-            <p className="text-xs text-[var(--color-muted)]">
-              Created {formatDate(agent.createdAt)}
-            </p>
-            <span className="rounded-full bg-[var(--color-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-muted)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
+              <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
               Ready
             </span>
           </div>
+          <Link href={`/agents/${agent.id}`} className="mt-4 block min-w-0">
+            <h3 className="truncate font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-tight text-[var(--color-text)] group-hover:text-[var(--color-primary)]">
+              {agent.name}
+            </h3>
+            <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+              {agent.description || "No description yet"}
+            </p>
+          </Link>
         </div>
 
-        <div className="flex flex-wrap gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/60 px-4 py-3">
-          <Link
-            href={`/agents/${agent.id}`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 bg-white"
-            )}
-          >
-            Open
-            <ArrowUpRight className="size-3.5" />
-          </Link>
-          <Link
-            href={`/agents/${agent.id}/knowledge`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 bg-white"
-            )}
-          >
-            <BookOpen className="size-3.5" />
-            Knowledge
-          </Link>
-          <Link
-            href={`/chat?agentId=${agent.id}`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 bg-white"
-            )}
-          >
-            <MessageSquare className="size-3.5" />
-            Chat
-          </Link>
-          <Link
-            href={`/agents/${agent.id}/edit`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 bg-white"
-            )}
-          >
-            <Pencil className="size-3.5" />
-            Edit
-          </Link>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 bg-white text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="size-3.5" />
-            Delete
-          </Button>
+        <div className="mt-auto border-t border-[var(--color-border)] px-5 py-3.5">
+          <p className="text-[11px] text-[var(--color-muted)]">
+            Created {formatDate(agent.createdAt)}
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <Link
+              href={`/agents/${agent.id}`}
+              className={cn(buttonVariants({ size: "sm" }), "gap-1")}
+            >
+              Open
+            </Link>
+            <Link
+              href={`/chat?agentId=${agent.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Chat
+            </Link>
+            <div className="ml-auto flex items-center">
+              <IconTip label="Knowledge">
+                <Link
+                  href={`/agents/${agent.id}/knowledge`}
+                  className="flex size-8 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+                >
+                  <BookOpen className="size-4" />
+                  <span className="sr-only">Knowledge</span>
+                </Link>
+              </IconTip>
+              <IconTip label="Analytics">
+                <Link
+                  href={`/agents/${agent.id}/analytics`}
+                  className="flex size-8 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+                >
+                  <BarChart3 className="size-4" />
+                  <span className="sr-only">Analytics</span>
+                </Link>
+              </IconTip>
+              <IconTip label="More">
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="flex size-8 items-center justify-center rounded-lg text-[var(--color-muted)] outline-none hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-40">
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/agents/${agent.id}/edit`)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={() => setDeleteOpen(true)}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </IconTip>
+            </div>
+          </div>
         </div>
       </article>
 
@@ -123,6 +161,7 @@ export function AgentCard({ agent }) {
         agent={agent}
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
+        onDeleted={onDeleted}
       />
     </>
   );

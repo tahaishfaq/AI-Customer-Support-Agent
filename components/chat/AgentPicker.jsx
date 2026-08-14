@@ -2,13 +2,14 @@
 
 export function AgentPicker({ agents, value, onChange, disabled }) {
   return (
-    <label className="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-xs">
-      <span className="text-xs font-medium text-[var(--color-muted)]">Agent</span>
+    <label className="flex min-w-0 items-center gap-2">
+      <span className="sr-only">Agent</span>
       <select
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || agents.length === 0}
-        className="h-10 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-50"
+        aria-label="Agent"
+        className="h-8 max-w-[16rem] truncate rounded-md border border-[var(--color-border)] bg-white px-2.5 text-[13px] font-medium text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-50"
       >
         {agents.length === 0 ? (
           <option value="">No agents yet</option>

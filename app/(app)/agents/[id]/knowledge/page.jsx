@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
+import { AgentHero } from "@/components/agents/AgentHero";
+import { DeleteAgentDialog } from "@/components/agents/DeleteAgentDialog";
 import { KnowledgeList } from "@/components/knowledge/KnowledgeList";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,6 +15,7 @@ export default function AgentKnowledgePage() {
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -25,7 +28,9 @@ export default function AgentKnowledgePage() {
         const data = await getAgent(id);
         if (!cancelled) setAgent(data);
       } catch (err) {
-        if (!cancelled) setError(err.message || "Unable to load agent");
+        if (!cancelled) {
+          setError(err.message || "Unable to load agent");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -39,16 +44,16 @@ export default function AgentKnowledgePage() {
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-6 py-10">
-        <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
-        <Skeleton className="mt-6 h-40 w-full rounded-3xl bg-[var(--color-border)]" />
+      <main className="hapy-page">
+        <Skeleton className="h-40 w-full rounded-xl bg-[var(--color-border)]" />
+        <Skeleton className="mt-6 h-40 w-full rounded-xl bg-[var(--color-border)]" />
       </main>
     );
   }
 
   if (error || !agent) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-6 py-10">
+      <main className="hapy-page">
         <p className="text-sm text-[var(--color-danger)]">
           {error || "Agent not found"}
         </p>
@@ -63,28 +68,16 @@ export default function AgentKnowledgePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <div className="animate-fade-up">
-        <Link
-          href={`/agents/${agent.id}`}
-          className="text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline"
-        >
-          ← Back to agent
-        </Link>
-        <p className="mt-4 text-sm font-medium text-[var(--color-primary)]">
-          Knowledge base
-        </p>
-        <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)] sm:text-4xl">
-          {agent.name}
-        </h1>
-        <p className="mt-2 mb-8 text-[var(--color-text-secondary)]">
-          Add FAQ text or PDF documents this agent can use.
-        </p>
-      </div>
-
-      <div className="animate-fade-up-delay-1">
+    <main className="hapy-page">
+      <AgentHero agent={agent} onDelete={() => setDeleteOpen(true)} />
+      <div className="mt-6">
         <KnowledgeList agentId={agent.id} />
       </div>
+      <DeleteAgentDialog
+        agent={agent}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
     </main>
   );
 }

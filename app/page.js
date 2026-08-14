@@ -1,19 +1,21 @@
+import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
-import Link from "next/link";
+import { LandingFeatures } from "@/components/landing/LandingFeatures";
+import {
+  LandingCTA,
+  LandingFooter,
+} from "@/components/landing/LandingCTA";
 
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-h-dvh flex-1 flex-col bg-[var(--color-bg)]">
+      <LandingNav />
       <LandingHero />
       <LandingHowItWorks />
-      <footer className="border-t border-[var(--color-border)] px-6 py-8 text-center text-sm text-[var(--color-muted)]">
-        <span>Hapy — AI Customer Support & Insights</span>
-        <span className="mx-2">·</span>
-        <Link href="/login" className="text-[var(--color-primary)] hover:underline">
-          Sign in
-        </Link>
-      </footer>
+      <LandingFeatures />
+      <LandingCTA />
+      <LandingFooter />
     </main>
   );
 }

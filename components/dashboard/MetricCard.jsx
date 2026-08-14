@@ -4,53 +4,56 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const TONE = {
-  default: "from-[var(--color-primary)]/12 to-transparent",
-  positive: "from-[var(--color-success)]/12 to-transparent",
-  negative: "from-[var(--color-danger)]/12 to-transparent",
-  info: "from-[var(--color-info)]/12 to-transparent",
-  warning: "from-[var(--color-warning)]/12 to-transparent",
+  default: "bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
+  positive: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  negative: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+  info: "bg-[var(--color-info)]/10 text-[var(--color-info)]",
+  warning: "bg-[var(--color-warning)]/10 text-[var(--color-warning)]",
 };
 
-const DOT = {
-  default: "bg-[var(--color-primary)]",
-  positive: "bg-[var(--color-success)]",
-  negative: "bg-[var(--color-danger)]",
-  info: "bg-[var(--color-info)]",
-  warning: "bg-[var(--color-warning)]",
-};
-
-export function MetricCard({ label, value, loading, tone = "default", className }) {
+export function MetricCard({
+  label,
+  value,
+  hint,
+  loading,
+  tone = "default",
+  icon: Icon,
+  className,
+}) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 shadow-[var(--shadow-card)]",
         className
       )}
     >
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-0 bg-gradient-to-br",
-          TONE[tone] || TONE.default
-        )}
-      />
-      <div className="relative">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12px] font-medium leading-snug text-[var(--color-text-secondary)]">
+          {label}
+        </p>
+        {Icon ? (
           <span
-            className={cn("size-1.5 rounded-full", DOT[tone] || DOT.default)}
-          />
-          <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-            {label}
-          </p>
-        </div>
-        {loading ? (
-          <Skeleton className="mt-4 h-9 w-24 bg-[var(--color-border)]" />
-        ) : (
-          <p className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)]">
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-lg",
+              TONE[tone] || TONE.default
+            )}
+          >
+            <Icon className="size-4" aria-hidden />
+          </span>
+        ) : null}
+      </div>
+      {loading ? (
+        <Skeleton className="mt-4 h-8 w-20 bg-[var(--color-border)]" />
+      ) : (
+        <div className="mt-3">
+          <p className="truncate font-[family-name:var(--font-display)] text-[1.7rem] font-semibold leading-none tracking-tight text-[var(--color-text)]">
             {value}
           </p>
-        )}
-      </div>
+          <p className="mt-2 min-h-[16px] text-[11px] text-[var(--color-muted)]">
+            {hint || ""}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

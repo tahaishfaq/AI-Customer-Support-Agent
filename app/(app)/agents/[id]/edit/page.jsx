@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAgentCrumb } from "@/hooks/use-agent-crumb";
 
 export default function EditAgentPage() {
   const params = useParams();
@@ -13,6 +14,7 @@ export default function EditAgentPage() {
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  useAgentCrumb(agent?.name);
 
   useEffect(() => {
     if (!id) return;
@@ -39,16 +41,16 @@ export default function EditAgentPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
-        <Skeleton className="mx-auto h-8 w-48 bg-[var(--color-border)]" />
-        <Skeleton className="mx-auto mt-6 h-80 w-full max-w-2xl rounded-3xl bg-[var(--color-border)]" />
+      <main className="hapy-page">
+        <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+        <Skeleton className="mt-6 h-80 w-full max-w-2xl rounded-xl bg-[var(--color-border)]" />
       </main>
     );
   }
 
   if (error || !agent) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      <main className="hapy-page">
         <p className="text-sm text-[var(--color-danger)]">
           {error || "Agent not found"}
         </p>
@@ -63,22 +65,22 @@ export default function EditAgentPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <div className="animate-fade-up mx-auto max-w-2xl">
+    <main className="hapy-page">
+      <header>
         <Link
           href={`/agents/${agent.id}`}
-          className="text-sm font-medium text-[var(--color-primary)] underline-offset-2 hover:underline"
+          className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
         >
-          ← Back to agent
+          ← {agent.name}
         </Link>
-        <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)] sm:text-4xl">
-          Edit Agent
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-[var(--color-text)] sm:text-2xl">
+          Edit agent
         </h1>
-        <p className="mt-2 mb-8 text-[var(--color-text-secondary)]">
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Update settings for {agent.name}
         </p>
-      </div>
-      <div className="animate-fade-up-delay-1">
+      </header>
+      <div className="mt-6 max-w-2xl">
         <AgentForm mode="edit" initialAgent={agent} />
       </div>
     </main>

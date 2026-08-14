@@ -18,6 +18,7 @@ export function DeleteAgentDialog({
   open,
   onOpenChange,
   redirectTo = "/agents",
+  onDeleted,
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -30,8 +31,11 @@ export function DeleteAgentDialog({
     try {
       await deleteAgent(agent.id);
       onOpenChange?.(false);
-      router.push(redirectTo);
-      router.refresh();
+      onDeleted?.(agent.id);
+      if (!onDeleted) {
+        router.push(redirectTo);
+        router.refresh();
+      }
     } catch (err) {
       setError(err.message || "Unable to delete agent");
     } finally {

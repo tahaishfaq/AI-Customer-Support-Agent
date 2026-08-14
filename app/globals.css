@@ -9,9 +9,11 @@
   --color-primary: #0b5f58;
   --color-primary-hover: #0f766e;
   --color-primary-foreground: #ffffff;
-  --color-bg: #f8fafc;
+  --color-bg: #f3f6f7;
   --color-surface: #ffffff;
   --color-border: #e2e8f0;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 1px rgb(15 23 42 / 0.03);
+  --shadow-bar: 0 1px 0 rgb(15 23 42 / 0.04);
   --color-muted: #64748b;
   --color-text: #0f172a;
   --color-text-secondary: #475569;
@@ -27,6 +29,8 @@
   --font-sans: var(--font-instrument-sans), system-ui, sans-serif;
   --font-display: var(--font-dm-sans), system-ui, sans-serif;
   --radius: 0.5rem;
+  --sidebar-width: 244px;
+  --app-topbar-height: 52px;
 
   /* shadcn theme — mapped to brand */
   --background: var(--color-bg);
@@ -110,15 +114,17 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
   }
 
   html,
   body {
-    min-height: 100%;
+    min-height: 100dvh;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
   }
 
@@ -126,6 +132,42 @@
   h2,
   h3 {
     font-family: var(--font-display);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 18%, white);
+    color: var(--color-text);
+  }
+}
+
+.hapy-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.hapy-page {
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 1.5rem 1.5rem 2rem;
+}
+
+@media (min-width: 1024px) {
+  .hapy-page {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hapy-page {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
   }
 }
 
