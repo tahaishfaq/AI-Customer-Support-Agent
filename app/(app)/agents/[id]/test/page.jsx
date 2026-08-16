@@ -1,10 +1,10 @@
 "use client";
 
 import { AgentStudioFrame } from "@/components/agents/AgentStudioFrame";
-import { CustomizationStudio } from "@/components/customization/CustomizationStudio";
+import { AgentTestStudio } from "@/components/studio/AgentTestStudio";
 import { useAgentStudio } from "@/hooks/use-agent-studio";
 
-export default function AgentCustomizationPage() {
+export default function AgentTestPage() {
   const studio = useAgentStudio();
 
   return (
@@ -15,7 +15,7 @@ export default function AgentCustomizationPage() {
       deleteOpen={studio.deleteOpen}
       onDeleteOpenChange={studio.setDeleteOpen}
     >
-      {(agent) => <CustomizationStudio agent={agent} />}
+      {(agent) => <AgentTestStudio agent={agent} />}
     </AgentStudioFrame>
   );
 }

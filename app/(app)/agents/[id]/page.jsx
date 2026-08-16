@@ -1,54 +1,40 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { getAgent } from "@/lib/api/agents";
+import { AgentStudioFrame } from "@/components/agents/AgentStudioFrame";
+import { AgentOverview } from "@/components/agents/AgentOverview";
 import { getOverview } from "@/lib/api/analytics";
 import { listConversations } from "@/lib/api/conversations";
 import { listKnowledge } from "@/lib/api/knowledge";
-import { AgentHero } from "@/components/agents/AgentHero";
-import { AgentOverview } from "@/components/agents/AgentOverview";
-import { DeleteAgentDialog } from "@/components/agents/DeleteAgentDialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useAgentStudio } from "@/hooks/use-agent-studio";
 
 export default function AgentDetailPage() {
-  const params = useParams();
-  const id = params?.id;
-  const [agent, setAgent] = useState(null);
+  const studio = useAgentStudio();
   const [overview, setOverview] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [knowledgeCount, setKnowledgeCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!studio.id) return;
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
-      setError("");
       try {
-        const [agentData, overviewData, convoData, knowledge] =
-          await Promise.all([
-            getAgent(id),
-            getOverview({ agentId: id }),
-            listConversations({ agentId: id, limit: 8, offset: 0 }),
-            listKnowledge(id),
-          ]);
+        const [overviewData, convoData, knowledge] = await Promise.all([
+          getOverview({ agentId: studio.id }),
+          listConversations({ agentId: studio.id, limit: 8, offset: 0 }),
+          listKnowledge(studio.id),
+        ]);
         if (cancelled) return;
-        setAgent(agentData);
         setOverview(overviewData);
         setConversations(convoData.conversations || []);
         setKnowledgeCount(knowledge.length);
-      } catch (err) {
+      } catch {
         if (!cancelled) {
-          setError(err.message || "Unable to load agent");
+          setOverview(null);
+          setConversations([]);
+          setKnowledgeCount(0);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
 
@@ -56,52 +42,24 @@ export default function AgentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
-
-  if (loading) {
-    return (
-      <main className="hapy-page">
-        <Skeleton className="h-40 w-full rounded-xl bg-[var(--color-border)]" />
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <Skeleton className="h-24 rounded-xl bg-[var(--color-border)]" />
-          <Skeleton className="h-24 rounded-xl bg-[var(--color-border)]" />
-          <Skeleton className="h-24 rounded-xl bg-[var(--color-border)]" />
-        </div>
-        <Skeleton className="mt-6 h-72 w-full rounded-xl bg-[var(--color-border)]" />
-      </main>
-    );
-  }
-
-  if (error || !agent) {
-    return (
-      <main className="hapy-page">
-        <p className="text-sm text-[var(--color-danger)]">
-          {error || "Agent not found"}
-        </p>
-        <Link
-          href="/agents"
-          className="mt-4 inline-block text-sm font-medium text-[var(--color-primary)] underline"
-        >
-          Back to agents
-        </Link>
-      </main>
-    );
-  }
+  }, [studio.id]);
 
   return (
-    <main className="hapy-page">
-      <AgentHero agent={agent} onDelete={() => setDeleteOpen(true)} />
-      <AgentOverview
-        agent={agent}
-        overview={overview}
-        knowledgeCount={knowledgeCount}
-        conversations={conversations}
-      />
-      <DeleteAgentDialog
-        agent={agent}
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-      />
-    </main>
+    <AgentStudioFrame
+      agent={studio.agent}
+      loading={studio.loading}
+      error={studio.error}
+      deleteOpen={studio.deleteOpen}
+      onDeleteOpenChange={studio.setDeleteOpen}
+    >
+      {(agent) => (
+        <AgentOverview
+          agent={agent}
+          overview={overview}
+          knowledgeCount={knowledgeCount}
+          conversations={conversations}
+        />
+      )}
+    </AgentStudioFrame>
   );
 }

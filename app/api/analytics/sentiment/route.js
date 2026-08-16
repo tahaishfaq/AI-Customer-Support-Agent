@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
 import { handleAnalyticsError } from "@/app/api/analytics/handle-error";
-import {
-  assertAnalyticsQuery,
-  getOverviewForUser,
-} from "@/lib/services/analytics.service";
+import { getSentimentForUser } from "@/lib/services/analytics.service";
 
 export async function GET(request) {
   try {
@@ -12,15 +9,11 @@ export async function GET(request) {
     if (authResult.error) return authResult.error;
 
     const agentId = request.nextUrl.searchParams.get("agentId") || undefined;
-    const range = request.nextUrl.searchParams.get("range") || undefined;
-    assertAnalyticsQuery({ range });
-
-    const overview = await getOverviewForUser(authResult.user.id, {
+    const sentiment = await getSentimentForUser(authResult.user.id, {
       agentId,
-      range,
     });
-    return NextResponse.json(overview, { status: 200 });
+    return NextResponse.json(sentiment, { status: 200 });
   } catch (error) {
-    return handleAnalyticsError("GET /api/analytics/overview", error);
+    return handleAnalyticsError("GET /api/analytics/sentiment", error);
   }
 }

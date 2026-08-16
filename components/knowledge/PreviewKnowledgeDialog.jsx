@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { KnowledgeMarkdown } from "@/components/knowledge/KnowledgeMarkdown";
 import { cn } from "@/lib/utils";
 
 function formatDate(value) {
@@ -58,16 +59,16 @@ export function PreviewKnowledgeDialog({ document, open, onOpenChange }) {
               </DialogTitle>
               <DialogDescription className="mt-1">
                 {document.type} · Added {formatDate(document.createdAt)}
-                {isPdf ? " · Showing extracted text stored for chat" : ""}
+                {isPdf ? " · Extracted text used in chat" : ""}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <pre className="whitespace-pre-wrap break-words rounded-2xl bg-[var(--color-bg)] p-4 font-[family-name:var(--font-sans)] text-sm leading-relaxed text-[var(--color-text)]">
-            {document.content || "No content available."}
-          </pre>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/80 p-4 sm:p-5">
+            <KnowledgeMarkdown content={document.content} />
+          </div>
         </div>
 
         <DialogFooter className="border-t border-[var(--color-border)] px-5 py-3 sm:justify-between">

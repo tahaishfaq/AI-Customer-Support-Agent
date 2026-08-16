@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Share2, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAgentCrumb } from "@/hooks/use-agent-crumb";
+import { STUDIO_TABS, studioTabHref } from "@/components/agents/studio-tabs";
 import { cn } from "@/lib/utils";
 
 function formatDate(value) {
@@ -35,12 +36,11 @@ export function AgentHero({ agent, onDelete }) {
   const pathname = usePathname();
   const base = `/agents/${agent.id}`;
 
-  const tabs = [
-    { href: base, label: "Overview", exact: true },
-    { href: `${base}/knowledge`, label: "Knowledge" },
-    { href: `${base}/analytics`, label: "Analytics" },
-    { href: `${base}/customization`, label: "Customization" },
-  ];
+  const tabs = STUDIO_TABS.map((tab) => ({
+    href: studioTabHref(agent.id, tab.segment),
+    label: tab.label,
+    exact: tab.id === "overview",
+  }));
 
   return (
     <div className="hapy-card overflow-hidden">
@@ -72,11 +72,18 @@ export function AgentHero({ agent, onDelete }) {
 
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/chat?agentId=${agent.id}`}
+            href={`${base}/test`}
             className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
           >
-            <MessageSquare className="size-3.5" />
-            Chat
+            <FlaskConical className="size-3.5" />
+            Test
+          </Link>
+          <Link
+            href={`${base}/share`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
+          >
+            <Share2 className="size-3.5" />
+            Share
           </Link>
           <Link
             href={`/agents/${agent.id}/edit`}
@@ -99,8 +106,8 @@ export function AgentHero({ agent, onDelete }) {
       </div>
 
       <nav
-        className="flex gap-1 border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 px-3"
-        aria-label="Agent sections"
+        className="flex gap-1 overflow-x-auto border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 px-3"
+        aria-label="Agent studio"
       >
         {tabs.map((tab) => {
           const active = tab.exact
@@ -111,7 +118,7 @@ export function AgentHero({ agent, onDelete }) {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "-mb-px border-b-2 px-3 py-2.5 text-[13px] font-medium",
+                "shrink-0 -mb-px border-b-2 px-3 py-2.5 text-[13px] font-medium",
                 active
                   ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                   : "border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)]"

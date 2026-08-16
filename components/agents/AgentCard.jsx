@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
+  FlaskConical,
   MoreHorizontal,
   Pencil,
+  Share2,
   Trash2,
 } from "lucide-react";
 import { DeleteAgentDialog } from "@/components/agents/DeleteAgentDialog";
@@ -133,6 +135,20 @@ export function AgentCard({ agent, onDeleted }) {
                     <MoreHorizontal className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-40">
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/agents/${agent.id}/test`)}
+                    >
+                      <FlaskConical className="size-3.5" />
+                      Test
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/agents/${agent.id}/share`)}
+                    >
+                      <Share2 className="size-3.5" />
+                      Share
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={() => router.push(`/agents/${agent.id}/edit`)}

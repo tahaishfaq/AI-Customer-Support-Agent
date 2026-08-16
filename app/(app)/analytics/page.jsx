@@ -1,6 +1,6 @@
 "use client";
 
-import { AnalyticsBoard } from "@/components/analytics/AnalyticsBoard";
+import { WorkspaceAnalytics } from "@/components/analytics/WorkspaceAnalytics";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function AnalyticsPage() {
@@ -8,10 +8,10 @@ export default function AnalyticsPage() {
     <main className="hapy-page">
       <PageHeader
         title="Analytics"
-        description="Workspace conversations, sentiment, and topics."
+        description="Workspace-wide insight across all of your agents — volume, sentiment, timing, and how each agent compares."
       />
       <div className="mt-6">
-        <AnalyticsBoard />
+        <WorkspaceAnalytics />
       </div>
     </main>
   );

@@ -7,10 +7,11 @@ import {
   BookOpen,
   Clock,
   FileText,
+  FlaskConical,
   MessageSquare,
   MessagesSquare,
   Palette,
-  Pencil,
+  Share2,
   Sparkles,
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -83,10 +84,10 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
 
   const shortcuts = [
     {
-      href: `/chat?agentId=${agent.id}`,
-      label: "Test chat",
-      hint: "Talk to this agent",
-      icon: MessageSquare,
+      href: `/agents/${agent.id}/test`,
+      label: "Test",
+      hint: "Studio emulator",
+      icon: FlaskConical,
     },
     {
       href: `/agents/${agent.id}/knowledge`,
@@ -101,15 +102,15 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
       icon: Palette,
     },
     {
-      href: `/agents/${agent.id}/edit`,
-      label: "Edit agent",
-      hint: "Prompt & welcome",
-      icon: Pencil,
+      href: `/agents/${agent.id}/share`,
+      label: "Share",
+      hint: "Embed snippet",
+      icon: Share2,
     },
   ];
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="space-y-6">
       <section className="grid gap-3 sm:grid-cols-3">
         <MetricCard
           label="Conversations"
@@ -182,9 +183,18 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                   {readyCount} of 4 ready
                 </p>
               </div>
-              <span className="rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-muted)]">
-                {readyCount === 4 ? "Ready to share" : "In progress"}
-              </span>
+              {readyCount === 4 ? (
+                <Link
+                  href={`/agents/${agent.id}/share`}
+                  className="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]"
+                >
+                  Ready to share
+                </Link>
+              ) : (
+                <span className="rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-muted)]">
+                  In progress
+                </span>
+              )}
             </div>
             <div className="mt-3 divide-y divide-[var(--color-border)]">
               <SetupRow
@@ -214,6 +224,12 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                 label="Widget look"
                 hint="Identity, colors, embed, features"
                 href={`/agents/${agent.id}/customization`}
+              />
+              <SetupRow
+                done={false}
+                label="Test in Studio"
+                hint="Run greeting and knowledge scripts"
+                href={`/agents/${agent.id}/test`}
               />
             </div>
           </section>
@@ -343,7 +359,7 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                   No conversations yet.
                 </p>
                 <Link
-                  href={`/chat?agentId=${agent.id}`}
+                  href={`/agents/${agent.id}/test`}
                   className={cn(
                     buttonVariants({ size: "sm" }),
                     "mt-3 inline-flex gap-1.5"

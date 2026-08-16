@@ -1,3 +1,5 @@
+import { STUDIO_CRUMB_LABELS } from "@/components/agents/studio-tabs";
+
 export const PRIMARY_NAV = [
   { href: "/dashboard", label: "Home" },
   { href: "/agents", label: "Agents" },
@@ -31,33 +33,15 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
     return [workspace, { href: "/agents", label: "Agents" }, { label: "New" }];
   }
 
-  const analyticsMatch = pathname.match(/^\/agents\/([^/]+)\/analytics/);
-  if (analyticsMatch) {
+  const studioMatch = pathname.match(
+    /^\/agents\/([^/]+)\/(knowledge|analytics|customization|test|share|edit)$/
+  );
+  if (studioMatch) {
     return [
       workspace,
       { href: "/agents", label: "Agents" },
-      { href: `/agents/${analyticsMatch[1]}`, label: agentLabel },
-      { label: "Analytics" },
-    ];
-  }
-
-  const knowledgeMatch = pathname.match(/^\/agents\/([^/]+)\/knowledge/);
-  if (knowledgeMatch) {
-    return [
-      workspace,
-      { href: "/agents", label: "Agents" },
-      { href: `/agents/${knowledgeMatch[1]}`, label: agentLabel },
-      { label: "Knowledge" },
-    ];
-  }
-
-  const editMatch = pathname.match(/^\/agents\/([^/]+)\/edit/);
-  if (editMatch) {
-    return [
-      workspace,
-      { href: "/agents", label: "Agents" },
-      { href: `/agents/${editMatch[1]}`, label: agentLabel },
-      { label: "Edit" },
+      { href: `/agents/${studioMatch[1]}`, label: agentLabel },
+      { label: STUDIO_CRUMB_LABELS[studioMatch[2]] },
     ];
   }
 

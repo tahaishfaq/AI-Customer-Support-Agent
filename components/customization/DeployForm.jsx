@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy, ImagePlus, Loader2, MessageCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,23 +11,19 @@ import {
   FormSection,
   areaClass,
 } from "@/components/customization/CustomizationFields";
+import { buildEmbedSnippet } from "@/lib/customization/embed";
 import { cn } from "@/lib/utils";
-
-function buildEmbedSnippet(agentId) {
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://your-app.com";
-  return `<!-- Hapy webchat (public embed ships in a later phase) -->
-<script src="${origin}/embed.js" defer></script>
-<script>
-  window.hapyChat?.init({ agentId: "${agentId}" });
-</script>`;
-}
 
 export function DeployForm({ agentId, deploy, identity, onChange }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const snippet = buildEmbedSnippet(agentId);
+  const [origin, setOrigin] = useState("https://your-app.com");
+  const snippet = buildEmbedSnippet(agentId, origin);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   function patch(partial) {
     onChange({ ...deploy, ...partial });
@@ -68,7 +64,7 @@ export function DeployForm({ agentId, deploy, identity, onChange }) {
       <FormSection title="Install">
         <FieldBlock
           label="Embed code"
-          hint="Copy and paste this on your webpage. Public embed goes live in Phase 7."
+          hint="Copy and paste this on your webpage. Public embed ships in the next phase."
         >
           <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#0f172a]">
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
