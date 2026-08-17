@@ -5,6 +5,7 @@ import {
   chatMessageSchema,
   zodErrorDetails,
 } from "@/lib/validations/chat";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request, { params }) {
   try {
@@ -12,6 +13,16 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id: agentId } = await params;
+    const limited = rateLimit(
+      `studio-chat:${authResult.user.id}:${agentId}:${clientIp(request)}`,
+      { limit: 40, windowMs: 60_000 }
+    );
+    if (!limited.ok) {
+      return tooManyRequests(
+        limited,
+        "Too many messages. Try again shortly."
+      );
+    }
 
     let body;
     try {

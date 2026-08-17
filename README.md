@@ -1,103 +1,101 @@
 # Hapy — AI Customer Support & Customer Insights
 
-Next.js fullstack MVP (UI + API in one app).
+Next.js fullstack MVP: build an agent, add knowledge, chat, customize webchat, embed on a site, and read analytics.
+
+**Production:** [https://ai-customer-support-agent-ashen.vercel.app](https://ai-customer-support-agent-ashen.vercel.app)
 
 ## Stack
 
 - **Next.js 16** (App Router) · React 19 · Tailwind CSS 4 · shadcn/ui
 - **Prisma 7** · **Neon PostgreSQL**
+- **Auth.js (NextAuth v5)** · **OpenAI** · **Cloudinary** · **unpdf**
 - JavaScript (`.js` / `.jsx`)
+- Hosting: **Vercel** (Node **22+**)
 
-## Phase 0 status
-
-- [x] Next.js app runs
-- [x] Prisma schema (User → Agent → Knowledge / Conversations → Messages)
-- [x] `lib/prisma.js` + `.env.example`
-- [x] `GET /api/health`
-- [x] Global CSS colors + fonts
-- [x] shadcn/ui base components
-- [x] Neon migrate applied
-
-## Phase 1 Backend status
-
-- [x] Register (`POST /api/auth/register`) + bcrypt passwords
-- [x] **Auth.js (NextAuth v5)** session (Credentials + Google id-token)
-- [x] `GET /api/auth/me` from NextAuth session
-- [x] DIY JWT / `hapy_token` removed
-
-## Phase 1 Frontend status
-
-- [x] Landing page
-- [x] Login / Register + Google button (`signIn`)
-- [x] Dashboard shell + logout (`signOut`)
-- [x] NextAuth `SessionProvider` + cookie session (`credentials: "include"`)
-
-## Phase 2 Backend status
-
-- [x] Agents CRUD APIs
-- [x] `GET /api/analytics/overview`
-- [x] Protected with NextAuth `auth()` / `requireAuth`
-
-## Setup
-
-### 1. Install
+## Local setup
 
 ```bash
 npm install
-```
-
-### 2. Neon database
-
-1. Create a project at [console.neon.tech](https://console.neon.tech)
-2. Copy **pooled** connection → `DATABASE_URL` in `.env`
-3. Copy **direct** (non-pooler) connection → `DIRECT_URL` in `.env`
-
-```bash
 cp .env.example .env
-# edit .env with your Neon URLs
-```
-
-### 3. Migrate
-
-```bash
+# fill Neon, AUTH_SECRET, OPENAI, Cloudinary, Google client IDs
 npx prisma generate
-npx prisma migrate deploy
-# or during local development:
-npx prisma migrate dev
-```
-
-### 4. Run
-
-```bash
+npx prisma migrate deploy   # production / first clone
+# npx prisma migrate dev    # local schema changes
 npm run dev
 ```
 
-- App: http://localhost:3000  
-- Health: http://localhost:3000/api/health  
+- App: http://localhost:3000
+- Health: http://localhost:3000/api/health — `{ "status": "ok", "database": "ok" }`
 
-Expected health response:
+## Vercel (production)
 
-```json
-{
-  "status": "ok",
-  "service": "hapy-api",
-  "timestamp": "..."
-}
+1. Connect this GitHub repo. Framework: Next.js. Node.js **22.x**.
+2. Set env vars (same names as `.env.example`):
+
+| Variable | Notes |
+|----------|--------|
+| `DATABASE_URL` | Neon **pooled** URL |
+| `DIRECT_URL` | Neon **direct** (migrations) |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `AUTH_URL` | `https://YOUR-APP.vercel.app` (HTTPS, no trailing slash) |
+| `NEXT_PUBLIC_APP_URL` | Same production origin |
+| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | GIS button |
+| `OPENAI_API_KEY` | Chat + classify + test questions |
+| `CLOUDINARY_*` | PDF + avatars |
+
+3. After first deploy: `npx prisma migrate deploy` against production Neon (or run it from a machine with `DIRECT_URL`).
+4. Google Cloud: add the Vercel origin to authorized JavaScript origins.
+
+`postinstall` runs `prisma generate`. Do not commit `.env`.
+
+## Embed (live widget)
+
+From **Agent → Customization → Deploy** (or Share), copy the snippet. On your marketing site:
+
+```html
+<script
+  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=3"
+  data-hapy-key="YOUR_PUBLIC_KEY"
+  defer
+></script>
 ```
 
-## Project docs (parent folder)
+First load of the widget on a new origin queues a **one-time** crawl of that origin into WEB knowledge (not a daily recrawl).
 
-Plans and API contract live in the sibling `docs/` folder of the parent workspace:
+Public chat is rate-limited (~20 messages / minute / IP).
 
-- `NEXTJS_FULLSTACK_PLAN.md` — full phase plan
-- `api-contract.md` — API shapes
+## Product map
+
+| Area | Where |
+|------|--------|
+| Agents | `/agents` |
+| Knowledge (TEXT / PDF / WEB) | `/agents/[id]/knowledge` |
+| Conversations (per agent) | `/agents/[id]/conversations` |
+| Customization | `/agents/[id]/customization` |
+| Studio test | `/agents/[id]/test` |
+| Analytics | `/analytics` and `/agents/[id]/analytics` |
+| Public webchat | `/w/[publicKey]` |
+
+## Go-live smoke (after each deploy)
+
+1. Register / login on the Vercel URL.
+2. Create an agent → add TEXT knowledge → **Test** (optional auto-run pack).
+3. Upload a real PDF on Knowledge.
+4. Open **Conversations** on that agent — thread stays on this agent only.
+5. Customization → copy embed → paste on a page → send one public chat.
+6. `/api/health` returns `"database": "ok"`.
+7. `/analytics` shows the new conversation.
+
+## Docs
+
+Canonical MVP plan: [`docs/NEXTJS_FULLSTACK_PLAN.md`](docs/NEXTJS_FULLSTACK_PLAN.md)
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `npm run dev` | Dev server |
-| `npm run build` | Production build |
+| `npm run build` | Production build (what Vercel runs) |
 | `npm run prisma:generate` | Generate Prisma Client |
-| `npm run prisma:migrate` | Create/apply migrations |
+| `npm run prisma:migrate` | `prisma migrate dev` |
 | `npm run prisma:studio` | Open Prisma Studio |

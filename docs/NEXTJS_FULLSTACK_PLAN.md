@@ -27,9 +27,9 @@ Build agent → Add knowledge → Redesign (Hapy shell) → Chat → Customizati
 | Emulator chat + history           | Chat + Conversations                           | **5** ✅  |
 | Webchat settings / identity       | **Agent Customization**                        | **6** ✅  |
 | Studio hub tabs                   | Agent Studio tabs + Test + Share               | **7** ✅  |
-| **Webchat embed**                 | Public widget + snippet + **site knowledge crawl** | **8** |
-| Analytics                         | Charts + insights (charts live; pulled forward)| **9**    |
-| Publish / deploy                  | Vercel + rate limits                           | **10**   |
+| **Webchat embed**                 | Public widget + snippet + **site knowledge crawl** | **8** ✅ |
+| Analytics                         | Charts + insights (charts live; pulled forward)| **9** ✅ |
+| Publish / deploy                  | Vercel + rate limits                           | **10** ✅ |
 
 
 **Out of MVP:** flow canvas, WhatsApp/Slack, human desk, teams/billing, ADK.
@@ -51,15 +51,15 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 3. Agents CRUD
 4. Knowledge (TEXT + PDF / Cloudinary)
 5. Botpress-like redesign (Hapy shell)
-6. Chat + Conversations (multi-turn, history, inbox reply)
+6. Chat + Conversations (multi-turn, history; **per-agent inbox** in studio)
 7. Agent Customization (Identity / Appearance / Deploy / Features)
-8. Agent Studio (Overview / Knowledge / Analytics / Customization / **Test** / **Share**)
+8. Agent Studio (Overview / Knowledge / **Conversations** / Analytics / Customization / **Test** / **Share**)
 9. Analytics dashboards (workspace + per-agent — live data)
+10. **Vercel production** (live)
 
 ### Ordered MVP (remaining)
 
-1. **Phase 9 leftover** — `docs/data-pipeline.md` written; Phase 9 fully done
-2. **Phase 10 — Deploy**
+**None.** Phase 10 leftover is done. Next (post-MVP): [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A8.
 
 ---
 
@@ -72,7 +72,7 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 | UI        | React + Tailwind 4 + shadcn  |
 | Auth      | Auth.js / NextAuth v5        |
 | AI        | OpenAI                       |
-| PDF       | `pdf-parse` + **Cloudinary** |
+| PDF       | **unpdf** + **Cloudinary**   |
 | DB        | Neon + Prisma                |
 | Hosting   | Vercel                       |
 
@@ -93,13 +93,12 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 | **6**  | **Agent Customization**                 | Webchat settings     | [x]  |
 | **7**  | **Agent Studio tabs**                   | Studio hub           | [x]  |
 | **8**  | **Webchat embed + site knowledge**      | Webchat              | [x]  |
-| **9**  | **Analytics + Insights**                | Analytics            | [~]  |
-| **10** | **Deploy + Polish**                     | Ship                 | [ ]  |
+| **9**  | **Analytics + Insights**                | Analytics            | [x]  |
+| **10** | **Deploy + Polish**                     | Ship                 | [x]  |
 
 
-**Status (Aug 2026):** Phases **0–9 coded** (embed + live analytics + pipeline write-up). Next = **Phase 10 Deploy**.  
-Phase 8 still needs a real public embed (`publicKey` widget). First time that widget loads on a live site, Hapy **crawls that origin once** into WEB knowledge (no daily recrawl). Share + Customization Deploy still show a placeholder snippet.  
-Phase 9 leftover (`docs/data-pipeline.md`) is written. Charts are real Prisma aggregates, not sample data.
+**Status (18 Aug 2026):** Phases **0–10 DONE**. Live: https://ai-customer-support-agent-ashen.vercel.app  
+Public embed (`/w/[publicKey]` + `/embed.js`) and one-time origin crawl are in production. Conversations inbox is **per agent** (`/agents/[id]/conversations`). PDF extract uses **unpdf**. Auth/studio/public routes are rate-limited (in-memory per Vercel instance).
 
 **MVP = Phases 0–10.**  
 **Renumber note (Aug 2026):** Customization inserted as **Phase 6**. Purana Studio / Webchat / Analytics / Deploy → **7 / 8 / 9 / 10**.
@@ -116,6 +115,7 @@ Jo extra kaam original checklist ke baad add hua — yeh table demo / yaad rakhn
 | **7** | Real **Test** + **Share** tabs, AI **question pack**, **Ask yourself auto-run** (pause / resume / stop) |
 | **8** | Public embed snippet/`publicKey`, one-time website crawl → WEB knowledge |
 | **9** | Real workspace + per-agent dashboards **before** Phase 8 (heatmap, topics, sentiment share, volume Lines/Bars, range 7d/30d/all) |
+| **10** | Vercel live; Edge-safe `proxy.js` auth; **unpdf** PDF extract; conversations moved **into agent studio** |
 
 ---
 
@@ -519,16 +519,23 @@ Range: `7d` \| `30d` \| `all`. Empty range → empty chart, **no fake sample dat
 # PHASE 10 — Deploy + Polish
 
 **Was:** old Phase 9  
-**Maps to:** gap B5
+**Maps to:** gap B5  
+**Live:** https://ai-customer-support-agent-ashen.vercel.app  
 
 ### Phase 10 Checklist
 
-- [ ] Rate limits (auth chat + public webchat)  
+- [x] Public webchat rate limit (`POST /api/public/agents/[publicKey]/chat` ~20/min/IP)  
+- [x] Public origin ping rate limit (`POST .../ping`)  
+- [x] Rate limits on **register / login / studio chat / test-questions**  
 - [x] Responsive shell (`h-dvh`, content-only scroll)  
-- [ ] Vercel + env + migrations  
-- [ ] Smoke: agent → knowledge → Customization → Studio **auto-run test** → **embed** → **site crawl KB** → analytics  
-- [ ] README (incl. embed + customization)  
-- [ ] **PHASE 10 DONE**  
+- [x] Vercel + env + Neon migrations (production live)  
+- [x] Smoke (API + pages): register → agent → TEXT/PDF knowledge → chat grounded → test-questions → **per-agent inbox** → analytics → public embed chat → crawl ping  
+- [x] Go-live UI checklist documented in README  
+- [x] README (production URL, embed snippet, customization, env list)  
+- [x] `/api/health` pings Neon (`database: ok` / `503` if down)  
+- [x] **PHASE 10 DONE**  
+
+In-memory rate limit does not share counts across Vercel instances (acceptable for MVP). Redis/Upstash is post-MVP.  
 
 ---
 
@@ -536,7 +543,7 @@ Range: `7d` \| `30d` \| `all`. Empty range → empty chart, **no fake sample dat
 
 Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain)
 
-**After Phases 0–10 are DONE:** platform staff admin — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) (in-scope **A0–A8**, then out-of-scope **O1+** one by one). Do not start Admin while Phase 8–10 are open.
+**After Phases 0–10 are DONE:** platform staff admin — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) (in-scope **A0–A8**, then out-of-scope **O1+** one by one).
 
 **Never for MVP:** canvas, WhatsApp/Slack, desk, billing, platform admin, **open-web / competitor crawl**.
 
@@ -549,10 +556,9 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | ---- | ------------------------------------ |
 | ✅    | Phases 0–7                           |
 | ✅    | Phase 9 charts (pulled forward)      |
-| Next | **Phase 10 Deploy** (after a Phase 8 embed smoke test) |
-| Then | Phase 10 Deploy |
-| Then | Phase 10 Deploy                      |
-| After MVP | **Admin in-scope** [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A8 |
+| ✅    | Phase 8 embed + crawl                |
+| ✅    | Phase 10 **Vercel live** + leftover (rate limits, README, health) |
+| Next | **Admin in-scope** [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A8 |
 | After Admin v1 | Admin out-of-scope **O1, then O2, …** (one at a time) |
 
 
@@ -580,7 +586,9 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | URL                              | Phase                |
 | -------------------------------- | -------------------- |
 | `/dashboard`, `/agents`, …       | 2–3 + **4 redesign** |
-| `/chat`, `/conversations`        | **5** (+ 4 layout)   |
+| `/chat`                              | **5** (+ 4 layout)   |
+| `/agents/[id]/conversations`         | **5** (moved from sidebar, Phase 10) |
+| `/agents/[id]/conversations/[id]`    | **5** thread         |
 | `/agents/[id]/customization`     | **6**                |
 | `/agents/[id]/test`              | **7** Test emulator  |
 | `/agents/[id]/customization`     | **6** Deploy snippet |
@@ -606,13 +614,14 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 
 - [x] Auth, Agents, Knowledge  
 - [x] **Botpress-like redesign (Phase 4)**  
-- [x] Chat + conversations (Phase 5)  
+- [x] Chat + conversations (Phase 5; per-agent inbox)  
 - [x] **Agent Customization (Phase 6)**  
 - [x] Studio tabs polish (Phase 7) + **Test auto-run**  
 - [x] Webchat embed + origin site knowledge (Phase 8)  
 - [x] Analytics charts (Phase 9 — live) + `docs/data-pipeline.md`  
-- [ ] Deployed + README (Phase 10)  
-- [ ] Phases **0–10** DONE  
+- [x] Deployed on Vercel (Phase 10)  
+- [x] README + rate limits + health DB check (Phase 10)  
+- [x] Phases **0–10** DONE  
 
 ---
 
@@ -633,4 +642,4 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`                       | **After MVP:** platform Admin (SaaS ops)     |
 
 
-**Phase 4 = look like a product shell. Phase 6 = customize webchat. Phase 7 = Studio Test/Share. Later = public embed → pipeline write-up → Deploy.**
+**Phase 4 = look like a product shell. Phase 6 = customize webchat. Phase 7 = Studio Test/Share. Phase 8 = public embed. Phase 9 = analytics. Phase 10 = live on Vercel (DONE).**

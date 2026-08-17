@@ -87,7 +87,12 @@ async function main() {
     String(dash.status)
   );
 
-  await req("GET", "/api/health", { expect: [200] });
+  const health = await req("GET", "/api/health", { expect: [200] });
+  pass(
+    "health database ok",
+    health.data?.database === "ok",
+    JSON.stringify(health.data)
+  );
   await req("GET", "/api/agents", { expect: [401] });
   await req("GET", "/api/auth/session", { expect: [200] });
 

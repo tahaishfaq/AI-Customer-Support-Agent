@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/require-auth";
 import { generateAgentTestQuestions } from "@/lib/services/test-questions.service";
 import { zodErrorDetails } from "@/lib/validations/auth";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   previousPrompts: z.array(z.string().trim().min(1).max(400)).max(24).optional(),
@@ -14,6 +15,16 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id: agentId } = await params;
+    const limited = rateLimit(`test-pack:${authResult.user.id}:${agentId}`, {
+      limit: 8,
+      windowMs: 60_000,
+    });
+    if (!limited.ok) {
+      return tooManyRequests(
+        limited,
+        "Too many test packs. Try again shortly."
+      );
+    }
 
     let body = {};
     try {
