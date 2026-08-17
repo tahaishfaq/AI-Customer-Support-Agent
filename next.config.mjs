@@ -2,13 +2,7 @@
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
-  serverExternalPackages: [
-    "unpdf",
-    "pg",
-    "bcrypt",
-    "@prisma/client",
-    "@prisma/adapter-pg",
-  ],
+  serverExternalPackages: ["pg", "bcrypt", "@prisma/client", "@prisma/adapter-pg"],
   devIndicators: false,
   async headers() {
     return [
