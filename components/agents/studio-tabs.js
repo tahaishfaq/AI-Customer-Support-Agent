@@ -4,7 +4,6 @@ export const STUDIO_TABS = [
   { id: "analytics", segment: "analytics", label: "Analytics" },
   { id: "customization", segment: "customization", label: "Customization" },
   { id: "test", segment: "test", label: "Test" },
-  { id: "share", segment: "share", label: "Share" },
 ];
 
 export const STUDIO_CRUMB_LABELS = {
@@ -12,7 +11,6 @@ export const STUDIO_CRUMB_LABELS = {
   analytics: "Analytics",
   customization: "Customization",
   test: "Test",
-  share: "Share",
   edit: "Edit",
 };
 

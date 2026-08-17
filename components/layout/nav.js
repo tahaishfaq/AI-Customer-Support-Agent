@@ -6,7 +6,6 @@ export const PRIMARY_NAV = [
 ];
 
 export const MONITOR_NAV = [
-  { href: "/chat", label: "Chat" },
   { href: "/conversations", label: "Conversations" },
   { href: "/analytics", label: "Analytics" },
 ];
@@ -34,7 +33,7 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
   }
 
   const studioMatch = pathname.match(
-    /^\/agents\/([^/]+)\/(knowledge|analytics|customization|test|share|edit)$/
+    /^\/agents\/([^/]+)\/(knowledge|analytics|customization|test|edit)$/
   );
   if (studioMatch) {
     return [

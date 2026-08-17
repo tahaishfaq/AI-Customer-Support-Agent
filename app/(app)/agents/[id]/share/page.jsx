@@ -1,21 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { AgentStudioFrame } from "@/components/agents/AgentStudioFrame";
-import { AgentSharePanel } from "@/components/studio/AgentSharePanel";
-import { useAgentStudio } from "@/hooks/use-agent-studio";
-
-export default function AgentSharePage() {
-  const studio = useAgentStudio();
-
-  return (
-    <AgentStudioFrame
-      agent={studio.agent}
-      loading={studio.loading}
-      error={studio.error}
-      deleteOpen={studio.deleteOpen}
-      onDeleteOpenChange={studio.setDeleteOpen}
-    >
-      {(agent) => <AgentSharePanel agent={agent} />}
-    </AgentStudioFrame>
-  );
+export default async function AgentShareRedirect({ params }) {
+  const { id } = await params;
+  redirect(`/agents/${id}/customization`);
 }

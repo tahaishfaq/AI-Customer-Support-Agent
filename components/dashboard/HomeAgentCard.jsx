@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, MessageSquare } from "lucide-react";
+import { BarChart3, BookOpen, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function monogram(name) {
@@ -57,11 +57,11 @@ export function HomeAgentCard({ agent, conversationCount = 0, messageCount = 0 }
 
       <div className="mt-4 flex gap-2">
         <Link
-          href={`/chat?agentId=${agent.id}`}
+          href={`/agents/${agent.id}/test`}
           className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
         >
-          <MessageSquare className="size-3.5" />
-          Chat
+          <FlaskConical className="size-3.5" />
+          Test
         </Link>
         <Link
           href={`/agents/${agent.id}/knowledge`}

@@ -11,7 +11,6 @@ import {
   MessageSquare,
   MessagesSquare,
   Palette,
-  Share2,
   Sparkles,
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -101,12 +100,6 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
       hint: customization.appearance.theme === "dark" ? "Dark widget" : "Light widget",
       icon: Palette,
     },
-    {
-      href: `/agents/${agent.id}/share`,
-      label: "Share",
-      hint: "Embed snippet",
-      icon: Share2,
-    },
   ];
 
   return (
@@ -146,7 +139,7 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
         />
       </section>
 
-      <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-2 sm:grid-cols-3">
         {shortcuts.map((item) => {
           const Icon = item.icon;
           return (
@@ -185,10 +178,10 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
               </div>
               {readyCount === 4 ? (
                 <Link
-                  href={`/agents/${agent.id}/share`}
+                  href={`/agents/${agent.id}/customization`}
                   className="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]"
                 >
-                  Ready to share
+                  Ready to deploy
                 </Link>
               ) : (
                 <span className="rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-muted)]">

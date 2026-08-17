@@ -73,7 +73,12 @@ export function CustomizationStudio({ agent }) {
       setSaved(JSON.stringify(next));
       toast.success("Customization saved");
     } catch (err) {
-      toast.error(err.message || "Unable to save customization");
+      const detail = Object.values(err.details || {}).find(Boolean);
+      toast.error(
+        detail && detail !== err.message
+          ? `${err.message}: ${detail}`
+          : err.message || "Unable to save customization"
+      );
     } finally {
       setSaving(false);
     }
@@ -170,6 +175,7 @@ export function CustomizationStudio({ agent }) {
             {sectionId === "deploy" ? (
               <DeployForm
                 agentId={agent.id}
+                publicKey={agent.publicKey}
                 deploy={draft.deploy}
                 identity={draft.identity}
                 onChange={(deploy) => patchSection("deploy", deploy)}

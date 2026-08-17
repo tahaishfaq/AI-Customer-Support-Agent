@@ -32,6 +32,14 @@ enum Category {
 enum KnowledgeType {
   PDF
   TEXT
+  WEB
+}
+
+enum CrawlJobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
 }
 
 model User {
@@ -87,18 +95,23 @@ model VerificationToken {
 }
 
 model Agent {
-  id             String              @id @default(cuid())
-  userId         String
-  name           String
-  description    String?
-  systemPrompt   String
-  welcomeMessage String
-  customization  Json?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  knowledgeDocs  KnowledgeDocument[]
-  conversations  Conversation[]
+  id                   String              @id @default(cuid())
+  userId               String
+  name                 String
+  description          String?
+  systemPrompt         String
+  welcomeMessage       String
+  customization        Json?
+  publicKey            String?             @unique
+  embedEnabled         Boolean             @default(true)
+  siteKnowledgeOrigin  String?
+  siteCrawledAt        DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  knowledgeDocs        KnowledgeDocument[]
+  conversations        Conversation[]
+  crawlJobs            SiteCrawlJob[]
 
   @@index([userId])
 }
@@ -108,14 +121,34 @@ model KnowledgeDocument {
   agentId            String
   name               String
   type               KnowledgeType
-  content            String // FAQ text or extracted PDF text (for chat)
+  content            String // FAQ text, extracted PDF, or crawled website text
   fileUrl            String? // Cloudinary secure_url (PDF only)
   cloudinaryPublicId String? // for destroy on delete (PDF only)
+  sourceUrl          String?
+  origin             String?
+  crawlJobId         String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   agent              Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
+  @@index([crawlJobId])
+}
+
+model SiteCrawlJob {
+  id           String         @id @default(cuid())
+  agentId      String
+  origin       String
+  status       CrawlJobStatus @default(QUEUED)
+  pagesCrawled Int            @default(0)
+  error        String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  agent        Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([status])
 }
 
 model Conversation {

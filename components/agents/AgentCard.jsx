@@ -9,7 +9,7 @@ import {
   FlaskConical,
   MoreHorizontal,
   Pencil,
-  Share2,
+  Rocket,
   Trash2,
 } from "lucide-react";
 import { DeleteAgentDialog } from "@/components/agents/DeleteAgentDialog";
@@ -102,10 +102,10 @@ export function AgentCard({ agent, onDeleted }) {
               Open
             </Link>
             <Link
-              href={`/chat?agentId=${agent.id}`}
+              href={`/agents/${agent.id}/test`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Chat
+              Test
             </Link>
             <div className="ml-auto flex items-center">
               <IconTip label="Knowledge">
@@ -144,10 +144,12 @@ export function AgentCard({ agent, onDeleted }) {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer"
-                      onClick={() => router.push(`/agents/${agent.id}/share`)}
+                      onClick={() =>
+                        router.push(`/agents/${agent.id}/customization`)
+                      }
                     >
-                      <Share2 className="size-3.5" />
-                      Share
+                      <Rocket className="size-3.5" />
+                      Deploy
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer"

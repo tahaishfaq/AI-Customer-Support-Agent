@@ -20,7 +20,10 @@ const fieldClass =
   "mt-1.5 h-11 rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
 
 const areaClass =
-  "mt-1.5 rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+  "mt-1.5 max-h-32 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+
+const promptClass =
+  "mt-1.5 max-h-40 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
 
 export function AgentForm({ mode = "create", initialAgent = null }) {
   const router = useRouter();
@@ -133,7 +136,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
           onChange={(e) => setSystemPrompt(e.target.value)}
           disabled={loading}
           rows={5}
-          className={areaClass}
+          className={promptClass}
           required
         />
         <p className="mt-1.5 text-xs text-[var(--color-muted)]">

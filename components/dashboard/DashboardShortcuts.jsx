@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Bot, MessageSquare } from "lucide-react";
+import { BarChart3, Bot, MessagesSquare } from "lucide-react";
 
 const ACTIONS = [
   {
@@ -9,10 +9,10 @@ const ACTIONS = [
     icon: Bot,
   },
   {
-    href: "/chat",
-    title: "Open Chat",
-    description: "Test an agent in the emulator",
-    icon: MessageSquare,
+    href: "/conversations",
+    title: "Conversations",
+    description: "Read and reply in the inbox",
+    icon: MessagesSquare,
   },
   {
     href: "/analytics",

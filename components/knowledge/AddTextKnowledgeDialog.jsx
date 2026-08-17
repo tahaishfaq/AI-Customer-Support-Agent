@@ -238,7 +238,7 @@ export function AddTextKnowledgeDialog({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   disabled={loading}
-                  className="mt-1.5 h-full min-h-[220px] flex-1 resize-none"
+                  className="mt-1.5 h-full max-h-none min-h-[220px] flex-1 resize-none"
                   placeholder="# About Hapy Co&#10;&#10;- MVP Development&#10;- AI Integration"
                 />
               </div>
