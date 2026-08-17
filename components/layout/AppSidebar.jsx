@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
 import {
   MONITOR_NAV,
   PRIMARY_NAV,
@@ -75,24 +76,8 @@ export function AppSidebar({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-surface)]">
-      <div className="flex h-[var(--app-topbar-height)] items-center gap-2.5 border-b border-[var(--color-border)] px-3.5">
-        <Link
-          href="/dashboard"
-          onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2.5"
-        >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] font-[family-name:var(--font-display)] text-[13px] font-semibold text-white">
-            H
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate font-[family-name:var(--font-display)] text-sm font-semibold leading-tight text-[var(--color-text)]">
-              Hapy
-            </span>
-            <span className="block truncate text-[11px] leading-tight text-[var(--color-muted)]">
-              Workspace
-            </span>
-          </span>
-        </Link>
+      <div className="flex h-[var(--app-topbar-height)] items-center border-b border-[var(--color-border)] px-3.5">
+        <WorkspaceSwitcher />
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 py-3">

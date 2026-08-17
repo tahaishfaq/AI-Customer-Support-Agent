@@ -251,10 +251,10 @@ export function AgentTestStudio({ agent }) {
     await runNextQuestion();
   }
 
-  function startSelfTest() {
+  function startRun(items) {
     if (runRef.current.status === "running") return;
-    const queue = selfQuestions
-      .map((item) => ({ id: item.id, prompt: item.prompt.trim() }))
+    const queue = items
+      .map((item) => ({ id: item.id, prompt: (item.prompt || "").trim() }))
       .filter((item) => item.prompt);
     if (queue.length === 0) {
       toast.error("Add at least one question");
@@ -265,6 +265,14 @@ export function AgentTestStudio({ agent }) {
     setRunIndex(0);
     setRunStatus("running");
     runNextQuestion();
+  }
+
+  function startSelfTest() {
+    startRun(selfQuestions);
+  }
+
+  function startPackTest() {
+    startRun(questions);
   }
 
   function pauseSelfTest() {
@@ -361,6 +369,96 @@ export function AgentTestStudio({ agent }) {
 
   const panelHeight = "h-[min(640px,72vh)] min-h-[480px]";
 
+  function RunTestButtons({ onStart, startDisabled }) {
+    if (runStatus === "running") {
+      return (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={pauseSelfTest}
+          >
+            <Pause className="size-3.5" />
+            Pause
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-[var(--color-danger)]"
+            onClick={stopSelfTest}
+          >
+            <Square className="size-3.5" />
+            Stop
+          </Button>
+        </>
+      );
+    }
+    if (runStatus === "paused") {
+      return (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            className="gap-1.5"
+            onClick={resumeSelfTest}
+            disabled={sending}
+          >
+            {sending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Play className="size-3.5" />
+            )}
+            Resume
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-[var(--color-danger)]"
+            onClick={stopSelfTest}
+          >
+            <Square className="size-3.5" />
+            Stop
+          </Button>
+        </>
+      );
+    }
+    return (
+      <Button
+        type="button"
+        size="sm"
+        className="gap-1.5"
+        onClick={onStart}
+        disabled={startDisabled}
+      >
+        <Play className="size-3.5" />
+        Run test
+      </Button>
+    );
+  }
+
+  function runProgressLine() {
+    if (runStatus === "idle") return null;
+    const ids = new Set(
+      (mode === "self" ? selfQuestions : questions).map((item) => item.id)
+    );
+    if (!runQueue.some((row) => ids.has(row.id))) return null;
+    return (
+      <p className="mt-2 shrink-0 text-[12px] text-[var(--color-muted)]">
+        {runStatus === "running"
+          ? `Running ${Math.min(runIndex + 1, runQueue.length)} of ${runQueue.length}`
+          : runStatus === "paused"
+            ? `Paused at ${Math.min(runIndex + 1, runQueue.length)} of ${runQueue.length}`
+            : runStatus === "done"
+              ? `Finished ${runQueue.length} of ${runQueue.length}`
+              : `Stopped · ${Math.min(runIndex, runQueue.length)} of ${runQueue.length} sent`}
+      </p>
+    );
+  }
+
   return (
     <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)]">
       <section className={cn("hapy-card flex flex-col overflow-hidden p-5", panelHeight)}>
@@ -405,85 +503,17 @@ export function AgentTestStudio({ agent }) {
                 Add your questions, then run them one by one.
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {runStatus === "running" ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={pauseSelfTest}
-                    >
-                      <Pause className="size-3.5" />
-                      Pause
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-[var(--color-danger)]"
-                      onClick={stopSelfTest}
-                    >
-                      <Square className="size-3.5" />
-                      Stop
-                    </Button>
-                  </>
-                ) : runStatus === "paused" ? (
-                  <>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={resumeSelfTest}
-                      disabled={sending}
-                    >
-                      {sending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Play className="size-3.5" />
-                      )}
-                      Resume
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-[var(--color-danger)]"
-                      onClick={stopSelfTest}
-                    >
-                      <Square className="size-3.5" />
-                      Stop
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={startSelfTest}
-                    disabled={
-                      sending ||
-                      !selfQuestions.some((item) => item.prompt.trim())
-                    }
-                  >
-                    <Play className="size-3.5" />
-                    Run test
-                  </Button>
-                )}
+                <RunTestButtons
+                  onStart={startSelfTest}
+                  startDisabled={
+                    sending ||
+                    !selfQuestions.some((item) => item.prompt.trim())
+                  }
+                />
               </div>
             </div>
 
-            {runStatus !== "idle" ? (
-              <p className="mt-2 shrink-0 text-[12px] text-[var(--color-muted)]">
-                {runStatus === "running"
-                  ? `Running ${Math.min(runIndex + 1, runQueue.length)} of ${runQueue.length}`
-                  : runStatus === "paused"
-                    ? `Paused at ${Math.min(runIndex + 1, runQueue.length)} of ${runQueue.length}`
-                    : runStatus === "done"
-                      ? `Finished ${runQueue.length} of ${runQueue.length}`
-                      : `Stopped · ${Math.min(runIndex, runQueue.length)} of ${runQueue.length} sent`}
-              </p>
-            ) : null}
+            {runProgressLine()}
 
             <ol className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {selfQuestions.map((item, index) => {
@@ -555,41 +585,75 @@ export function AgentTestStudio({ agent }) {
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <p className="text-[12px] text-[var(--color-muted)]">
                 {generated
-                  ? "Built from this agent’s details. Edit any line, then send."
-                  : "Starter pack — generate a set from this agent, or edit these."}
+                  ? "Built from this agent’s details. Run the pack, or send one line."
+                  : "Starter pack — generate with AI, then run the full test."}
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleGenerate}
-                disabled={generating || sending || runActive}
-              >
-                {generating ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : generated ? (
-                  <RefreshCw className="size-3.5" />
-                ) : (
-                  <Sparkles className="size-3.5" />
-                )}
-                {generating
-                  ? "Generating…"
-                  : generated
-                    ? "Regenerate"
-                    : "Generate with AI"}
-              </Button>
+              <div className="flex flex-wrap gap-1.5">
+                <RunTestButtons
+                  onStart={startPackTest}
+                  startDisabled={
+                    sending ||
+                    generating ||
+                    !questions.some((item) => item.prompt.trim())
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={handleGenerate}
+                  disabled={generating || sending || runActive}
+                >
+                  {generating ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : generated ? (
+                    <RefreshCw className="size-3.5" />
+                  ) : (
+                    <Sparkles className="size-3.5" />
+                  )}
+                  {generating
+                    ? "Generating…"
+                    : generated
+                      ? "Regenerate"
+                      : "Generate with AI"}
+                </Button>
+              </div>
             </div>
 
+            {runProgressLine()}
+
             <ol className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              {questions.map((item, index) => (
+              {questions.map((item, index) => {
+                const queuePos = runQueue.findIndex((row) => row.id === item.id);
+                const current =
+                  runActive && queuePos === runIndex && queuePos >= 0;
+                const done =
+                  queuePos >= 0 &&
+                  runStatus !== "idle" &&
+                  (runStatus === "done" || runIndex > queuePos);
+                return (
                 <li
                   key={item.id}
-                  className="rounded-xl border border-[var(--color-border)] px-3 py-2.5"
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5",
+                    current
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                      : "border-[var(--color-border)]"
+                  )}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[13px] font-medium text-[var(--color-text)]">
                       {index + 1}. {item.title}
+                      {current && sending ? (
+                        <span className="ml-1.5 text-[11px] font-normal text-[var(--color-primary)]">
+                          Sending…
+                        </span>
+                      ) : done ? (
+                        <span className="ml-1.5 text-[11px] font-normal text-[var(--color-muted)]">
+                          Sent
+                        </span>
+                      ) : null}
                     </p>
                     <button
                       type="button"
@@ -604,7 +668,8 @@ export function AgentTestStudio({ agent }) {
                     value={item.prompt}
                     onChange={(e) => patchQuestion(item.id, e.target.value)}
                     rows={2}
-                    className="mt-2 w-full resize-none rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1.5 font-mono text-[12px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)]"
+                    disabled={runActive}
+                    className="mt-2 w-full resize-none rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1.5 font-mono text-[12px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)] disabled:opacity-60"
                   />
                   {item.expected ? (
                     <p className="mt-1 text-[11px] text-[var(--color-muted)]">
@@ -612,7 +677,8 @@ export function AgentTestStudio({ agent }) {
                     </p>
                   ) : null}
                 </li>
-              ))}
+                );
+              })}
             </ol>
           </div>
         )}

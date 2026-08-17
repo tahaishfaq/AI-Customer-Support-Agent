@@ -32,7 +32,8 @@ Build agent → Add knowledge → Redesign (Hapy shell) → Chat → Customizati
 | Publish / deploy                  | Vercel + rate limits                           | **10** ✅ |
 
 
-**Out of MVP:** flow canvas, WhatsApp/Slack, human desk, teams/billing, ADK.
+**Out of MVP (Phases 0–10):** flow canvas, WhatsApp/Slack, human desk, teams/billing, ADK.  
+**After MVP (in-scope next):** **Phase 11 — multiple workspaces**, then **Admin** ([`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md)).
 
 ---
 
@@ -57,9 +58,11 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 9. Analytics dashboards (workspace + per-agent — live data)
 10. **Vercel production** (live)
 
-### Ordered MVP (remaining)
+### Ordered next (after MVP)
 
-**None.** Phase 10 leftover is done. Next (post-MVP): [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A8.
+1. **Phase 11 — Multiple workspaces** (this file, in-scope)
+2. **Admin in-scope** — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A6 (one admin; sees every user’s workspaces / agents / chats / analytics)
+3. Admin **out-of-scope** O1+ (impersonate, extra admins, teams, billing, …)
 
 ---
 
@@ -95,12 +98,13 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 | **8**  | **Webchat embed + site knowledge**      | Webchat              | [x]  |
 | **9**  | **Analytics + Insights**                | Analytics            | [x]  |
 | **10** | **Deploy + Polish**                     | Ship                 | [x]  |
+| **11** | **Multiple workspaces**                 | Botpress switcher    | [x]  |
 
 
-**Status (18 Aug 2026):** Phases **0–10 DONE**. Live: https://ai-customer-support-agent-ashen.vercel.app  
-Public embed (`/w/[publicKey]` + `/embed.js`) and one-time origin crawl are in production. Conversations inbox is **per agent** (`/agents/[id]/conversations`). PDF extract uses **unpdf**. Auth/studio/public routes are rate-limited (in-memory per Vercel instance).
+**Status (18 Aug 2026):** Phases **0–11 DONE**. Live: https://ai-customer-support-agent-ashen.vercel.app  
+**Next in-scope:** Admin (one `ADMIN` + `USER` roles).
 
-**MVP = Phases 0–10.**  
+**MVP = Phases 0–10.** **Post-MVP in-scope = Phase 11 + Admin A0–A6.**  
 **Renumber note (Aug 2026):** Customization inserted as **Phase 6**. Purana Studio / Webchat / Analytics / Deploy → **7 / 8 / 9 / 10**.
 
 ### Extra vs original (demo notes)
@@ -116,6 +120,7 @@ Jo extra kaam original checklist ke baad add hua — yeh table demo / yaad rakhn
 | **8** | Public embed snippet/`publicKey`, one-time website crawl → WEB knowledge |
 | **9** | Real workspace + per-agent dashboards **before** Phase 8 (heatmap, topics, sentiment share, volume Lines/Bars, range 7d/30d/all) |
 | **10** | Vercel live; Edge-safe `proxy.js` auth; **unpdf** PDF extract; conversations moved **into agent studio** |
+| **11** | Workspace model + cookie `hapy_workspace`; top-left switcher (search / create / rename / delete) |
 
 ---
 
@@ -539,13 +544,92 @@ In-memory rate limit does not share counts across Vercel instances (acceptable f
 
 ---
 
-## Optional post-MVP
+# PHASE 11 — Multiple workspaces (in-scope)
+
+**Maps to:** Botpress Cloud workspace switcher (top-left).  
+**When:** after Phase 10. **Before** Admin (admin inspects these workspaces).
+
+### Product rule
+
+- **USER** owns **many workspaces**.
+- Top-left (sidebar header, where “Hapy / Workspace” is today): **current workspace** + chevron.
+- Dropdown (Hapy teal, not Botpress dark clone): search, list of *this user’s* workspaces, **+ Create a workspace**.
+- Active workspace scopes **everything**: dashboard, agents, knowledge, conversations, analytics, customization, embed crawl origin.
+- Agents **belong to a workspace**, not loosely to the user.
+- Switching workspace does not log the user out.
+
+### Data
+
+```
+User 1──* Workspace 1──* Agent (existing children: knowledge, conversations, …)
+```
+
+- First login: auto-create `Default Workspace` (or migrate all existing agents into one default workspace per user).
+- `workspaceId` on `Agent`. Keep `userId` on Workspace only (owner).
+- Session or cookie: `activeWorkspaceId` (must be owned by the user).
+- Unique workspace **name per user** (trim, 1–60 chars).
+
+### UI
+
+- Trigger: icon + **workspace name** + muted line (e.g. “Personal”) + up/down chevron — same placement as the screenshot (top-left of the app shell).
+- Popover: search “Search workspaces…”, list with check on active, footer **+ Create a workspace**.
+- Create: name → new empty workspace → switch to it.
+- Rename / delete workspace (delete only if empty, or move/delete agents with confirm) — include in this phase so Admin has a stable entity.
+- Empty workspace: “Create your first agent”.
+
+### APIs
+
+```
+GET    /api/workspaces
+POST   /api/workspaces                 { name }
+GET    /api/workspaces/[id]
+PUT    /api/workspaces/[id]            { name }
+DELETE /api/workspaces/[id]
+POST   /api/workspaces/[id]/activate   // set active workspace
+```
+
+All customer agent/analytics/chat routes: **filter by active workspace**.  
+Public embed unchanged (`publicKey` still on Agent).
+
+### Checklist
+
+- [x] Prisma migrate + backfill Default Workspace per existing user
+- [x] Switcher UI (search, list, create) top-left
+- [x] Agents / dashboard / analytics / conversations scoped to active workspace
+- [x] Cannot open another user’s workspace by URL
+- [x] Rename + delete (with confirm)
+- [ ] Production smoke: two workspaces, agents do not leak across
+- [x] **PHASE 11 DONE** (apply migration on Neon / Vercel before go-live of this phase)
+
+---
+
+## Optional post-MVP (after Phase 11 + Admin)
 
 Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain)
 
-**After Phases 0–10 are DONE:** platform staff admin — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) (in-scope **A0–A8**, then out-of-scope **O1+** one by one).
+**After Phase 11:** Admin — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) (in-scope **A0–A6**, then out-of-scope **O1+**).
 
-**Never for MVP:** canvas, WhatsApp/Slack, desk, billing, platform admin, **open-web / competitor crawl**.
+---
+
+## Out of scope (this product — do not start)
+
+Yeh **main plan** ke bahar rehte hain jab tak explicitly na uthaya jaye. Admin-side later list: same file **O1+**.
+
+| ID | Item | Notes |
+| -- | ---- | ----- |
+| **P-O1** | Flow canvas / visual bot builder | Never-MVP |
+| **P-O2** | WhatsApp / Slack / Discord | Never-MVP |
+| **P-O3** | Human desk / live handoff | Never-MVP |
+| **P-O4** | Teams: invite other **users** into a workspace | Workspace stays single-owner; Admin **O3** |
+| **P-O5** | Billing / Stripe / plans | Admin **O4** |
+| **P-O6** | Vector RAG / embeddings | Knowledge stuffing stays |
+| **P-O7** | Custom LLM / fine-tune | |
+| **P-O8** | Multiple platform admins / staff RBAC | Admin is **one** person; Admin **O2** |
+| **P-O9** | Impersonate (admin writes as user) | Admin **O1** |
+| **P-O10** | Open-web / competitor crawl | Crawl = widget origin only |
+| **P-O11** | Mobile app / SSO / SCIM | |
+
+**Never:** training on private customer data; scraping arbitrary sites as a platform crawler.
 
 ---
 
@@ -558,7 +642,8 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | ✅    | Phase 9 charts (pulled forward)      |
 | ✅    | Phase 8 embed + crawl                |
 | ✅    | Phase 10 **Vercel live** + leftover (rate limits, README, health) |
-| Next | **Admin in-scope** [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A8 |
+| ✅    | **Phase 11 — Multiple workspaces**       |
+| Next | **Admin in-scope** [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A6 |
 | After Admin v1 | Admin out-of-scope **O1, then O2, …** (one at a time) |
 
 
@@ -575,6 +660,7 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | Studio Test questions     | `POST /api/agents/[id]/test-questions` | **7** |
 | Public Webchat            | `POST /public/agents/[publicKey]/chat` | **8** |
 | Site crawl                | `POST /agents/[id]/site-crawl` + job   | **8** |
+| Workspaces                | `GET/POST /api/workspaces`, activate | **11** |
 | Analytics                 | overview, topics, sentiment, trends, **dashboard** | **9** |
 
 
@@ -596,6 +682,7 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | Knowledge **Website** docs       | **8** (auto from origin) |
 | `/analytics`                     | **9** (live)         |
 | `/agents/[id]/analytics`         | **9** (live)         |
+| Top-left workspace switcher      | **11**               |
 
 
 ---
@@ -622,6 +709,8 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 - [x] Deployed on Vercel (Phase 10)  
 - [x] README + rate limits + health DB check (Phase 10)  
 - [x] Phases **0–10** DONE  
+- [x] Phase **11** workspaces (switcher + scope)  
+- [ ] Admin A0–A6 ([`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md))  
 
 ---
 
@@ -630,7 +719,8 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 
 | File                                                             | Purpose                                      |
 | ---------------------------------------------------------------- | -------------------------------------------- |
-| **This file**                                                    | Phases 0–10                                  |
+| **This file**                                                    | Phases 0–10 + **11 workspaces** + product out-of-scope |
+| `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`                       | **After Phase 11:** one Admin, two roles, inspect all users |
 | `[PHASE4_REDESIGN_PLAN.md](PHASE4_REDESIGN_PLAN.md)`             | **Phase 4 redesign** ✅                       |
 | `[PHASE4_BACKEND_PLAN.md](PHASE4_BACKEND_PLAN.md)`               | Chat backend (**Phase 5** — legacy name) ✅   |
 | `[PHASE4_FRONTEND_PLAN.md](PHASE4_FRONTEND_PLAN.md)`             | Chat frontend (**Phase 5** — legacy name) ✅  |
@@ -639,7 +729,6 @@ Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (b
 | `[AGENT_TEST_KIT.md](AGENT_TEST_KIT.md)`                         | Hapy Co scripts + **Studio Test auto-run**   |
 | `[BOTPRESS_GAP_PLAN.md](BOTPRESS_GAP_PLAN.md)`                   | Gap analysis                                 |
 | `[PHASE3_CLOUDINARY_PDF_PLAN.md](PHASE3_CLOUDINARY_PDF_PLAN.md)` | PDF hosting                                  |
-| `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`                       | **After MVP:** platform Admin (SaaS ops)     |
 
 
-**Phase 4 = look like a product shell. Phase 6 = customize webchat. Phase 7 = Studio Test/Share. Phase 8 = public embed. Phase 9 = analytics. Phase 10 = live on Vercel (DONE).**
+**Phase 10 = live on Vercel (DONE). Phase 11 workspaces = implemented. Then one-admin inspect console.**
