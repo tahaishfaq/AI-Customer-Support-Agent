@@ -5,14 +5,11 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { OAuth2Client } from "google-auth-library";
 import prisma from "@/lib/prisma";
 import { comparePassword } from "@/lib/password";
+import { authConfig } from "@/auth.config";
 
 /**
- * Auth.js (NextAuth v5)
- * - Email/password → Credentials
- * - Google GIS button → Credentials "google-id-token" (same UX, NextAuth session)
- * - Optional Google OAuth if AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET set
- *
- * Credentials require session strategy "jwt" (Auth.js managed cookie — not DIY jsonwebtoken).
+ * Auth.js (NextAuth v5) — Node runtime (API routes).
+ * Edge/proxy uses auth.config.js only so Vercel does not bundle Prisma/pg/bcrypt.
  */
 
 const providers = [
@@ -130,30 +127,7 @@ if (googleId && googleSecret) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
   providers,
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user?.id) {
-        token.sub = user.id;
-        token.name = user.name;
-        token.email = user.email;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
-        if (token.name) session.user.name = token.name;
-        if (token.email) session.user.email = token.email;
-      }
-      return session;
-    },
-  },
-  trustHost: true,
 });

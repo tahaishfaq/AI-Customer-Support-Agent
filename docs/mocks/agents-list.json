@@ -1,0 +1,14 @@
+{
+  "agents": [
+    {
+      "id": "clx456def",
+      "userId": "clx123abc",
+      "name": "Hapy Support Assistant",
+      "description": "AI assistant for answering Hapy customer questions.",
+      "systemPrompt": "You are a helpful customer support agent for Hapy. Answer questions using the provided knowledge base. Be concise and professional.",
+      "welcomeMessage": "Hi! How can I help you today?",
+      "createdAt": "2026-08-10T12:00:00.000Z",
+      "updatedAt": "2026-08-10T12:00:00.000Z"
+    }
+  ]
+}

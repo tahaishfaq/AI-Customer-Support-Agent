@@ -1,0 +1,9 @@
+{
+  "user": {
+    "id": "clx123abc",
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "createdAt": "2026-08-10T12:00:00.000Z"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbHgxMjNhYmMiLCJpYXQiOjE3NTQ4MjQwMDAsImV4cCI6MTc1NTQyODgwMH0.mock"
+}

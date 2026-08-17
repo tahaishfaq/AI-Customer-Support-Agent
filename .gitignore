@@ -26,6 +26,7 @@
 *.pem
 
 # prisma generated client
+/generated/prisma
 /app/generated/prisma
 
 # debug
@@ -46,5 +47,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-/app/generated/prisma

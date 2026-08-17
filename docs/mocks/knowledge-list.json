@@ -1,0 +1,22 @@
+{
+  "documents": [
+    {
+      "id": "clx789ghi",
+      "agentId": "clx456def",
+      "name": "Services FAQ",
+      "type": "TEXT",
+      "content": "Q: What services does Hapy provide?\nA: Hapy provides custom software development, web applications, AI solutions and SaaS products.",
+      "createdAt": "2026-08-10T12:00:00.000Z",
+      "updatedAt": "2026-08-10T12:00:00.000Z"
+    },
+    {
+      "id": "clx789xyz",
+      "agentId": "clx456def",
+      "name": "Product Guide.pdf",
+      "type": "PDF",
+      "content": "Hapy Product Guide\n\nChapter 1: Introduction\nHapy builds modern software products...",
+      "createdAt": "2026-08-10T12:05:00.000Z",
+      "updatedAt": "2026-08-10T12:05:00.000Z"
+    }
+  ]
+}
