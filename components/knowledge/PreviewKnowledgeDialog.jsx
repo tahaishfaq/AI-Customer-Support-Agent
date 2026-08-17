@@ -58,8 +58,9 @@ export function PreviewKnowledgeDialog({ document, open, onOpenChange }) {
                 {document.name}
               </DialogTitle>
               <DialogDescription className="mt-1">
-                {document.type} · Added {formatDate(document.createdAt)}
-                {isPdf ? " · Extracted text used in chat" : ""}
+                {document.type === "WEB"
+                  ? `Website · ${document.origin || "embed"} · Saved ${formatDate(document.createdAt)}`
+                  : `${document.type} · Added ${formatDate(document.createdAt)}${isPdf ? " · Extracted text used in chat" : ""}`}
               </DialogDescription>
             </div>
           </div>

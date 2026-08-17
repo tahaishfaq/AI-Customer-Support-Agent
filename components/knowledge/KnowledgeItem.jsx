@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, ExternalLink, FileText, FileType2, Trash2 } from "lucide-react";
+import { Eye, ExternalLink, FileText, FileType2, Globe, Trash2 } from "lucide-react";
 import { DeleteKnowledgeDialog } from "@/components/knowledge/DeleteKnowledgeDialog";
 import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ export function KnowledgeItem({ document, onDeleted }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const isPdf = document.type === "PDF";
+  const isWeb = document.type === "WEB";
   const fileUrl = document.fileUrl;
 
   return (
@@ -37,11 +38,15 @@ export function KnowledgeItem({ document, onDeleted }) {
               "flex size-8 shrink-0 items-center justify-center rounded-lg",
               isPdf
                 ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
-                : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                : isWeb
+                  ? "bg-teal-50 text-[var(--color-primary)]"
+                  : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
             )}
           >
             {isPdf ? (
               <FileType2 className="size-4" />
+            ) : isWeb ? (
+              <Globe className="size-4" />
             ) : (
               <FileText className="size-4" />
             )}
@@ -56,14 +61,18 @@ export function KnowledgeItem({ document, onDeleted }) {
                   "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                   isPdf
                     ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
-                    : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                    : isWeb
+                      ? "bg-teal-50 text-[var(--color-primary)]"
+                      : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
                 )}
               >
-                {document.type}
+                {isWeb ? "Website" : document.type}
               </span>
             </span>
             <span className="mt-0.5 block text-[11px] text-[var(--color-muted)]">
-              {formatDate(document.createdAt)}
+              {isWeb && document.origin
+                ? `${document.origin.replace(/^https?:\/\//, "")} · ${formatDate(document.createdAt)}`
+                : formatDate(document.createdAt)}
             </span>
           </span>
         </button>

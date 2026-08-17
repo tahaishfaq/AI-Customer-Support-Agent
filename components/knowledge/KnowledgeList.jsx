@@ -9,7 +9,7 @@ import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function KnowledgeList({ agentId }) {
+export function KnowledgeList({ agentId, siteCrawledAt, siteKnowledgeOrigin }) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,7 +57,10 @@ export function KnowledgeList({ agentId }) {
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-[var(--color-text-secondary)]">
-          FAQ text and PDFs this agent can use.
+          FAQ text, PDFs, and website pages this agent can use.
+          {siteCrawledAt
+            ? ` Website knowledge saved from ${String(siteKnowledgeOrigin || "").replace(/^https?:\/\//, "") || "embed"} on ${new Date(siteCrawledAt).toLocaleDateString()}.`
+            : " Embed the widget on a live https site to learn public help pages once."}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -92,7 +95,8 @@ export function KnowledgeList({ agentId }) {
             <BookOpen className="size-5" />
           </span>
           <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
-            No knowledge yet. Add FAQ text or upload a PDF.
+            No knowledge yet. Add FAQ text, upload a PDF, or embed the widget on
+            your site.
           </p>
         </div>
       ) : (

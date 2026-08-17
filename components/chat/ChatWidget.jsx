@@ -44,6 +44,7 @@ export function ChatWidget({
   onToggle,
   align = "end",
   fullPage = false,
+  fillHost = false,
   historyOpen = false,
   onHistoryToggle,
   children,
@@ -73,22 +74,29 @@ export function ChatWidget({
   const panel = (
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden border shadow-2xl",
+        "flex min-h-0 flex-col overflow-hidden border-0 shadow-none outline-none ring-0",
         fullPage
           ? "h-full w-full rounded-none"
-          : "h-[min(480px,calc(100svh-16rem))] w-[420px] min-w-[420px] max-w-[420px]"
+          : fillHost
+            ? "min-h-0 w-full flex-1"
+            : "h-[min(480px,calc(100svh-16rem))] w-[420px] min-w-[420px] max-w-[420px]"
       )}
       style={{
         ...vars,
-        borderColor: "var(--wc-border)",
-        backgroundColor: "var(--wc-shell)",
+        border: "none",
+        boxShadow: "none",
+        outline: "none",
+        overflow: "hidden",
+        isolation: "isolate",
+        backgroundColor: "var(--wc-header-bg)",
         color: "var(--wc-shell-fg)",
         fontFamily: "var(--wc-font)",
         borderRadius: fullPage ? 0 : "var(--wc-radius-panel)",
+        clipPath: fullPage ? undefined : "inset(0 round var(--wc-radius-panel))",
       }}
     >
       <header
-        className="flex shrink-0 items-center gap-2 px-3 py-2.5 text-white"
+        className="flex shrink-0 items-center gap-2 border-0 px-3 py-2.5 text-white shadow-none"
         style={{ backgroundColor: "var(--wc-header-bg)" }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -151,7 +159,12 @@ export function ChatWidget({
           ) : null}
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div
+        className="flex min-h-0 flex-1 flex-col"
+        style={{ backgroundColor: "var(--wc-chat-bg)" }}
+      >
+        {children}
+      </div>
     </div>
   );
 
@@ -161,6 +174,7 @@ export function ChatWidget({
     <div
       className={cn(
         "flex flex-col gap-3",
+        fillHost ? "h-full w-full justify-end" : "",
         align === "start" ? "items-start" : "items-end"
       )}
       style={vars}
@@ -197,7 +211,7 @@ export function ChatWidget({
         <button
           type="button"
           onClick={onToggle}
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-md"
+          className="rounded-full border-0 bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-none outline-none"
           aria-label={open ? "Close chat widget" : "Open chat widget"}
         >
           {open ? "Close chat" : "Chat with us"}
@@ -206,10 +220,10 @@ export function ChatWidget({
         <button
           type="button"
           onClick={onToggle}
-          className="flex size-14 items-center justify-center overflow-hidden rounded-full text-white shadow-lg"
+          className="flex size-14 items-center justify-center overflow-hidden rounded-full border-0 text-white shadow-none outline-none"
           style={{
             backgroundColor: primary,
-            boxShadow: `0 10px 25px ${primary}40`,
+            boxShadow: "none",
           }}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
         >

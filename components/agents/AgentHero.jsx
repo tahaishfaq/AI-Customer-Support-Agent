@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlaskConical, Pencil, Share2, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAgentCrumb } from "@/hooks/use-agent-crumb";
 import { STUDIO_TABS, studioTabHref } from "@/components/agents/studio-tabs";
@@ -77,13 +77,6 @@ export function AgentHero({ agent, onDelete }) {
           >
             <FlaskConical className="size-3.5" />
             Test
-          </Link>
-          <Link
-            href={`${base}/share`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-          >
-            <Share2 className="size-3.5" />
-            Share
           </Link>
           <Link
             href={`/agents/${agent.id}/edit`}

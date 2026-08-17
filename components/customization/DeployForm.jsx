@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, ImagePlus, Loader2, MessageCircle, X } from "lucide-react";
+import { Check, Copy, ExternalLink, ImagePlus, Loader2, MessageCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadAgentAvatar } from "@/lib/api/agents";
@@ -14,12 +14,12 @@ import {
 import { buildEmbedSnippet } from "@/lib/customization/embed";
 import { cn } from "@/lib/utils";
 
-export function DeployForm({ agentId, deploy, identity, onChange }) {
+export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("https://your-app.com");
-  const snippet = buildEmbedSnippet(agentId, origin);
+  const snippet = buildEmbedSnippet(publicKey, origin);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -64,23 +64,36 @@ export function DeployForm({ agentId, deploy, identity, onChange }) {
       <FormSection title="Install">
         <FieldBlock
           label="Embed code"
-          hint="Copy and paste this on your webpage. Public embed ships in the next phase."
+          hint="Copy and paste this on your webpage. The first live https visit builds website knowledge once."
         >
           <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#0f172a]">
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
               <span className="text-[11px] text-slate-400">embed snippet</span>
-              <button
-                type="button"
-                onClick={copySnippet}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10"
-              >
-                {copied ? (
-                  <Check className="size-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )}
-                {copied ? "Copied" : "Copy"}
-              </button>
+              <div className="flex items-center gap-1">
+                {origin && publicKey ? (
+                  <a
+                    href={`${origin}/w/${publicKey}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Open widget
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={copySnippet}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10"
+                >
+                  {copied ? (
+                    <Check className="size-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
             </div>
             <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-slate-200">
               <code>{snippet}</code>

@@ -71,4 +71,4 @@ export const fieldClass =
   "h-11 rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
 
 export const areaClass =
-  "min-h-[88px] rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+  "min-h-[88px] max-h-32 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";

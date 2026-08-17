@@ -15,7 +15,13 @@ export default function AgentKnowledgePage() {
       deleteOpen={studio.deleteOpen}
       onDeleteOpenChange={studio.setDeleteOpen}
     >
-      {(agent) => <KnowledgeList agentId={agent.id} />}
+      {(agent) => (
+        <KnowledgeList
+          agentId={agent.id}
+          siteCrawledAt={agent.siteCrawledAt}
+          siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
+        />
+      )}
     </AgentStudioFrame>
   );
 }
