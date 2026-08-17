@@ -3,7 +3,7 @@ const nextConfig = {
   /* config options here */
   reactCompiler: true,
   serverExternalPackages: [
-    "pdf-parse",
+    "unpdf",
     "pg",
     "bcrypt",
     "@prisma/client",
