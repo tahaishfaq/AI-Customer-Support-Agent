@@ -1,0 +1,10 @@
+---
+description: Never git push unless the user asks; confirm branch first
+alwaysApply: true
+---
+
+# Git push policy
+
+- Do **not** `git push` unless the user explicitly asks to push or deploy in that message.
+- Before every push, stop and confirm the **exact branch name** with the user. Wait for their reply. Do not assume `main`, `sami`, or `Sami`.
+- After they confirm, push **only** that branch (`git push origin <confirmed-branch>`). Do not also push to `main` or any other remote unless they named it.
