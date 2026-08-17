@@ -5,15 +5,16 @@ import { SentimentDot } from "@/components/conversations/ConversationChips";
 import { formatRelative, monogram } from "@/components/conversations/format";
 import { cn } from "@/lib/utils";
 
-export function ConversationRow({ conversation, active }) {
+export function ConversationRow({ conversation, active, href }) {
   const preview =
     conversation.lastMessage?.content || "No messages yet";
   const when =
     conversation.lastMessage?.createdAt || conversation.startedAt;
+  const title = conversation.category || conversation.agent?.name || "Conversation";
 
   return (
     <Link
-      href={`/conversations/${conversation.id}`}
+      href={href}
       className={cn(
         "relative flex gap-3 px-3 py-3 transition-colors",
         active
@@ -30,7 +31,7 @@ export function ConversationRow({ conversation, active }) {
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-[13px] font-semibold text-[var(--color-text)]">
-            {conversation.agent?.name || "Agent"}
+            {title}
           </span>
           <span className="shrink-0 text-[11px] text-[var(--color-muted)]">
             {formatRelative(when)}

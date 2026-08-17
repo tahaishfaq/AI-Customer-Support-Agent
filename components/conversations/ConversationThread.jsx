@@ -133,7 +133,7 @@ export function ConversationThread({ conversation, onUpdated }) {
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Link
-              href="/conversations"
+              href={`/agents/${agentId}/conversations`}
               className="text-[12px] font-medium text-[var(--color-muted)] hover:text-[var(--color-text)] md:hidden"
             >
               ← Inbox

@@ -253,7 +253,7 @@ export default function DashboardPage() {
               Recent activity
             </h2>
             <Link
-              href="/conversations"
+              href="/agents"
               className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
             >
               View all
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                 {recent.map((convo) => (
                   <li key={convo.id}>
                     <Link
-                      href={`/conversations/${convo.id}`}
+                      href={`/agents/${convo.agentId}/conversations/${convo.id}`}
                       className="flex items-start justify-between gap-3 px-4 py-3.5 hover:bg-[var(--color-bg)]"
                     >
                       <span className="min-w-0">

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Search } from "lucide-react";
-import { listAgents } from "@/lib/api/agents";
 import { listConversations } from "@/lib/api/conversations";
 import { ConversationRow } from "@/components/conversations/ConversationRow";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -20,9 +19,7 @@ const SENTIMENT_FILTERS = [
   { id: "NEUTRAL", label: "Neutral" },
 ];
 
-export function ConversationsShell({ selectedId, children }) {
-  const [agents, setAgents] = useState([]);
-  const [agentId, setAgentId] = useState("");
+export function ConversationsShell({ selectedId, children, agentId }) {
   const [sentiment, setSentiment] = useState("");
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -32,19 +29,12 @@ export function ConversationsShell({ selectedId, children }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    listAgents()
-      .then((list) => {
-        if (!cancelled) setAgents(list);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const inboxHref = `/agents/${agentId}/conversations`;
+  const newChatHref = `/agents/${agentId}/test`;
+  const hideListOnMobile = Boolean(selectedId);
 
   useEffect(() => {
+    if (!agentId) return undefined;
     let cancelled = false;
 
     async function load() {
@@ -53,7 +43,7 @@ export function ConversationsShell({ selectedId, children }) {
       setOffset(0);
       try {
         const data = await listConversations({
-          agentId: agentId || undefined,
+          agentId,
           limit: PAGE_SIZE,
           offset: 0,
         });
@@ -79,7 +69,7 @@ export function ConversationsShell({ selectedId, children }) {
     try {
       const nextOffset = offset + PAGE_SIZE;
       const data = await listConversations({
-        agentId: agentId || undefined,
+        agentId,
         limit: PAGE_SIZE,
         offset: nextOffset,
       });
@@ -98,32 +88,32 @@ export function ConversationsShell({ selectedId, children }) {
     return conversations.filter((c) => {
       if (sentiment && c.sentiment !== sentiment) return false;
       if (!q) return true;
-      const hay = `${c.agent?.name || ""} ${c.category || ""} ${c.lastMessage?.content || ""}`.toLowerCase();
+      const hay = `${c.category || ""} ${c.lastMessage?.content || ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [conversations, query, sentiment]);
 
-  const hideListOnMobile = Boolean(selectedId);
-
   return (
-    <div className="flex h-full min-h-0 overflow-hidden bg-[var(--color-bg)]">
+    <div className="flex h-[min(72dvh,760px)] min-h-[480px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-card)]">
       <aside
         className={cn(
-          "min-h-0 w-full shrink-0 flex-col border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] md:flex md:w-[340px] md:border-r xl:w-[380px]",
+          "min-h-0 w-full shrink-0 flex-col border-[var(--color-border)] bg-[var(--color-surface)] md:flex md:w-[340px] md:border-r xl:w-[380px]",
           hideListOnMobile ? "hidden md:flex" : "flex"
         )}
       >
         <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h1 className="text-[15px] font-semibold text-[var(--color-text)]">
+              <h2 className="text-[15px] font-semibold text-[var(--color-text)]">
                 Inbox
-              </h1>
+              </h2>
               <p className="text-[12px] text-[var(--color-muted)]">
-                {loading ? "Loading…" : `${total} conversation${total === 1 ? "" : "s"}`}
+                {loading
+                  ? "Loading…"
+                  : `${total} conversation${total === 1 ? "" : "s"}`}
               </p>
             </div>
-            <Link href="/chat" className={cn(buttonVariants({ size: "sm" }))}>
+            <Link href={newChatHref} className={cn(buttonVariants({ size: "sm" }))}>
               New chat
             </Link>
           </div>
@@ -132,24 +122,11 @@ export function ConversationsShell({ selectedId, children }) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search inbox…"
+              placeholder="Search this agent…"
               aria-label="Search conversations"
               className="h-8 border-[var(--color-border)] bg-[var(--color-bg)] pl-8 shadow-none"
             />
           </div>
-          <select
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            aria-label="Filter by agent"
-            className="mt-2 h-8 w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 text-[13px] outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          >
-            <option value="">All agents</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
           <div className="mt-2 flex flex-wrap gap-1">
             {SENTIMENT_FILTERS.map((item) => (
               <button
@@ -193,12 +170,12 @@ export function ConversationsShell({ selectedId, children }) {
               </span>
               <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
                 {conversations.length === 0
-                  ? "No conversations yet. Start a chat."
+                  ? "No conversations yet. Start a test chat."
                   : "No conversations match these filters."}
               </p>
               {conversations.length === 0 ? (
                 <Link
-                  href="/chat"
+                  href={newChatHref}
                   className={cn(buttonVariants({ size: "sm" }), "mt-4 inline-flex")}
                 >
                   Start a chat
@@ -211,6 +188,7 @@ export function ConversationsShell({ selectedId, children }) {
                 <ConversationRow
                   key={c.id}
                   conversation={c}
+                  href={`${inboxHref}/${c.id}`}
                   active={c.id === selectedId}
                 />
               ))}

@@ -1,10 +1,5 @@
-import { ConversationsShell } from "@/components/conversations/ConversationsShell";
-import { ConversationEmptyState } from "@/components/conversations/ConversationThread";
+import { redirect } from "next/navigation";
 
-export default function ConversationsPage() {
-  return (
-    <ConversationsShell>
-      <ConversationEmptyState />
-    </ConversationsShell>
-  );
+export default function ConversationsRedirectPage() {
+  redirect("/agents");
 }

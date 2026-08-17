@@ -9,9 +9,9 @@ const ACTIONS = [
     icon: Bot,
   },
   {
-    href: "/conversations",
-    title: "Conversations",
-    description: "Read and reply in the inbox",
+    href: "/agents",
+    title: "Agents",
+    description: "Open an agent inbox and studio",
     icon: MessagesSquare,
   },
   {

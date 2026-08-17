@@ -350,7 +350,11 @@ export function ChatWorkspace() {
             }}
           />
           <Link
-            href="/conversations"
+            href={
+              selectedAgent
+                ? `/agents/${selectedAgent.id}/conversations`
+                : "/agents"
+            }
             className="text-[12px] font-medium text-[var(--color-muted)] hover:text-[var(--color-text)]"
           >
             Conversations

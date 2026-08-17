@@ -339,7 +339,7 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                 Recent conversations
               </h2>
               <Link
-                href="/conversations"
+                href={`/agents/${agent.id}/conversations`}
                 className="text-[12px] font-medium text-[var(--color-primary)] hover:underline"
               >
                 Inbox
@@ -366,7 +366,7 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                 {conversations.slice(0, 5).map((convo) => (
                   <li key={convo.id} className="border-t border-[var(--color-border)] first:border-t-0">
                     <Link
-                      href={`/chat?agentId=${agent.id}&conversationId=${convo.id}`}
+                      href={`/agents/${agent.id}/conversations/${convo.id}`}
                       className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--color-bg)]"
                     >
                       <span className="min-w-0">

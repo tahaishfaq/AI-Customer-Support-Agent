@@ -202,6 +202,40 @@ async function main() {
     });
 
     await req("GET", "/api/conversations", { expect: [200] });
+    await req("GET", `/api/conversations?agentId=${agentId}`, { expect: [200] });
+
+    const inboxPage = await fetch(`${BASE}/agents/${agentId}/conversations`, {
+      headers: { cookie: cookieHeader() },
+      redirect: "manual",
+    });
+    pass(
+      "agent conversations page",
+      inboxPage.status === 200,
+      String(inboxPage.status)
+    );
+
+    const legacyInbox = await fetch(`${BASE}/conversations`, {
+      headers: { cookie: cookieHeader() },
+      redirect: "manual",
+    });
+    pass(
+      "legacy /conversations redirects",
+      [307, 308, 302].includes(legacyInbox.status),
+      `${legacyInbox.status} ${legacyInbox.headers.get("location") || ""}`
+    );
+
+    const convoId = chat.data?.conversationId;
+    if (convoId) {
+      const threadPage = await fetch(
+        `${BASE}/agents/${agentId}/conversations/${convoId}`,
+        { headers: { cookie: cookieHeader() }, redirect: "manual" }
+      );
+      pass(
+        "agent conversation thread page",
+        threadPage.status === 200,
+        String(threadPage.status)
+      );
+    }
     await req("GET", "/api/analytics/overview", { expect: [200] });
     await req("GET", "/api/analytics/dashboard", { expect: [200] });
     await req("GET", "/api/analytics/sentiment", { expect: [200] });

@@ -5,10 +5,7 @@ export const PRIMARY_NAV = [
   { href: "/agents", label: "Agents" },
 ];
 
-export const MONITOR_NAV = [
-  { href: "/conversations", label: "Conversations" },
-  { href: "/analytics", label: "Analytics" },
-];
+export const MONITOR_NAV = [{ href: "/analytics", label: "Analytics" }];
 
 export function isNavActive(pathname, href) {
   if (href === "/dashboard") {
@@ -32,8 +29,24 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
     return [workspace, { href: "/agents", label: "Agents" }, { label: "New" }];
   }
 
+  const convoDetailMatch = pathname.match(
+    /^\/agents\/([^/]+)\/conversations\/([^/]+)$/
+  );
+  if (convoDetailMatch) {
+    return [
+      workspace,
+      { href: "/agents", label: "Agents" },
+      { href: `/agents/${convoDetailMatch[1]}`, label: agentLabel },
+      {
+        href: `/agents/${convoDetailMatch[1]}/conversations`,
+        label: "Conversations",
+      },
+      { label: "Thread" },
+    ];
+  }
+
   const studioMatch = pathname.match(
-    /^\/agents\/([^/]+)\/(knowledge|analytics|customization|test|edit)$/
+    /^\/agents\/([^/]+)\/(knowledge|conversations|analytics|customization|test|edit)$/
   );
   if (studioMatch) {
     return [
@@ -51,17 +64,6 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
 
   if (pathname === "/chat") {
     return [workspace, { label: "Chat" }];
-  }
-
-  if (pathname === "/conversations") {
-    return [workspace, { label: "Conversations" }];
-  }
-  if (pathname.startsWith("/conversations/")) {
-    return [
-      workspace,
-      { href: "/conversations", label: "Conversations" },
-      { label: "Detail" },
-    ];
   }
 
   if (pathname === "/analytics" || pathname.startsWith("/analytics/")) {
