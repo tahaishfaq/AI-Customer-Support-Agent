@@ -158,7 +158,11 @@ async function main() {
   );
 
   const me = await req("GET", "/api/auth/me", { expect: [200] });
-  pass("session user email", me.data?.user?.email === email || me.data?.email === email, JSON.stringify(me.data)?.slice(0, 180));
+    pass(
+    "session user email",
+    me.data?.user?.email === email,
+    JSON.stringify(me.data)?.slice(0, 180)
+  );
 
   const created = await req("POST", "/api/agents", {
     json: {
@@ -209,7 +213,7 @@ async function main() {
     });
     pass(
       "chat reply non-empty",
-      Boolean(chat.data?.assistantMessage?.content || chat.data?.message?.content || chat.data?.reply),
+      Boolean(chat.data?.message?.content),
       chat.item.snippet
     );
 
