@@ -6,6 +6,7 @@ import { OAuth2Client } from "google-auth-library";
 import prisma from "@/lib/prisma";
 import { comparePassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
+import { ensureDefaultWorkspace } from "@/lib/services/workspace.service";
 
 /**
  * Auth.js (NextAuth v5) — Node runtime (API routes).
@@ -100,6 +101,7 @@ const providers = [
               emailVerified: new Date(),
             },
           });
+          await ensureDefaultWorkspace(user.id);
         }
       }
 
@@ -130,4 +132,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   providers,
+  events: {
+    async createUser({ user }) {
+      if (user?.id) {
+        await ensureDefaultWorkspace(user.id);
+      }
+    },
+  },
 });

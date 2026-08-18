@@ -79,8 +79,7 @@ export function AgentList() {
           No agents yet.
         </h2>
         <p className="mx-auto mt-1 max-w-md text-[13px] text-[var(--color-text-secondary)]">
-          Create your first AI support agent with a name, system prompt, and
-          welcome message.
+          Create your first agent in this workspace.
         </p>
         <Link
           href="/agents/new"
