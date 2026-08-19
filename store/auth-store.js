@@ -4,12 +4,75 @@ import { create } from "zustand";
 import { getSession, signIn, signOut } from "next-auth/react";
 import { apiFetch } from "@/lib/api-client";
 
+function emailFromIdToken(idToken) {
+  try {
+    const payload = idToken?.split?.(".")[1];
+    if (!payload) return "";
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return String(json.email || "").trim().toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+async function suspendedHint(email) {
+  if (!email) return { suspended: false, restoreStatus: null };
+  try {
+    const hint = await apiFetch("/api/auth/suspended-check", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    return {
+      suspended: Boolean(hint?.suspended),
+      restoreStatus: hint?.restoreStatus || null,
+    };
+  } catch {
+    return { suspended: false, restoreStatus: null };
+  }
+}
+
+function throwLoginError({
+  suspended,
+  restoreStatus,
+  email,
+  google,
+  signupsClosed,
+  adminPasswordOnly,
+}) {
+  const rejected = restoreStatus === "REJECTED";
+  const err = new Error(
+    adminPasswordOnly
+      ? "Admins can only sign in with email and password."
+      : signupsClosed
+        ? "New signups are closed. Use an account that already exists."
+        : suspended
+          ? rejected
+            ? "This account is still suspended. Your restore request was rejected."
+            : "This account was disabled by an admin."
+          : google
+            ? "Google sign-in failed"
+            : "Invalid email or password"
+  );
+  err.status = 401;
+  err.code = adminPasswordOnly
+    ? "ADMIN_PASSWORD_ONLY"
+    : signupsClosed
+      ? "SIGNUPS_CLOSED"
+      : suspended
+        ? "SUSPENDED"
+        : "AUTH";
+  err.restoreStatus = restoreStatus || null;
+  if (email) err.email = email;
+  throw err;
+}
+
 function toStoreUser(sessionUser) {
   if (!sessionUser?.id && !sessionUser?.email) return null;
   return {
     id: sessionUser.id,
     name: sessionUser.name,
     email: sessionUser.email,
+    role: sessionUser.role || "USER",
   };
 }
 
@@ -45,9 +108,16 @@ export const useAuthStore = create((set, get) => ({
     });
 
     if (result?.error) {
-      const err = new Error("Invalid email or password");
-      err.status = 401;
-      throw err;
+      let suspended =
+        result.code === "account_suspended" ||
+        String(result.error || "").includes("account_suspended");
+      let restoreStatus = null;
+      const hint = await suspendedHint(email);
+      if (hint.suspended) {
+        suspended = true;
+        restoreStatus = hint.restoreStatus;
+      }
+      throwLoginError({ suspended, restoreStatus, email });
     }
 
     const user = await get().hydrate();
@@ -81,20 +151,51 @@ export const useAuthStore = create((set, get) => ({
   },
 
   loginWithGoogle: async (idToken) => {
+    const email = emailFromIdToken(idToken);
     const result = await signIn("google-id-token", {
       idToken,
       redirect: false,
     });
 
     if (result?.error) {
-      const err = new Error("Google sign-in failed");
-      err.status = 401;
-      throw err;
+      const signupsClosed =
+        result.code === "signups_closed" ||
+        String(result.error || "").includes("signups_closed");
+      const adminPasswordOnly =
+        result.code === "admin_password_only" ||
+        String(result.error || "").includes("admin_password_only");
+      let suspended =
+        result.code === "account_suspended" ||
+        String(result.error || "").includes("account_suspended");
+      let restoreStatus = null;
+      if (!signupsClosed && !adminPasswordOnly) {
+        const hint = await suspendedHint(email);
+        if (hint.suspended) {
+          suspended = true;
+          restoreStatus = hint.restoreStatus;
+        }
+      }
+      throwLoginError({
+        suspended,
+        restoreStatus,
+        email,
+        google: true,
+        signupsClosed,
+        adminPasswordOnly,
+      });
     }
 
     const user = await get().hydrate();
     if (!user) {
       throw new Error("Google sign-in failed");
+    }
+    if (user.role === "ADMIN") {
+      await get().logout();
+      throwLoginError({
+        google: true,
+        adminPasswordOnly: true,
+        email: user.email,
+      });
     }
     return user;
   },

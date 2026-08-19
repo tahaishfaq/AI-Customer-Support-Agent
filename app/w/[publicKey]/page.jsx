@@ -10,13 +10,15 @@ export const metadata = {
 export default async function PublicWidgetPage({ params, searchParams }) {
   const { publicKey } = await params;
   const query = await searchParams;
-  const agent = await getPublicAgentByKey(publicKey);
+  const parentOrigin =
+    typeof query.parentOrigin === "string" ? query.parentOrigin : "";
+  const agent = await getPublicAgentByKey(publicKey, { origin: parentOrigin });
   if (!agent) notFound();
 
   return (
     <PublicWebchat
       agent={toPublicAgentView(agent)}
-      parentOrigin={typeof query.parentOrigin === "string" ? query.parentOrigin : ""}
+      parentOrigin={parentOrigin}
     />
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AgentStudioFrame } from "@/components/agents/AgentStudioFrame";
 import { AgentTestStudio } from "@/components/studio/AgentTestStudio";
 import { useAgentStudio } from "@/hooks/use-agent-studio";
@@ -15,7 +16,11 @@ export default function AgentTestPage() {
       deleteOpen={studio.deleteOpen}
       onDeleteOpenChange={studio.setDeleteOpen}
     >
-      {(agent) => <AgentTestStudio agent={agent} />}
+      {(agent) => (
+        <Suspense>
+          <AgentTestStudio agent={agent} />
+        </Suspense>
+      )}
     </AgentStudioFrame>
   );
 }

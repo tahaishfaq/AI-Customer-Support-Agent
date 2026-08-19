@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 import {
-  enqueueOneTimeCrawl,
+  claimEmbedOrigin,
   getPublicAgentByKey,
   runCrawlJob,
 } from "@/lib/services/embed.service";
@@ -24,14 +24,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    const agent = await getPublicAgentByKey(publicKey);
-    if (!agent) {
-      return NextResponse.json(
-        { error: { message: "Agent not found", details: {} } },
-        { status: 404 }
-      );
-    }
-
     let body = {};
     try {
       body = await request.json();
@@ -39,7 +31,20 @@ export async function POST(request, { params }) {
       body = {};
     }
 
-    const result = await enqueueOneTimeCrawl(agent.id, body.origin);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: body.origin,
+    });
+    if (!agent) {
+      return NextResponse.json(
+        { error: { message: "Agent not found", details: {} } },
+        { status: 404 }
+      );
+    }
+
+    const result = await claimEmbedOrigin(agent.id, body.origin);
+    if (!result.allowed) {
+      return NextResponse.json({ ok: false, ...result }, { status: 403 });
+    }
     if (result.queued && result.jobId) {
       after(() => runCrawlJob(result.jobId));
     }

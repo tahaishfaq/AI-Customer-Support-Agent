@@ -19,7 +19,16 @@ const SENTIMENT_FILTERS = [
   { id: "NEUTRAL", label: "Neutral" },
 ];
 
-export function ConversationsShell({ selectedId, children, agentId }) {
+export function ConversationsShell({
+  selectedId,
+  children,
+  agentId,
+  inboxBase,
+  listFn,
+  showNewChat = true,
+  newChatHref: newChatHrefProp,
+  emptyHint,
+}) {
   const [sentiment, setSentiment] = useState("");
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -29,8 +38,9 @@ export function ConversationsShell({ selectedId, children, agentId }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
-  const inboxHref = `/agents/${agentId}/conversations`;
-  const newChatHref = `/agents/${agentId}/test`;
+  const fetchList = listFn || listConversations;
+  const inboxHref = inboxBase || `/agents/${agentId}/conversations`;
+  const newChatHref = newChatHrefProp || `/agents/${agentId}/test`;
   const hideListOnMobile = Boolean(selectedId);
 
   useEffect(() => {
@@ -42,7 +52,7 @@ export function ConversationsShell({ selectedId, children, agentId }) {
       setError("");
       setOffset(0);
       try {
-        const data = await listConversations({
+        const data = await fetchList({
           agentId,
           limit: PAGE_SIZE,
           offset: 0,
@@ -61,14 +71,14 @@ export function ConversationsShell({ selectedId, children, agentId }) {
     return () => {
       cancelled = true;
     };
-  }, [agentId]);
+  }, [agentId, fetchList]);
 
   async function loadMore() {
     setLoadingMore(true);
     setError("");
     try {
       const nextOffset = offset + PAGE_SIZE;
-      const data = await listConversations({
+      const data = await fetchList({
         agentId,
         limit: PAGE_SIZE,
         offset: nextOffset,
@@ -113,9 +123,11 @@ export function ConversationsShell({ selectedId, children, agentId }) {
                   : `${total} conversation${total === 1 ? "" : "s"}`}
               </p>
             </div>
-            <Link href={newChatHref} className={cn(buttonVariants({ size: "sm" }))}>
-              New chat
-            </Link>
+            {showNewChat ? (
+              <Link href={newChatHref} className={cn(buttonVariants({ size: "sm" }))}>
+                New chat
+              </Link>
+            ) : null}
           </div>
           <div className="relative mt-3">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[var(--color-muted)]" />
@@ -170,10 +182,10 @@ export function ConversationsShell({ selectedId, children, agentId }) {
               </span>
               <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
                 {conversations.length === 0
-                  ? "No conversations yet. Start a test chat."
+                  ? emptyHint || "No conversations yet. Start a test chat."
                   : "No conversations match these filters."}
               </p>
-              {conversations.length === 0 ? (
+              {conversations.length === 0 && showNewChat ? (
                 <Link
                   href={newChatHref}
                   className={cn(buttonVariants({ size: "sm" }), "mt-4 inline-flex")}

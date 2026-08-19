@@ -13,6 +13,8 @@
 
 ---
 
+
+
 ## Product north star (Botpress-aligned MVP)
 
 ```
@@ -20,22 +22,24 @@ Build agent → Add knowledge → Redesign (Hapy shell) → Chat → Customizati
 ```
 
 
-| Botpress idea                     | Hapy MVP module                                | Phase    |
-| --------------------------------- | ---------------------------------------------- | -------- |
-| Cloud app shell + visual language | **Botpress-like redesign (Hapy colors/fonts)** | **4** ✅  |
-| Knowledge (files)                 | TEXT + PDF (Cloudinary)                        | **3** ✅  |
-| Emulator chat + history           | Chat + Conversations                           | **5** ✅  |
-| Webchat settings / identity       | **Agent Customization**                        | **6** ✅  |
-| Studio hub tabs                   | Agent Studio tabs + Test + Share               | **7** ✅  |
-| **Webchat embed**                 | Public widget + snippet + **site knowledge crawl** | **8** ✅ |
-| Analytics                         | Charts + insights (charts live; pulled forward)| **9** ✅ |
-| Publish / deploy                  | Vercel + rate limits                           | **10** ✅ |
+| Botpress idea                     | Hapy MVP module                                    | Phase    |
+| --------------------------------- | -------------------------------------------------- | -------- |
+| Cloud app shell + visual language | **Botpress-like redesign (Hapy colors/fonts)**     | **4** ✅  |
+| Knowledge (files)                 | TEXT + PDF (Cloudinary)                            | **3** ✅  |
+| Emulator chat + history           | Chat + Conversations                               | **5** ✅  |
+| Webchat settings / identity       | **Agent Customization**                            | **6** ✅  |
+| Studio hub tabs                   | Agent Studio tabs + Test + Share                   | **7** ✅  |
+| **Webchat embed**                 | Public widget + snippet + **site knowledge crawl** | **8** ✅  |
+| Analytics                         | Charts + insights (charts live; pulled forward)    | **9** ✅  |
+| Publish / deploy                  | Vercel + rate limits                               | **10** ✅ |
 
 
 **Out of MVP (Phases 0–10):** flow canvas, WhatsApp/Slack, human desk, teams/billing, ADK.  
-**After MVP (in-scope next):** **Phase 11 — multiple workspaces**, then **Admin** ([`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md)).
+**After MVP (in-scope next):** **Phase 11 — multiple workspaces**, then **Admin** (`[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`).
 
 ---
+
+
 
 ## Simple Idea
 
@@ -43,7 +47,11 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 
 ---
 
+
+
 ## What You Will Build
+
+
 
 ### Done / core
 
@@ -58,29 +66,35 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 9. Analytics dashboards (workspace + per-agent — live data)
 10. **Vercel production** (live)
 
+
+
 ### Ordered next (after MVP)
 
 1. **Phase 11 — Multiple workspaces** (this file, in-scope)
-2. **Admin in-scope** — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A6 (one admin; sees every user’s workspaces / agents / chats / analytics)
+2. **Admin in-scope** — `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)` A0–A6 (one admin; sees every user’s workspaces / agents / chats / analytics)
 3. Admin **out-of-scope** O1+ (impersonate, extra admins, teams, billing, …)
 
 ---
 
+
+
 ## Tech Stack
 
 
-| Part      | Choice                       |
-| --------- | ---------------------------- |
-| Framework | Next.js App Router           |
-| UI        | React + Tailwind 4 + shadcn  |
-| Auth      | Auth.js / NextAuth v5        |
-| AI        | OpenAI                       |
-| PDF       | **unpdf** + **Cloudinary**   |
-| DB        | Neon + Prisma                |
-| Hosting   | Vercel                       |
+| Part      | Choice                      |
+| --------- | --------------------------- |
+| Framework | Next.js App Router          |
+| UI        | React + Tailwind 4 + shadcn |
+| Auth      | Auth.js / NextAuth v5       |
+| AI        | OpenAI                      |
+| PDF       | **unpdf** + **Cloudinary**  |
+| DB        | Neon + Prisma               |
+| Hosting   | Vercel                      |
 
 
 ---
+
+
 
 ## Master Phase Checklist
 
@@ -101,7 +115,7 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 | **11** | **Multiple workspaces**                 | Botpress switcher    | [x]  |
 
 
-**Status (18 Aug 2026):** Phases **0–11 DONE**. Live: https://ai-customer-support-agent-ashen.vercel.app  
+**Status (18 Aug 2026):** Phases **0–11 DONE**. Live: [https://ai-customer-support-agent-ashen.vercel.app](https://ai-customer-support-agent-ashen.vercel.app)  
 **Next in-scope:** Admin (one `ADMIN` + `USER` roles).
 
 **MVP = Phases 0–10.** **Post-MVP in-scope = Phase 11 + Admin A0–A6.**  
@@ -111,18 +125,22 @@ Ek Next.js app: `app/` = UI, `app/api/` = APIs, Neon + Prisma = DB.
 
 Jo extra kaam original checklist ke baad add hua — yeh table demo / yaad rakhne ke liye hai.
 
-| Phase | Extra that shipped |
-| ----- | ------------------ |
-| **4** | Full-height `h-dvh` shell, content-only scroll, mobile drawer |
-| **5** | Widget **history + resume**, Conversations inbox **reply**, `react-markdown` replies, reply **language from knowledge** (mixed → English) |
-| **6** | Cloudinary **avatar**, `/chat` uses saved customization, Deploy snippet helper (`lib/customization/embed.js`) |
-| **7** | Real **Test** + **Share** tabs, AI **question pack**, **Ask yourself auto-run** (pause / resume / stop) |
-| **8** | Public embed snippet/`publicKey`, one-time website crawl → WEB knowledge |
-| **9** | Real workspace + per-agent dashboards **before** Phase 8 (heatmap, topics, sentiment share, volume Lines/Bars, range 7d/30d/all) |
-| **10** | Vercel live; Edge-safe `proxy.js` auth; **unpdf** PDF extract; conversations moved **into agent studio** |
-| **11** | Workspace model + cookie `hapy_workspace`; top-left switcher (search / create / rename / delete) |
+
+| Phase  | Extra that shipped                                                                                                                        |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **4**  | Full-height `h-dvh` shell, content-only scroll, mobile drawer                                                                             |
+| **5**  | Widget **history + resume**, Conversations inbox **reply**, `react-markdown` replies, reply **language from knowledge** (mixed → English) |
+| **6**  | Cloudinary **avatar**, `/chat` uses saved customization, Deploy snippet helper (`lib/customization/embed.js`)                             |
+| **7**  | Real **Test** + **Share** tabs, AI **question pack**, **Ask yourself auto-run** (pause / resume / stop)                                   |
+| **8**  | Public embed snippet/`publicKey`, one-time website crawl → WEB knowledge                                                                  |
+| **9**  | Real workspace + per-agent dashboards **before** Phase 8 (heatmap, topics, sentiment share, volume Lines/Bars, range 7d/30d/all)          |
+| **10** | Vercel live; Edge-safe `proxy.js` auth; **unpdf** PDF extract; conversations moved **into agent studio**                                  |
+| **11** | Workspace model + cookie `hapy_workspace`; top-left switcher (search / create / rename / delete)                                          |
+
 
 ---
+
+
 
 # PHASE 0 — Setup ✅
 
@@ -130,6 +148,8 @@ Jo extra kaam original checklist ke baad add hua — yeh table demo / yaad rakhn
 - [x] **PHASE 0 DONE**
 
 ---
+
+
 
 # PHASE 1 — Auth ✅
 
@@ -140,6 +160,8 @@ NextAuth — `[NEXTAUTH_MIGRATION_PLAN.md](NEXTAUTH_MIGRATION_PLAN.md)`
 
 ---
 
+
+
 # PHASE 2 — Dashboard + Agents ✅
 
 `[PHASE2_BACKEND_PLAN.md](PHASE2_BACKEND_PLAN.md)` · `[PHASE2_FRONTEND_PLAN.md](PHASE2_FRONTEND_PLAN.md)`
@@ -149,6 +171,8 @@ NextAuth — `[NEXTAUTH_MIGRATION_PLAN.md](NEXTAUTH_MIGRATION_PLAN.md)`
 
 ---
 
+
+
 # PHASE 3 — Knowledge ✅
 
 `[PHASE3_BACKEND_PLAN.md](PHASE3_BACKEND_PLAN.md)` · `[PHASE3_FRONTEND_PLAN.md](PHASE3_FRONTEND_PLAN.md)` · `[PHASE3_CLOUDINARY_PDF_PLAN.md](PHASE3_CLOUDINARY_PDF_PLAN.md)`
@@ -157,6 +181,8 @@ NextAuth — `[NEXTAUTH_MIGRATION_PLAN.md](NEXTAUTH_MIGRATION_PLAN.md)`
 - [x] **PHASE 3 DONE**
 
 ---
+
+
 
 # PHASE 4 — Botpress-like Redesign (Hapy colors & fonts) ✅
 
@@ -181,10 +207,14 @@ Botpress Cloud jaisa **sidebar product** — Hapy teal + Instrument/DM fonts. SR
 | 4.6 | Analytics layout + empty/error    | Analytics grid                | §15–16, §20         |
 
 
+
+
 ### Rules
 
 - **No** Botpress black/blue/purple theme  
 - **No** canvas, billing, WhatsApp, Integrations marketplace
+
+
 
 ### Phase 4 Checklist
 
@@ -197,6 +227,8 @@ Botpress Cloud jaisa **sidebar product** — Hapy teal + Instrument/DM fonts. SR
 - [x] **PHASE 4 DONE**  
 
 ---
+
+
 
 # PHASE 5 — Chat + Conversations ✅
 
@@ -223,6 +255,8 @@ User message → OpenAI → save messages + category/sentiment.
 
 ---
 
+
+
 # PHASE 6 — Agent Customization ✅
 
 **Detailed plan:** `[CUSTOMIZATION_PLAN.md](CUSTOMIZATION_PLAN.md)`  
@@ -235,16 +269,20 @@ Agent page par **Customization** tab — live preview + Save. Hapy teal defaults
 
 ### Agent tabs
 
-`Overview` · `Knowledge` · `Analytics` · **`Customization`** · `Test`
+`Overview` · `Knowledge` · `Analytics` · `Customization` · `Test`
 
 ### Sections
 
-| Section     | Content |
-| ----------- | ------- |
-| Identity    | Avatar, display name, description, placeholder, footer, contact, terms/privacy |
-| Appearance  | Primary color, font, theme, header, message style, corner radius |
-| Deploy      | Embed snippet (placeholder), Toggle/Embedded, launcher, button image, proactive message |
-| Features    | Feedback, file upload, notification sound, conversation history, history reset |
+
+| Section    | Content                                                                                 |
+| ---------- | --------------------------------------------------------------------------------------- |
+| Identity   | Avatar, display name, description, placeholder, footer, contact, terms/privacy          |
+| Appearance | Primary color, font, theme, header, message style, corner radius                        |
+| Deploy     | Embed snippet (placeholder), Toggle/Embedded, launcher, button image, proactive message |
+| Features   | Feedback, file upload, notification sound, conversation history, history reset          |
+
+
+
 
 ### Phase 6 Checklist
 
@@ -262,6 +300,8 @@ Agent page par **Customization** tab — live preview + Save. Hapy teal defaults
 
 ---
 
+
+
 # PHASE 7 — Agent Studio tabs ✅
 
 **Was:** old Phase 6 (Studio)  
@@ -274,13 +314,15 @@ One **Agent Studio** hub — same tabs everywhere, live Test emulator. Embed sni
 
 ### Tabs
 
-| Tab            | Route                         | Content |
-| -------------- | ----------------------------- | ------- |
-| Overview       | `/agents/[id]`                | Summary + shortcuts to Test / Customization |
-| Knowledge      | `/agents/[id]/knowledge`      | Existing knowledge UI |
-| Analytics      | `/agents/[id]/analytics`      | Per-agent live charts (Phase 9 pull-forward) |
-| Customization  | `/agents/[id]/customization`  | Phase 6 — Identity / Appearance / **Deploy (embed snippet)** / Features |
-| **Test**       | `/agents/[id]/test`           | Studio emulator + auto-run |
+
+| Tab           | Route                        | Content                                                                 |
+| ------------- | ---------------------------- | ----------------------------------------------------------------------- |
+| Overview      | `/agents/[id]`               | Summary + shortcuts to Test / Customization                             |
+| Knowledge     | `/agents/[id]/knowledge`     | Existing knowledge UI                                                   |
+| Analytics     | `/agents/[id]/analytics`     | Per-agent live charts (Phase 9 pull-forward)                            |
+| Customization | `/agents/[id]/customization` | Phase 6 — Identity / Appearance / **Deploy (embed snippet)** / Features |
+| **Test**      | `/agents/[id]/test`          | Studio emulator + auto-run                                              |
+
 
 Shell: `AgentStudioFrame` + `STUDIO_TABS` + breadcrumbs (test / customization).
 
@@ -289,6 +331,7 @@ Shell: `AgentStudioFrame` + `STUDIO_TABS` + breadcrumbs (test / customization).
 Two modes, left panel height matches the chat widget (`h-[min(640px,72vh)]`).
 
 **1. Ask yourself (auto-run)**  
+
 - User adds their own questions (max 20).  
 - **Run test** sends them **one by one** in the **same conversation** — next question only after the agent replies.  
 - **Pause** / **Resume** / **Stop** anytime.  
@@ -297,6 +340,7 @@ Two modes, left panel height matches the chat widget (`h-[min(640px,72vh)]`).
 - While running: question list + composer locked so the queue cannot mix with typing.
 
 **2. Question pack**  
+
 - Starter scripts, or **Generate / Regenerate with AI** (`POST /api/agents/[id]/test-questions`).  
 - Pack is built from agent name, prompt, and knowledge.  
 - Each line is editable; **Send** still works one-at-a-time.
@@ -321,6 +365,8 @@ Embed snippet is **Customization → Deploy**. Old `/agents/[id]/share` redirect
 
 ---
 
+
+
 # PHASE 8 — Webchat embed + site knowledge
 
 **Was:** old Phase 7  
@@ -328,26 +374,32 @@ Embed snippet is **Customization → Deploy**. Old `/agents/[id]/share` redirect
 
 > **Approval gate:** Site crawl (8.2–8.6) is designed below. **Do not implement 8.2+ until this section is approved.** Embed 8.1 can still ship first if crawl is delayed.
 
+
+
 ### Goal
 
-1. Public embed bubble + snippet + theme; `POST /api/public/agents/[publicKey]/chat`.  
-2. **Jahan bhi** owner widget lagaye: pehli dafa us website/app ke origin ko **ek hi baar** crawl karo, support pages knowledge/DB mein store, visitors ka better jawab.  
-3. **Dobara auto-crawl nahi.** No daily refresh. Doosri site par snippet later paste ho to chat chalega, **doosra crawl nahi.**  
+1. Public embed bubble + snippet + theme; `POST /api/public/agents/[publicKey]/chat`.
+2. **Jahan bhi** owner widget lagaye: pehli dafa us website/app ke origin ko **ek hi baar** crawl karo, support pages knowledge/DB mein store, visitors ka better jawab.
+3. **Dobara auto-crawl nahi.** No daily refresh. Doosri site par snippet later paste ho to chat chalega, **doosra crawl nahi.**
 4. Agent **secrets / private pages / internals** expose nahi kare (host site ya Hapy).
 
 Use Phase 6 Customization Deploy settings as the source of truth for theme / launcher / proactive.
 
 ### Why this is not “scrape the internet”
 
-| Allowed | Not allowed |
-| ------- | ----------- |
-| The **first live origin** the widget reports (`window.location.origin`) | Owner-typed URL field, competing sites, repeating crawls |
-| Public HTML (FAQ, help, pricing, shipping, about, contact) | `/admin`, `/login`, `/account`, `/api`, `.env`, dashboards |
-| Visible page text after redaction | Cookies, localStorage, user sessions, hidden fields, JS secrets |
-| Same host as that first origin (`www` vs apex = same site) | Every new domain the snippet is copied to |
-| Owner can see / delete the auto KB | Silent recrawl when pages change |
+
+| Allowed                                                                 | Not allowed                                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------- |
+| The **first live origin** the widget reports (`window.location.origin`) | Owner-typed URL field, competing sites, repeating crawls        |
+| Public HTML (FAQ, help, pricing, shipping, about, contact)              | `/admin`, `/login`, `/account`, `/api`, `.env`, dashboards      |
+| Visible page text after redaction                                       | Cookies, localStorage, user sessions, hidden fields, JS secrets |
+| Same host as that first origin (`www` vs apex = same site)              | Every new domain the snippet is copied to                       |
+| Owner can see / delete the auto KB                                      | Silent recrawl when pages change                                |
+
 
 ---
+
+
 
 ### 8.1 — Public embed (widget)
 
@@ -358,6 +410,8 @@ Use Phase 6 Customization Deploy settings as the source of truth for theme / lau
 - Share + Deploy snippets use real `publicKey` (replace Phase 6/7 placeholder)
 
 ---
+
+
 
 ### 8.2 — One-time crawl on first embed (no URL form)
 
@@ -370,19 +424,23 @@ Owner **does not** paste a “Website to learn from”. Discovery = embed.
 
 **When a crawl starts**
 
-| Situation | Behavior |
-| --------- | -------- |
-| Widget loads, agent has **never** crawled, origin is `https` public host (not `localhost`) | Enqueue **one** job for that origin |
-| Same origin, widget loads again / visitors come back | **No crawl** — use stored WEB knowledge |
-| Widget later loads on a **different** origin | Chat works; **no crawl** (agent already used its one crawl) |
-| First job **fails** | Same origin may retry until **first success**, then lock. Not a content recrawl |
-| `localhost` / `127.0.0.1` | Never crawl (dev preview) |
+
+| Situation                                                                                  | Behavior                                                                        |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Widget loads, agent has **never** crawled, origin is `https` public host (not `localhost`) | Enqueue **one** job for that origin                                             |
+| Same origin, widget loads again / visitors come back                                       | **No crawl** — use stored WEB knowledge                                         |
+| Widget later loads on a **different** origin                                               | Chat works; **no crawl** (agent already used its one crawl)                     |
+| First job **fails**                                                                        | Same origin may retry until **first success**, then lock. Not a content recrawl |
+| `localhost` / `127.0.0.1`                                                                  | Never crawl (dev preview)                                                       |
+
 
 No Share-field allowlist. No “Refresh from website” in Phase 8.
 
 Knowledge tab: **Website** doc, source origin, crawled-at, status.
 
 ---
+
+
 
 ### 8.3 — Crawler (how it fetches)
 
@@ -403,9 +461,11 @@ At most **one DONE job per agent**. Extra enqueue attempts are no-ops.
 
 ---
 
+
+
 ### 8.4 — Store as knowledge (auto KB)
 
-- Prisma: `KnowledgeType` add **`WEB`** (keep TEXT + PDF).
+- Prisma: `KnowledgeType` add `WEB` (keep TEXT + PDF).
 - `KnowledgeDocument`: `sourceUrl String?`, `origin String?`, `crawlJobId String?`.
 - This crawl **writes WEB docs once**. It does **not** overwrite owner TEXT/PDF. There is **no recrawl replace** in Phase 8.
 - After fetch: **redact** then either:
@@ -416,6 +476,8 @@ At most **one DONE job per agent**. Extra enqueue attempts are no-ops.
 Admin later (O9) is a **platform jobs console** — not this phase.
 
 ---
+
+
 
 ### 8.5 — Secrets, private details, chat refusals
 
@@ -443,6 +505,8 @@ Public widget users are **site visitors**. They already see the public site. The
 
 ---
 
+
+
 ### 8.6 — Limits
 
 - **One successful crawl per agent, ever**
@@ -453,6 +517,8 @@ Public widget users are **site visitors**. They already see the public site. The
 
 ---
 
+
+
 ### Out of Phase 8 (crawl)
 
 - Recrawl / “Refresh from website” / 24h sync  
@@ -461,9 +527,11 @@ Public widget users are **site visitors**. They already see the public site. The
 - Headless browser / SPAs that render FAQ only in JS  
 - PDF / sitemap-hosted files  
 - Vector DB / embeddings (still prompt stuffing like Phase 3)  
-- Admin crawl ops UI ([`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) **O9**)
+- Admin crawl ops UI (`[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)` **O9**)
 
 ---
+
+
 
 ### Phase 8 Checklist
 
@@ -489,6 +557,7 @@ Public widget users are **site visitors**. They already see the public site. The
 ---
 
 
+
 # PHASE 9 — Analytics + Insights (charts live)
 
 **Was:** old Phase 8  
@@ -497,16 +566,20 @@ Public widget users are **site visitors**. They already see the public site. The
 
 ### Surfaces
 
-| Surface | Route | What it shows |
-| ------- | ----- | ------------- |
-| Workspace | `/analytics` | All agents: KPIs, volume area (7d / 30d / all), heatmap, topics, sentiment over time, latency, workload, agent radar |
+
+| Surface   | Route                    | What it shows                                                                                                                                                                   |
+| --------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace | `/analytics`             | All agents: KPIs, volume area (7d / 30d / all), heatmap, topics, sentiment over time, latency, workload, agent radar                                                            |
 | Per-agent | `/agents/[id]/analytics` | That agent only: KPIs, **Conversation trend** (Lines default + Bars toggle), topics donut+bars, **sentiment share** (not a second donut), sentiment over time (Lines / Stacked) |
+
+
+
 
 ### API
 
-`GET /api/analytics/overview` · `topics` · `sentiment` · `trends` · **`dashboard`** (composed payload for both UIs)
+`GET /api/analytics/overview` · `topics` · `sentiment` · `trends` · `dashboard` (composed payload for both UIs)
 
-Range: `7d` \| `30d` \| `all`. Empty range → empty chart, **no fake sample data**.
+Range: `7d`  `30d`  `all`. Empty range → empty chart, **no fake sample data**.
 
 ### Phase 9 Checklist
 
@@ -521,11 +594,13 @@ Range: `7d` \| `30d` \| `all`. Empty range → empty chart, **no fake sample dat
 
 ---
 
+
+
 # PHASE 10 — Deploy + Polish
 
 **Was:** old Phase 9  
 **Maps to:** gap B5  
-**Live:** https://ai-customer-support-agent-ashen.vercel.app  
+**Live:** [https://ai-customer-support-agent-ashen.vercel.app](https://ai-customer-support-agent-ashen.vercel.app)  
 
 ### Phase 10 Checklist
 
@@ -544,6 +619,8 @@ In-memory rate limit does not share counts across Vercel instances (acceptable f
 
 ---
 
+
+
 # PHASE 11 — Multiple workspaces (in-scope)
 
 **Maps to:** Botpress Cloud workspace switcher (top-left).  
@@ -558,6 +635,8 @@ In-memory rate limit does not share counts across Vercel instances (acceptable f
 - Agents **belong to a workspace**, not loosely to the user.
 - Switching workspace does not log the user out.
 
+
+
 ### Data
 
 ```
@@ -569,6 +648,8 @@ User 1──* Workspace 1──* Agent (existing children: knowledge, conversati
 - Session or cookie: `activeWorkspaceId` (must be owned by the user).
 - Unique workspace **name per user** (trim, 1–60 chars).
 
+
+
 ### UI
 
 - Trigger: icon + **workspace name** + muted line (e.g. “Personal”) + up/down chevron — same placement as the screenshot (top-left of the app shell).
@@ -576,6 +657,8 @@ User 1──* Workspace 1──* Agent (existing children: knowledge, conversati
 - Create: name → new empty workspace → switch to it.
 - Rename / delete workspace (delete only if empty, or move/delete agents with confirm) — include in this phase so Admin has a stable entity.
 - Empty workspace: “Create your first agent”.
+
+
 
 ### APIs
 
@@ -603,89 +686,106 @@ Public embed unchanged (`publicKey` still on Agent).
 
 ---
 
+
+
 ## Optional post-MVP (after Phase 11 + Admin)
 
-Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain)
+**Backlog (priority + named out-of-scope, deep):** `[POST_MVP_BACKLOG_PLAN.md](POST_MVP_BACKLOG_PLAN.md)` — P0 intern DoD / Week 3 engineering / P3 OOS.
 
-**After Phase 11:** Admin — [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) (in-scope **A0–A6**, then out-of-scope **O1+**).
+Streaming · Citations · Model picker · Headless/SPA crawl · extra origins live in that file as **P3-PRODUCT-EXTRAS**.
+
+**After Phase 11:** Admin — `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)` (in-scope **A0–A6**, then out-of-scope **O1+**).
 
 ---
+
+
 
 ## Out of scope (this product — do not start)
 
 Yeh **main plan** ke bahar rehte hain jab tak explicitly na uthaya jaye. Admin-side later list: same file **O1+**.
 
-| ID | Item | Notes |
-| -- | ---- | ----- |
-| **P-O1** | Flow canvas / visual bot builder | Never-MVP |
-| **P-O2** | WhatsApp / Slack / Discord | Never-MVP |
-| **P-O3** | Human desk / live handoff | Never-MVP |
-| **P-O4** | Teams: invite other **users** into a workspace | Workspace stays single-owner; Admin **O3** |
-| **P-O5** | Billing / Stripe / plans | Admin **O4** |
-| **P-O6** | Vector RAG / embeddings | Knowledge stuffing stays |
-| **P-O7** | Custom LLM / fine-tune | |
-| **P-O8** | Multiple platform admins / staff RBAC | Admin is **one** person; Admin **O2** |
-| **P-O9** | Impersonate (admin writes as user) | Admin **O1** |
-| **P-O10** | Open-web / competitor crawl | Crawl = widget origin only |
-| **P-O11** | Mobile app / SSO / SCIM | |
+
+| ID        | Item                                           | Notes                                      |
+| --------- | ---------------------------------------------- | ------------------------------------------ |
+| **P-O1**  | Flow canvas / visual bot builder               | Never-MVP                                  |
+| **P-O2**  | WhatsApp / Slack / Discord                     | Never-MVP                                  |
+| **P-O3**  | Human desk / live handoff                      | Never-MVP                                  |
+| **P-O4**  | Teams: invite other **users** into a workspace | Workspace stays single-owner; Admin **O3** |
+| **P-O5**  | Billing / Stripe / plans                       | Admin **O4**                               |
+| **P-O6**  | Vector RAG / embeddings                        | Knowledge stuffing stays                   |
+| **P-O7**  | Custom LLM / fine-tune                         |                                            |
+| **P-O8**  | Multiple platform admins / staff RBAC          | Admin is **one** person; Admin **O2**      |
+| **P-O9**  | Impersonate (admin writes as user)             | Admin **O1**                               |
+| **P-O10** | Open-web / competitor crawl                    | Crawl = widget origin only                 |
+| **P-O11** | Mobile app / SSO / SCIM                        |                                            |
+
 
 **Never:** training on private customer data; scraping arbitrary sites as a platform crawler.
 
 ---
 
+
+
 ## Daily Schedule
 
 
-| Days | Focus                                |
-| ---- | ------------------------------------ |
-| ✅    | Phases 0–7                           |
-| ✅    | Phase 9 charts (pulled forward)      |
-| ✅    | Phase 8 embed + crawl                |
-| ✅    | Phase 10 **Vercel live** + leftover (rate limits, README, health) |
-| ✅    | **Phase 11 — Multiple workspaces**       |
-| Next | **Admin in-scope** [`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md) A0–A6 |
-| After Admin v1 | Admin out-of-scope **O1, then O2, …** (one at a time) |
+| Days           | Focus                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| ✅              | Phases 0–7                                                          |
+| ✅              | Phase 9 charts (pulled forward)                                     |
+| ✅              | Phase 8 embed + crawl                                               |
+| ✅              | Phase 10 **Vercel live** + leftover (rate limits, README, health)   |
+| ✅              | **Phase 11 — Multiple workspaces**                                  |
+| Next           | **P0 backlog** `[POST_MVP_BACKLOG_PLAN.md](POST_MVP_BACKLOG_PLAN.md)` (DoD, smoke, CI, Google button) |
+| After P0       | Week 3 engineering **pick 2–3** (same file, P1) |
+| Later          | Named OOS **P3-*** and Admin **O1+** one at a time |
 
 
 ---
+
+
 
 ## API Routes Map
 
 
-| Area                      | Routes                                 | Phase |
-| ------------------------- | -------------------------------------- | ----- |
-| Auth / Agents / Knowledge | existing                               | 1–3   |
-| Chat / Conversations      | existing                               | 5     |
-| Agent Customization       | `PUT /api/agents/[id]` + avatar upload | **6** |
-| Studio Test questions     | `POST /api/agents/[id]/test-questions` | **7** |
-| Public Webchat            | `POST /public/agents/[publicKey]/chat` | **8** |
-| Site crawl                | `POST /agents/[id]/site-crawl` + job   | **8** |
-| Workspaces                | `GET/POST /api/workspaces`, activate | **11** |
-| Analytics                 | overview, topics, sentiment, trends, **dashboard** | **9** |
+| Area                      | Routes                                             | Phase  |
+| ------------------------- | -------------------------------------------------- | ------ |
+| Auth / Agents / Knowledge | existing                                           | 1–3    |
+| Chat / Conversations      | existing                                           | 5      |
+| Agent Customization       | `PUT /api/agents/[id]` + avatar upload             | **6**  |
+| Studio Test questions     | `POST /api/agents/[id]/test-questions`             | **7**  |
+| Public Webchat            | `POST /public/agents/[publicKey]/chat`             | **8**  |
+| Site crawl                | `POST /agents/[id]/site-crawl` + job               | **8**  |
+| Workspaces                | `GET/POST /api/workspaces`, activate               | **11** |
+| Analytics                 | overview, topics, sentiment, trends, **dashboard** | **9**  |
 
 
 ---
+
+
 
 ## Pages Map
 
 
-| URL                              | Phase                |
-| -------------------------------- | -------------------- |
-| `/dashboard`, `/agents`, …       | 2–3 + **4 redesign** |
-| `/chat`                              | **5** (+ 4 layout)   |
-| `/agents/[id]/conversations`         | **5** (moved from sidebar, Phase 10) |
-| `/agents/[id]/conversations/[id]`    | **5** thread         |
-| `/agents/[id]/customization`     | **6**                |
-| `/agents/[id]/test`              | **7** Test emulator  |
-| `/agents/[id]/customization`     | **6** Deploy snippet |
-| `/w/[publicKey]`                 | **8**                |
-| Knowledge **Website** docs       | **8** (auto from origin) |
-| `/analytics`                     | **9** (live)         |
-| `/agents/[id]/analytics`         | **9** (live)         |
-| Top-left workspace switcher      | **11**               |
+| URL                               | Phase                                |
+| --------------------------------- | ------------------------------------ |
+| `/dashboard`, `/agents`, …        | 2–3 + **4 redesign**                 |
+| `/chat`                           | **5** (+ 4 layout)                   |
+| `/agents/[id]/conversations`      | **5** (moved from sidebar, Phase 10) |
+| `/agents/[id]/conversations/[id]` | **5** thread                         |
+| `/agents/[id]/customization`      | **6**                                |
+| `/agents/[id]/test`               | **7** Test emulator                  |
+| `/agents/[id]/customization`      | **6** Deploy snippet                 |
+| `/w/[publicKey]`                  | **8**                                |
+| Knowledge **Website** docs        | **8** (auto from origin)             |
+| `/analytics`                      | **9** (live)                         |
+| `/agents/[id]/analytics`          | **9** (live)                         |
+| Top-left workspace switcher       | **11**                               |
 
 
 ---
+
+
 
 ## Design Rules
 
@@ -696,6 +796,8 @@ Yeh **main plan** ke bahar rehte hain jab tak explicitly na uthaya jaye. Admin-s
 5. Loading / empty / error everywhere
 
 ---
+
+
 
 ## Definition of Done (MVP)
 
@@ -710,25 +812,29 @@ Yeh **main plan** ke bahar rehte hain jab tak explicitly na uthaya jaye. Admin-s
 - [x] README + rate limits + health DB check (Phase 10)  
 - [x] Phases **0–10** DONE  
 - [x] Phase **11** workspaces (switcher + scope)  
-- [ ] Admin A0–A6 ([`ADMIN_SAAS_PLAN.md`](ADMIN_SAAS_PLAN.md))  
+- [x] Admin A0–A6 (`[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`)  
+- [ ] Post-MVP P0 (`[POST_MVP_BACKLOG_PLAN.md](POST_MVP_BACKLOG_PLAN.md)`)  
 
 ---
+
+
 
 ## Related Docs
 
 
-| File                                                             | Purpose                                      |
-| ---------------------------------------------------------------- | -------------------------------------------- |
-| **This file**                                                    | Phases 0–10 + **11 workspaces** + product out-of-scope |
+| File                                                             | Purpose                                                     |
+| ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| **This file**                                                    | Phases 0–10 + **11 workspaces** + product out-of-scope      |
 | `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`                       | **After Phase 11:** one Admin, two roles, inspect all users |
-| `[PHASE4_REDESIGN_PLAN.md](PHASE4_REDESIGN_PLAN.md)`             | **Phase 4 redesign** ✅                       |
-| `[PHASE4_BACKEND_PLAN.md](PHASE4_BACKEND_PLAN.md)`               | Chat backend (**Phase 5** — legacy name) ✅   |
-| `[PHASE4_FRONTEND_PLAN.md](PHASE4_FRONTEND_PLAN.md)`             | Chat frontend (**Phase 5** — legacy name) ✅  |
-| `[CUSTOMIZATION_PLAN.md](CUSTOMIZATION_PLAN.md)`                 | **Phase 6 Customization** ✅                  |
-| `[CUSTOMIZATION_NOTES.md](CUSTOMIZATION_NOTES.md)`               | Botpress Webchat refs for Customization      |
-| `[AGENT_TEST_KIT.md](AGENT_TEST_KIT.md)`                         | Hapy Co scripts + **Studio Test auto-run**   |
-| `[BOTPRESS_GAP_PLAN.md](BOTPRESS_GAP_PLAN.md)`                   | Gap analysis                                 |
-| `[PHASE3_CLOUDINARY_PDF_PLAN.md](PHASE3_CLOUDINARY_PDF_PLAN.md)` | PDF hosting                                  |
+| `[POST_MVP_BACKLOG_PLAN.md](POST_MVP_BACKLOG_PLAN.md)`           | Week 3 + intern DoD + **named out-of-scope** (priority)   |
+| `[PHASE4_REDESIGN_PLAN.md](PHASE4_REDESIGN_PLAN.md)`             | **Phase 4 redesign** ✅                                      |
+| `[PHASE4_BACKEND_PLAN.md](PHASE4_BACKEND_PLAN.md)`               | Chat backend (**Phase 5** — legacy name) ✅                  |
+| `[PHASE4_FRONTEND_PLAN.md](PHASE4_FRONTEND_PLAN.md)`             | Chat frontend (**Phase 5** — legacy name) ✅                 |
+| `[CUSTOMIZATION_PLAN.md](CUSTOMIZATION_PLAN.md)`                 | **Phase 6 Customization** ✅                                 |
+| `[CUSTOMIZATION_NOTES.md](CUSTOMIZATION_NOTES.md)`               | Botpress Webchat refs for Customization                     |
+| `[AGENT_TEST_KIT.md](AGENT_TEST_KIT.md)`                         | Hapy Co scripts + **Studio Test auto-run**                  |
+| `[BOTPRESS_GAP_PLAN.md](BOTPRESS_GAP_PLAN.md)`                   | Gap analysis                                                |
+| `[PHASE3_CLOUDINARY_PDF_PLAN.md](PHASE3_CLOUDINARY_PDF_PLAN.md)` | PDF hosting                                                 |
 
 
 **Phase 10 = live on Vercel (DONE). Phase 11 workspaces = implemented. Then one-admin inspect console.**

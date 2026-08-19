@@ -1,10 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, ImagePlus, Loader2, MessageCircle, X } from "lucide-react";
+import { Check, Copy, ExternalLink, ImagePlus, Loader2, MessageCircle, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { uploadAgentAvatar } from "@/lib/api/agents";
+import { uploadAgentAvatar, regenerateAgentEmbed } from "@/lib/api/agents";
 import {
   ChoiceCard,
   FieldBlock,
@@ -14,10 +23,19 @@ import {
 import { buildEmbedSnippet } from "@/lib/customization/embed";
 import { cn } from "@/lib/utils";
 
-export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
+export function DeployForm({
+  agentId,
+  publicKey,
+  deploy,
+  identity,
+  onChange,
+  onPublicKeyChange,
+}) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [origin, setOrigin] = useState("https://your-app.com");
   const snippet = buildEmbedSnippet(publicKey, origin);
 
@@ -37,6 +55,22 @@ export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
       setTimeout(() => setCopied(false), 1600);
     } catch {
       toast.error("Could not copy");
+    }
+  }
+
+  async function regenerateSnippet() {
+    setRegenerating(true);
+    try {
+      const updated = await regenerateAgentEmbed(agentId);
+      onPublicKeyChange?.(updated.publicKey);
+      setConfirmOpen(false);
+      toast.success(
+        "New embed script ready. Old snippet is disabled. If website knowledge is empty, the next live visit can crawl once."
+      );
+    } catch (err) {
+      toast.error(err.message || "Unable to regenerate embed");
+    } finally {
+      setRegenerating(false);
     }
   }
 
@@ -64,7 +98,7 @@ export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
       <FormSection title="Install">
         <FieldBlock
           label="Embed code"
-          hint="Copy and paste this on your webpage. The first live https visit builds website knowledge once."
+          hint="Copy this onto your webpage. Regenerate if the old snippet leaked or you want to kill live widgets."
         >
           <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#0f172a]">
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
@@ -83,6 +117,15 @@ export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
                 ) : null}
                 <button
                   type="button"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={regenerating}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10 disabled:opacity-50"
+                >
+                  <RefreshCw className="size-3.5" />
+                  Regenerate
+                </button>
+                <button
+                  type="button"
                   onClick={copySnippet}
                   className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-slate-200 hover:bg-white/10"
                 >
@@ -99,6 +142,10 @@ export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
               <code>{snippet}</code>
             </pre>
           </div>
+          <p className="mt-2 text-[12px] text-[var(--color-muted)]">
+            Regenerating issues a new public key. Sites still using the old
+            script stop loading the widget immediately.
+          </p>
         </FieldBlock>
       </FormSection>
 
@@ -312,6 +359,50 @@ export function DeployForm({ agentId, publicKey, deploy, identity, onChange }) {
           ) : null}
         </FieldBlock>
       </FormSection>
+
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (regenerating) return;
+          setConfirmOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Regenerate embed script?</DialogTitle>
+            <DialogDescription>
+              A new public key will replace the current one. Sites still using
+              the old snippet will stop loading this widget until you paste the
+              new code. If this agent has no website knowledge, the next live
+              visit can crawl the host page once.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={regenerating}
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={regenerating}
+              onClick={regenerateSnippet}
+            >
+              {regenerating ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Regenerating…
+                </>
+              ) : (
+                "Regenerate"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

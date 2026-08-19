@@ -44,10 +44,10 @@ export function GoogleSignInButton({
 
           setBusy(true);
           try {
-            await loginWithGoogle(response.credential);
-            onSuccessRef.current?.();
+            const user = await loginWithGoogle(response.credential);
+            onSuccessRef.current?.(user);
           } catch (error) {
-            onErrorRef.current?.(error.message || "Google sign-in failed");
+            onErrorRef.current?.(error.message || "Google sign-in failed", error);
           } finally {
             setBusy(false);
           }

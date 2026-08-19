@@ -99,7 +99,7 @@ export function AgentHero({ agent, onDelete }) {
       </div>
 
       <nav
-        className="flex gap-1 overflow-x-auto border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 px-3"
+        className="flex flex-nowrap gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 px-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-x-hidden"
         aria-label="Agent studio"
       >
         {tabs.map((tab) => {
@@ -111,7 +111,7 @@ export function AgentHero({ agent, onDelete }) {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "shrink-0 -mb-px border-b-2 px-3 py-2.5 text-[13px] font-medium",
+                "shrink-0 border-b-2 px-3 py-2.5 text-[13px] font-medium",
                 active
                   ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                   : "border-transparent text-[var(--color-muted)] hover:text-[var(--color-text)]"

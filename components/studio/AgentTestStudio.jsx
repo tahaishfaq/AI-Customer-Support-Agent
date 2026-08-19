@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessage } from "@/lib/api/chat";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
-import { playNotificationBeep } from "@/lib/customization/theme";
+import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatHistoryPanel } from "@/components/chat/ChatHistoryPanel";
 import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -26,6 +26,7 @@ import { MessageList } from "@/components/chat/MessageList";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useUrlTab } from "@/hooks/use-url-tab";
 
 const DEFAULT_SCRIPTS = [
   {
@@ -64,6 +65,7 @@ const MODES = [
   { id: "self", label: "Ask yourself" },
   { id: "pack", label: "Question pack" },
 ];
+const MODE_IDS = MODES.map((m) => m.id);
 
 function emptySelfQuestion() {
   return {
@@ -87,7 +89,7 @@ function welcomeBubble(agent) {
 
 export function AgentTestStudio({ agent }) {
   const customization = useMemo(() => resolveCustomization(agent), [agent]);
-  const [mode, setMode] = useState("self");
+  const [mode, setMode] = useUrlTab("tab", MODE_IDS, "self");
   const [questions, setQuestions] = useState(DEFAULT_SCRIPTS);
   const [generated, setGenerated] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -342,15 +344,28 @@ export function AgentTestStudio({ agent }) {
           compact={false}
           themed
           showFeedback={customization.features.messageFeedback}
+          intro={widgetIntro(agent, customization)}
+          onFeedback={async (messageId, rating) => {
+            if (!messageId) return;
+            await fetch(`/api/messages/${messageId}/feedback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rating }),
+            });
+          }}
         />
       )}
-      {error ? (
+      {agent.enabled === false ? (
+        <p className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
+          This agent is disabled by Hapy admin. Studio chat is off.
+        </p>
+      ) : error ? (
         <p className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
       <ChatComposer
-        disabled={sending || runActive}
+        disabled={sending || runActive || agent.enabled === false}
         onSend={send}
         compact={false}
         themed
@@ -363,6 +378,7 @@ export function AgentTestStudio({ agent }) {
         }
         footer={customization.identity.footer || undefined}
         allowFileUpload={customization.features.fileUpload}
+        uploadUrl={`/api/agents/${agent.id}/files`}
       />
     </>
   );
@@ -723,6 +739,7 @@ export function AgentTestStudio({ agent }) {
               setHistoryOpen((open) => !open);
               setHistoryKey((k) => k + 1);
             }}
+            onReset={resetThread}
           >
             {chatBody}
           </ChatWidget>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   AnalyticsError,
   AnalyticsKpiGrid,
+  embedSiteHost,
   RangeChips,
   useAnalyticsDashboard,
 } from "@/components/analytics/analytics-shared";
@@ -15,9 +15,12 @@ import {
   TopicMixChart,
   VolumeTrendChart,
 } from "@/components/analytics/WorkspaceCharts";
+import { useUrlTab } from "@/hooks/use-url-tab";
+
+const RANGES = ["7d", "30d"];
 
 export function AnalyticsBoard({ agentId }) {
-  const [range, setRange] = useState("7d");
+  const [range, setRange] = useUrlTab("range", RANGES, "7d");
   const { data, loading, error } = useAnalyticsDashboard({ agentId, range });
 
   return (
@@ -36,6 +39,28 @@ export function AnalyticsBoard({ agentId }) {
       <AnalyticsError error={error} />
 
       <AnalyticsKpiGrid overview={data?.overview} loading={loading} />
+
+      {!loading && data?.agents?.[0] ? (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+            Live website
+          </p>
+          {data.agents[0].siteKnowledgeOrigin ? (
+            <a
+              href={data.agents[0].siteKnowledgeOrigin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+            >
+              {embedSiteHost(data.agents[0].siteKnowledgeOrigin)}
+            </a>
+          ) : (
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              This agent is not embedded on a public site yet.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard

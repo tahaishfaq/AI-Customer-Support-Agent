@@ -22,7 +22,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    const agent = await getPublicAgentByKey(publicKey);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: request.headers.get("origin"),
+    });
     if (!agent) {
       return NextResponse.json(
         { error: { message: "Agent not found", details: {} } },

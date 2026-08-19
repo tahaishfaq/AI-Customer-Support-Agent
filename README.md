@@ -42,11 +42,29 @@ npm run dev
 | `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | GIS button |
 | `OPENAI_API_KEY` | Chat + classify + test questions |
 | `CLOUDINARY_*` | PDF + avatars |
+| `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` | Seed the **one** platform admin (`npm run seed:admin`) |
 
 3. After first deploy: `npx prisma migrate deploy` against production Neon (or run it from a machine with `DIRECT_URL`).
 4. Google Cloud: add the Vercel origin to authorized JavaScript origins.
 
 `postinstall` runs `prisma generate`. Do not commit `.env`.
+
+## Seed the one admin (A0)
+
+There is **no** `/admin/register`. Create the operator from env:
+
+```bash
+# .env
+ADMIN_BOOTSTRAP_EMAIL=you@example.com
+ADMIN_BOOTSTRAP_PASSWORD=at-least-10-chars
+npm run seed:admin
+```
+
+Sign in at `/login` with the operator **email and password** (Google cannot sign in as admin). `ADMIN_BOOTSTRAP_EMAIL` cannot be used on `/register` or Google. User emails stay unique; there can be only one `ADMIN` row. Visiting `/admin` without an admin session returns 404.
+
+**Legal (A6):** `/admin/audit` is the inspect log. On a user detail page, **Export** downloads JSON (all workspaces, agents, knowledge, chats). **Delete** requires typing that user’s email; the platform admin cannot be deleted.
+
+Product `/api/agents` stays workspace-scoped even when the session is ADMIN.
 
 ## Embed (live widget)
 
@@ -54,7 +72,7 @@ From **Agent → Customization → Deploy** (or Share), copy the snippet. On you
 
 ```html
 <script
-  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=3"
+  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=5"
   data-hapy-key="YOUR_PUBLIC_KEY"
   defer
 ></script>

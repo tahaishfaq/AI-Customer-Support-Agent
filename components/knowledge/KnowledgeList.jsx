@@ -53,14 +53,16 @@ export function KnowledgeList({ agentId, siteCrawledAt, siteKnowledgeOrigin }) {
     );
   }
 
+  const hasWeb = documents.some((d) => d.type === "WEB");
+
   return (
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-[var(--color-text-secondary)]">
           FAQ text, PDFs, and website pages this agent can use.
-          {siteCrawledAt
+          {hasWeb && siteCrawledAt
             ? ` Website knowledge saved from ${String(siteKnowledgeOrigin || "").replace(/^https?:\/\//, "") || "embed"} on ${new Date(siteCrawledAt).toLocaleDateString()}.`
-            : " Embed the widget on a live https site to learn public help pages once."}
+            : " Embed the widget on a live https site to learn public pages once. If you delete website knowledge or regenerate the snippet, the next visit can crawl again."}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button

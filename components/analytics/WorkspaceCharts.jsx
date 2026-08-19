@@ -369,21 +369,56 @@ export function VolumeTrendChart({ points = [] }) {
   );
 }
 
+const growthConfig = {
+  users: { label: "Users", color: SKY },
+  agents: { label: "Agents", color: TEAL },
+  embeds: { label: "Live sites", color: "#7c3aed" },
+  chats: { label: "Chats", color: "#d97706" },
+};
+
+export function PlatformGrowthChart({ points = [], className }) {
+  if (!hasSeries(points, ["users", "agents", "embeds", "chats"])) {
+    return <ChartEmpty message="No platform growth in this range yet." />;
+  }
+
+  return (
+    <ChartContainer
+      config={growthConfig}
+      className={cn("aspect-auto h-[180px] w-full min-w-0", className)}
+    >
+      <LineChart accessibilityLayer data={points} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
+        <CartesianGrid vertical={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} fontSize={10} />
+        <YAxis tickLine={false} axisLine={false} width={24} allowDecimals={false} fontSize={10} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Line type="linear" dataKey="users" stroke={SKY} strokeWidth={1.75} dot={{ r: 2 }} />
+        <Line type="linear" dataKey="agents" stroke={TEAL} strokeWidth={1.75} dot={{ r: 2 }} />
+        <Line type="linear" dataKey="embeds" stroke="#7c3aed" strokeWidth={1.75} dot={{ r: 2 }} />
+        <Line type="linear" dataKey="chats" stroke="#d97706" strokeWidth={1.75} dot={{ r: 2 }} />
+      </LineChart>
+    </ChartContainer>
+  );
+}
+
 /** Three independent lines — not stacked area. */
-export function StackedSentimentChart({ points = [] }) {
+export function StackedSentimentChart({ points = [], className }) {
   if (!hasSeries(points, ["positive", "neutral", "negative"])) return <ChartEmpty />;
 
   return (
-    <ChartContainer config={sentimentConfig} className="aspect-auto h-[220px] w-full">
-      <LineChart accessibilityLayer data={points} margin={{ left: 8, right: 8, top: 8 }}>
+    <ChartContainer
+      config={sentimentConfig}
+      className={cn("aspect-auto h-[180px] w-full min-w-0", className)}
+    >
+      <LineChart accessibilityLayer data={points} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
         <CartesianGrid vertical={false} />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-        <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} fontSize={10} />
+        <YAxis tickLine={false} axisLine={false} width={24} allowDecimals={false} fontSize={10} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
-        <Line type="linear" dataKey="positive" stroke={GREEN} strokeWidth={2.5} dot={{ r: 3 }} />
-        <Line type="linear" dataKey="neutral" stroke={SLATE} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 2.5 }} />
-        <Line type="linear" dataKey="negative" stroke={RED} strokeWidth={2.5} dot={{ r: 3 }} />
+        <Line type="linear" dataKey="positive" stroke={GREEN} strokeWidth={1.75} dot={{ r: 2 }} />
+        <Line type="linear" dataKey="neutral" stroke={SLATE} strokeWidth={1.5} strokeDasharray="4 4" dot={{ r: 2 }} />
+        <Line type="linear" dataKey="negative" stroke={RED} strokeWidth={1.75} dot={{ r: 2 }} />
       </LineChart>
     </ChartContainer>
   );
@@ -418,7 +453,7 @@ export function SentimentOverTimeChart({ points = [] }) {
   );
 }
 
-export function ActivityHeatmap({ heatmap }) {
+export function ActivityHeatmap({ heatmap, compact = false }) {
   const [hover, setHover] = useState(null);
   const cells = heatmap?.cells || [];
   const max = heatmap?.max || 0;
@@ -426,10 +461,10 @@ export function ActivityHeatmap({ heatmap }) {
     return <ChartEmpty message="No chats in this range to map by hour." />;
   }
 
-  const cellW = 18;
-  const cellH = 16;
+  const cellW = compact ? 16 : 18;
+  const cellH = compact ? 14 : 16;
   const labelW = 36;
-  const top = 22;
+  const top = 18;
   const width = labelW + 24 * cellW + 8;
   const height = top + 7 * cellH + 8;
 
@@ -448,21 +483,29 @@ export function ActivityHeatmap({ heatmap }) {
 
   return (
     <div>
-      <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[12px] text-[var(--color-muted)]">
-          Darker cells are busier. Peak:{" "}
-          <span className="font-medium text-[var(--color-text)]">{heatmap.peak?.label || "—"}</span>
-        </p>
-        <p className="text-[12px] tabular-nums text-[var(--color-text-secondary)]">
+      {compact ? (
+        <p className="mb-1 truncate text-[11px] tabular-nums text-[var(--color-muted)]">
           {active
-            ? `${heatmap.days[active.day]} ${hourLabel(active.hour)} — ${active.count} chats`
-            : "Hover a cell for the exact hour"}
+            ? `${heatmap.days[active.day]} ${hourLabel(active.hour)} — ${active.count}`
+            : `Peak ${heatmap.peak?.label || "—"}`}
         </p>
-      </div>
+      ) : (
+        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[12px] text-[var(--color-muted)]">
+            Darker cells are busier. Peak:{" "}
+            <span className="font-medium text-[var(--color-text)]">{heatmap.peak?.label || "—"}</span>
+          </p>
+          <p className="text-[12px] tabular-nums text-[var(--color-text-secondary)]">
+            {active
+              ? `${heatmap.days[active.day]} ${hourLabel(active.hour)} — ${active.count} chats`
+              : "Hover a cell for the exact hour"}
+          </p>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-[188px] min-w-[560px] w-full"
+          className={cn("min-w-[520px] w-full", compact ? "h-[128px]" : "h-[188px]")}
           role="img"
           aria-label="Activity by weekday and hour"
         >
@@ -811,13 +854,16 @@ export function TopicMixChart({ topics = [] }) {
   );
 }
 
-export function ResponseHistogram({ buckets = [] }) {
+export function ResponseHistogram({ buckets = [], className }) {
   if (!buckets.some((item) => item.count > 0)) {
     return <ChartEmpty message="No timed assistant replies in this range." />;
   }
 
   return (
-    <ChartContainer config={latencyConfig} className="aspect-auto h-[220px] w-full">
+    <ChartContainer
+      config={latencyConfig}
+      className={cn("aspect-auto h-[180px] w-full min-w-0", className)}
+    >
       <BarChart
         accessibilityLayer
         data={buckets}

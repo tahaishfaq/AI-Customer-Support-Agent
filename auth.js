@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -7,6 +7,38 @@ import prisma from "@/lib/prisma";
 import { comparePassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
 import { ensureDefaultWorkspace } from "@/lib/services/workspace.service";
+import { rateLimit } from "@/lib/rate-limit";
+import { isReservedAdminEmail } from "@/lib/admin-email";
+
+class AccountSuspendedError extends CredentialsSignin {
+  code = "account_suspended";
+}
+
+class SignupsClosedError extends CredentialsSignin {
+  code = "signups_closed";
+}
+
+class AdminPasswordOnlyError extends CredentialsSignin {
+  code = "admin_password_only";
+}
+
+function rejectAdminGoogle(user) {
+  if (!user) return;
+  if (user.role === "ADMIN" || isReservedAdminEmail(user.email)) {
+    throw new AdminPasswordOnlyError();
+  }
+}
+
+function toAuthUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image,
+    role: user.role || "USER",
+    status: user.status || "ACTIVE",
+  };
+}
 
 /**
  * Auth.js (NextAuth v5) — Node runtime (API routes).
@@ -32,12 +64,24 @@ const providers = [
 
       const valid = await comparePassword(password, user.passwordHash);
       if (!valid) return null;
+      if (user.status === "SUSPENDED") throw new AccountSuspendedError();
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      };
+      if (user.role === "ADMIN") {
+        const limited = rateLimit(`admin-login:${email}`, {
+          limit: 5,
+          windowMs: 15 * 60_000,
+        });
+        if (!limited.ok) return null;
+      }
+
+      prisma.user
+        .update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
+        .catch(() => {});
+
+      return toAuthUser(user);
     },
   }),
   Credentials({
@@ -77,10 +121,14 @@ const providers = [
       const name = payload.name || email.split("@")[0];
       const image = payload.picture || null;
 
+      if (isReservedAdminEmail(email)) throw new AdminPasswordOnlyError();
+
       let user = await prisma.user.findUnique({ where: { googleId } });
+      rejectAdminGoogle(user);
 
       if (!user) {
         user = await prisma.user.findUnique({ where: { email } });
+        rejectAdminGoogle(user);
         if (user) {
           user = await prisma.user.update({
             where: { id: user.id },
@@ -91,6 +139,11 @@ const providers = [
             },
           });
         } else {
+          const { getPlatformSettings } = await import(
+            "@/lib/services/platform-settings.service"
+          );
+          const settings = await getPlatformSettings();
+          if (!settings.signupsEnabled) throw new SignupsClosedError();
           user = await prisma.user.create({
             data: {
               name,
@@ -99,18 +152,24 @@ const providers = [
               image,
               passwordHash: null,
               emailVerified: new Date(),
+              role: "USER",
+              status: "ACTIVE",
             },
           });
           await ensureDefaultWorkspace(user.id);
         }
       }
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-      };
+      if (user.status === "SUSPENDED") throw new AccountSuspendedError();
+
+      prisma.user
+        .update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
+        .catch(() => {});
+
+      return toAuthUser(user);
     },
   }),
 ];
@@ -132,6 +191,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   providers,
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user, account }) {
+      const provider = account?.provider;
+      if (provider === "google" || provider === "google-id-token") {
+        const email = user?.email?.toLowerCase();
+        if (isReservedAdminEmail(email)) return false;
+        if (user?.id) {
+          const row = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { role: true, email: true },
+          });
+          if (row?.role === "ADMIN" || isReservedAdminEmail(row?.email)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user }) {
+      if (user?.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+          },
+        });
+        token.sub = dbUser?.id || user.id;
+        token.name = dbUser?.name || user.name;
+        token.email = dbUser?.email || user.email;
+        token.role = dbUser?.role || user.role || "USER";
+        token.status = dbUser?.status || user.status || "ACTIVE";
+      }
+      return token;
+    },
+  },
   events: {
     async createUser({ user }) {
       if (user?.id) {

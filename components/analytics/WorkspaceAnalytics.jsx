@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import {
   AgentCountCard,
   AnalyticsError,
   AnalyticsKpiGrid,
+  embedSiteHost,
   formatPercent,
   formatResponseTime,
   formatTopic,
@@ -24,14 +24,21 @@ import {
 } from "@/components/analytics/WorkspaceCharts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useUrlTab } from "@/hooks/use-url-tab";
 
 function ChartSkeleton({ className }) {
   return <div className={cn("animate-pulse rounded-lg bg-[var(--color-bg)]", className)} />;
 }
 
-export function WorkspaceAnalytics() {
-  const [range, setRange] = useState("7d");
-  const { data, loading, error } = useAnalyticsDashboard({ range });
+const RANGES = ["7d", "30d"];
+
+export function WorkspaceAnalytics({
+  loader,
+  agentHref,
+  hideManageAgents = false,
+}) {
+  const [range, setRange] = useUrlTab("range", RANGES, "7d");
+  const { data, loading, error } = useAnalyticsDashboard({ range, loader });
   const overview = data?.overview;
   const agents = data?.agents || [];
 
@@ -139,15 +146,17 @@ export function WorkspaceAnalytics() {
               Per-agent breakdown
             </h2>
             <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
-              Same window as the charts. Open a row for that agent’s own analytics.
+              Same window as the charts. Website is where the widget is live.
             </p>
           </div>
-          <Link
-            href="/agents"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          >
-            Manage agents
-          </Link>
+          {!hideManageAgents ? (
+            <Link
+              href="/agents"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Manage agents
+            </Link>
+          ) : null}
         </div>
 
         {loading ? (
@@ -156,21 +165,28 @@ export function WorkspaceAnalytics() {
           </p>
         ) : agents.length === 0 ? (
           <div className="px-5 py-8 text-sm text-[var(--color-muted)]">
-            No agents yet.{" "}
-            <Link
-              href="/agents/new"
-              className="font-medium text-[var(--color-primary)] underline"
-            >
-              Create an agent
-            </Link>{" "}
-            to start collecting analytics.
+            {hideManageAgents ? (
+              "No agents in this workspace yet."
+            ) : (
+              <>
+                No agents yet.{" "}
+                <Link
+                  href="/agents/new"
+                  className="font-medium text-[var(--color-primary)] underline"
+                >
+                  Create an agent
+                </Link>{" "}
+                to start collecting analytics.
+              </>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-[13px]">
+            <table className="w-full min-w-[860px] text-left text-[13px]">
               <thead>
                 <tr className="border-b border-[var(--color-border)] text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
                   <th className="px-5 py-2.5 font-medium">Agent</th>
+                  <th className="px-3 py-2.5 font-medium">Website</th>
                   <th className="px-3 py-2.5 font-medium">Chats</th>
                   <th className="px-3 py-2.5 font-medium">Share</th>
                   <th className="px-3 py-2.5 font-medium">Messages</th>
@@ -190,6 +206,20 @@ export function WorkspaceAnalytics() {
                   >
                     <td className="px-5 py-3 font-medium text-[var(--color-text)]">
                       {agent.name}
+                    </td>
+                    <td className="px-3 py-3 text-[var(--color-text-secondary)]">
+                      {agent.siteKnowledgeOrigin ? (
+                        <a
+                          href={agent.siteKnowledgeOrigin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-[var(--color-primary)] hover:underline"
+                        >
+                          {embedSiteHost(agent.siteKnowledgeOrigin)}
+                        </a>
+                      ) : (
+                        <span className="text-[var(--color-muted)]">Not embedded</span>
+                      )}
                     </td>
                     <td className="px-3 py-3 tabular-nums text-[var(--color-text)]">
                       {agent.conversations}
@@ -212,13 +242,23 @@ export function WorkspaceAnalytics() {
                       {formatTopic(agent.mostCommonTopic)}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <Link
-                        href={`/agents/${agent.id}/analytics`}
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
-                      >
-                        Agent analytics
-                        <ArrowUpRight className="size-3.5" aria-hidden />
-                      </Link>
+                      {agentHref ? (
+                        <Link
+                          href={agentHref(agent.id)}
+                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                        >
+                          Inspect agent
+                          <ArrowUpRight className="size-3.5" aria-hidden />
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/agents/${agent.id}/analytics`}
+                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                        >
+                          Agent analytics
+                          <ArrowUpRight className="size-3.5" aria-hidden />
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}

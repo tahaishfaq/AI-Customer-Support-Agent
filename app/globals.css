@@ -29,7 +29,7 @@
   --font-sans: var(--font-instrument-sans), system-ui, sans-serif;
   --font-display: var(--font-dm-sans), system-ui, sans-serif;
   --radius: 0.5rem;
-  --sidebar-width: 244px;
+  --sidebar-width: 260px;
   --app-topbar-height: 52px;
 
   /* shadcn theme — mapped to brand */

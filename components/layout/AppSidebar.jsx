@@ -46,7 +46,7 @@ function NavLink({ item, onNavigate }) {
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors",
+        "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors",
         active
           ? "bg-[var(--sidebar-accent)] font-medium text-[var(--color-primary)]"
           : "font-normal text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"

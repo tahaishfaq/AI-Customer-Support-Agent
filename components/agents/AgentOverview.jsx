@@ -6,8 +6,10 @@ import {
   ArrowRight,
   BookOpen,
   Clock,
+  ExternalLink,
   FileText,
   FlaskConical,
+  Globe,
   MessageSquare,
   MessagesSquare,
   Palette,
@@ -15,7 +17,7 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { buttonVariants } from "@/components/ui/button";
-import { resolveCustomization } from "@/lib/customization/defaults";
+import { isCustomizationTouched, resolveCustomization } from "@/lib/customization/defaults";
 import { cn } from "@/lib/utils";
 
 function formatResponseTime(ms) {
@@ -76,10 +78,18 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
   const hasWelcome = Boolean(agent.welcomeMessage?.trim());
   const hasPrompt = Boolean(agent.systemPrompt?.trim());
   const hasKnowledge = knowledgeCount > 0;
-  const hasCustomized = Boolean(agent.customization);
-  const readyCount = [hasWelcome, hasPrompt, hasKnowledge, hasCustomized].filter(
-    Boolean
-  ).length;
+  const hasCustomized = isCustomizationTouched(agent.customization);
+  const hasTested =
+    conversations.length > 0 || (overview?.totalConversations ?? 0) > 0;
+  const setupItems = [
+    hasWelcome,
+    hasPrompt,
+    hasKnowledge,
+    hasCustomized,
+    hasTested,
+  ];
+  const readyCount = setupItems.filter(Boolean).length;
+  const setupTotal = setupItems.length;
 
   const shortcuts = [
     {
@@ -173,10 +183,10 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                   Setup
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
-                  {readyCount} of 4 ready
+                  {readyCount} of {setupTotal} ready
                 </p>
               </div>
-              {readyCount === 4 ? (
+              {readyCount === setupTotal ? (
                 <Link
                   href={`/agents/${agent.id}/customization`}
                   className="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--color-primary)]"
@@ -215,13 +225,21 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
               <SetupRow
                 done={hasCustomized}
                 label="Widget look"
-                hint="Identity, colors, embed, features"
+                hint={
+                  hasCustomized
+                    ? "Identity, colors, embed, or features saved"
+                    : "Identity, colors, embed, features"
+                }
                 href={`/agents/${agent.id}/customization`}
               />
               <SetupRow
-                done={false}
+                done={hasTested}
                 label="Test in Studio"
-                hint="Run greeting and knowledge scripts"
+                hint={
+                  hasTested
+                    ? "At least one test or chat has been run"
+                    : "Run auto-test or send a message"
+                }
                 href={`/agents/${agent.id}/test`}
               />
             </div>
@@ -331,6 +349,30 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
                 </dd>
               </div>
             </dl>
+            <div className="border-t border-[var(--color-border)] px-5 py-3">
+              <p className="text-[11px] font-medium text-[var(--color-muted)]">
+                Live website
+              </p>
+              {agent.siteKnowledgeOrigin ? (
+                <a
+                  href={agent.siteKnowledgeOrigin}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex max-w-full items-center gap-1.5 text-[13px] font-medium text-[var(--color-primary)] hover:underline"
+                >
+                  <Globe className="size-3.5 shrink-0" />
+                  <span className="truncate">
+                    {String(agent.siteKnowledgeOrigin).replace(/^https?:\/\//, "")}
+                  </span>
+                  <ExternalLink className="size-3 shrink-0 opacity-70" />
+                </a>
+              ) : (
+                <p className="mt-1 text-[13px] text-[var(--color-muted)]">
+                  Not embedded yet. Add the snippet on one https site — this
+                  agent can live on only that site.
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="hapy-card overflow-hidden">

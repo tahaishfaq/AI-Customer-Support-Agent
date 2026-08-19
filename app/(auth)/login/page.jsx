@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata = {
@@ -14,7 +15,9 @@ export default function LoginPage() {
         Sign in to your AI support workspace
       </p>
       <div className="mt-10">
-        <LoginForm />
+        <Suspense>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

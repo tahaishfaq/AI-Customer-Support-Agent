@@ -40,6 +40,12 @@ export async function POST(request) {
         { status: 409 }
       );
     }
+    if (error.status === 403) {
+      return NextResponse.json(
+        { error: { message: error.message, details: {} } },
+        { status: 403 }
+      );
+    }
     console.error("POST /api/auth/register", error);
     return NextResponse.json(
       { error: { message: "Unable to register", details: {} } },

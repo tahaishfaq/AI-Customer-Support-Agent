@@ -13,6 +13,9 @@ export function EmbedDocument() {
     html.style.colorScheme = "light";
     body.style.setProperty("background", "transparent", "important");
     body.style.setProperty("background-color", "transparent", "important");
+    body.style.display = "flex";
+    body.style.alignItems = "flex-end";
+    body.style.justifyContent = "flex-end";
     body.style.minHeight = "0";
     body.style.height = "100%";
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { WorkspaceAnalytics } from "@/components/analytics/WorkspaceAnalytics";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -11,7 +12,9 @@ export default function AnalyticsPage() {
         description="Workspace-wide insight across all of your agents — volume, sentiment, timing, and how each agent compares."
       />
       <div className="mt-6">
-        <WorkspaceAnalytics />
+        <Suspense>
+          <WorkspaceAnalytics />
+        </Suspense>
       </div>
     </main>
   );
