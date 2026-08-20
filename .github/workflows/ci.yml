@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, sami]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+
+  smoke:
+    name: HTTP smoke
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Product + admin smoke (skip if secrets missing)
+        env:
+          TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ADMIN_BOOTSTRAP_EMAIL: ${{ secrets.ADMIN_BOOTSTRAP_EMAIL }}
+          ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+        run: |
+          if [ -z "$TEST_BASE_URL" ] || [ -z "$DATABASE_URL" ] || [ -z "$OPENAI_API_KEY" ]; then
+            echo "Skipping HTTP smoke: set GitHub secrets TEST_BASE_URL, DATABASE_URL, OPENAI_API_KEY (and admin bootstrap for test:admin)."
+            echo "See README → CI."
+            exit 0
+          fi
+          npm run test:product
+          if [ -z "$ADMIN_BOOTSTRAP_EMAIL" ] || [ -z "$ADMIN_BOOTSTRAP_PASSWORD" ]; then
+            echo "Skipping test:admin: ADMIN_BOOTSTRAP_EMAIL / PASSWORD not set."
+            exit 0
+          fi
+          npm run test:admin

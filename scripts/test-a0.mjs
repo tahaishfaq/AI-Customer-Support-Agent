@@ -62,7 +62,11 @@ async function main() {
       `Expected unique violation 23505, got ${secondAdmin.code}`
     );
 
-    const overview = await fetch("http://127.0.0.1:3000/api/admin/overview");
+    const base = (process.env.TEST_BASE_URL || "http://127.0.0.1:3000").replace(
+      /\/$/,
+      ""
+    );
+    const overview = await fetch(`${base}/api/admin/overview`);
     if (overview.status === 401) {
       console.log("A0 HTTP: USER/anon /api/admin/overview → 401");
     } else {

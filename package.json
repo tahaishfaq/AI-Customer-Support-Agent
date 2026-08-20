@@ -12,6 +12,7 @@
     "prisma:studio": "prisma studio",
     "seed:admin": "node prisma/seed-admin.js",
     "test:admin": "node scripts/test-a0.mjs && node scripts/test-admin-v1.mjs",
+    "test:product": "node scripts/test-product.mjs",
     "postinstall": "prisma generate"
   },
   "engines": {

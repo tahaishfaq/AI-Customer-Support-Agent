@@ -4,6 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 
 const SCRIPT_ID = "google-gsi-script";
+const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+const GIS_TIMEOUT_MS = 2500;
+
+function ensureGisScript() {
+  let script = document.getElementById(SCRIPT_ID);
+  if (script) return script;
+
+  script = document.createElement("script");
+  script.id = SCRIPT_ID;
+  script.src = SCRIPT_SRC;
+  script.async = true;
+  script.defer = true;
+  document.body.appendChild(script);
+  return script;
+}
+
+function gisReady() {
+  return Boolean(window.google?.accounts?.id);
+}
 
 export function GoogleSignInButton({
   onError,
@@ -15,7 +34,8 @@ export function GoogleSignInButton({
   const buttonRef = useRef(null);
   const onErrorRef = useRef(onError);
   const onSuccessRef = useRef(onSuccess);
-  const [ready, setReady] = useState(false);
+  const paintedRef = useRef(false);
+  const [status, setStatus] = useState("loading");
   const [busy, setBusy] = useState(false);
 
   onErrorRef.current = onError;
@@ -24,15 +44,22 @@ export function GoogleSignInButton({
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    if (!clientId) return;
+    if (!clientId) return undefined;
 
-    function render() {
-      if (!window.google?.accounts?.id || !buttonRef.current) return;
+    let cancelled = false;
+    let pollId = 0;
+    let timeoutId = 0;
+    paintedRef.current = false;
+
+    function paint() {
+      if (cancelled || paintedRef.current) return;
+      if (!gisReady() || !buttonRef.current) return;
 
       const width = Math.min(
         Math.floor(containerRef.current?.offsetWidth || 360),
         400
       );
+      if (width < 40) return;
 
       window.google.accounts.id.initialize({
         client_id: clientId,
@@ -47,7 +74,10 @@ export function GoogleSignInButton({
             const user = await loginWithGoogle(response.credential);
             onSuccessRef.current?.(user);
           } catch (error) {
-            onErrorRef.current?.(error.message || "Google sign-in failed", error);
+            onErrorRef.current?.(
+              error.message || "Google sign-in failed",
+              error
+            );
           } finally {
             setBusy(false);
           }
@@ -63,26 +93,38 @@ export function GoogleSignInButton({
         logo_alignment: "left",
         width,
       });
-      setReady(true);
+      paintedRef.current = true;
+      setStatus("ready");
+      window.clearInterval(pollId);
+      window.clearTimeout(timeoutId);
     }
 
-    if (window.google?.accounts?.id) {
-      render();
-      return;
+    function failIfGisMissing() {
+      if (cancelled || paintedRef.current || gisReady()) return;
+      setStatus("error");
+      window.clearInterval(pollId);
     }
 
-    let script = document.getElementById(SCRIPT_ID);
-    if (!script) {
-      script = document.createElement("script");
-      script.id = SCRIPT_ID;
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
-    }
+    const script = ensureGisScript();
+    script.addEventListener("load", paint);
+    script.addEventListener("error", failIfGisMissing);
 
-    script.addEventListener("load", render);
-    return () => script.removeEventListener("load", render);
+    if (gisReady()) paint();
+
+    pollId = window.setInterval(paint, 100);
+    timeoutId = window.setTimeout(failIfGisMissing, GIS_TIMEOUT_MS);
+
+    const resize = new ResizeObserver(() => paint());
+    if (containerRef.current) resize.observe(containerRef.current);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      window.clearTimeout(timeoutId);
+      resize.disconnect();
+      script.removeEventListener("load", paint);
+      script.removeEventListener("error", failIfGisMissing);
+    };
   }, [clientId, loginWithGoogle, text]);
 
   if (!clientId) {
@@ -97,13 +139,19 @@ export function GoogleSignInButton({
     <div ref={containerRef} className="w-full">
       <div
         ref={buttonRef}
-        className={`flex w-full justify-center ${busy ? "pointer-events-none opacity-60" : ""}`}
+        className={`flex min-h-10 w-full justify-center ${busy ? "pointer-events-none opacity-60" : ""}`}
+        aria-busy={status === "loading"}
       />
-      {!ready && (
+      {status === "loading" ? (
         <p className="text-center text-sm text-[var(--color-muted)]">
           Loading Google…
         </p>
-      )}
+      ) : null}
+      {status === "error" ? (
+        <p className="text-center text-sm text-[var(--color-muted)]">
+          Continue with Google unavailable. Use email instead.
+        </p>
+      ) : null}
     </div>
   );
 }

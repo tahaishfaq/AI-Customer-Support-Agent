@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { homePathForRole } from "@/lib/auth-home";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { PasswordInput } from "@/components/auth/PasswordInput";
+import { formatApiError } from "@/lib/utils/api-error";
 
 const fieldClass =
   "h-12 w-full rounded-xl border border-[#e2e8f0] bg-white px-4 text-[15px] text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-60";
@@ -63,7 +63,7 @@ export function RegisterForm() {
       router.push(homePathForRole(user?.role));
       router.refresh();
     } catch (err) {
-      setError(err.message || "Unable to register");
+      setError(formatApiError(err, "Unable to register"));
     } finally {
       setLoading(false);
     }

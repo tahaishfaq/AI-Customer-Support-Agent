@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function KnowledgeList({ agentId, siteCrawledAt, siteKnowledgeOrigin }) {
   const [documents, setDocuments] = useState([]);
+  const [latestCrawl, setLatestCrawl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [textOpen, setTextOpen] = useState(false);
@@ -20,7 +21,8 @@ export function KnowledgeList({ agentId, siteCrawledAt, siteKnowledgeOrigin }) {
     setError("");
     try {
       const data = await listKnowledge(agentId);
-      setDocuments(data);
+      setDocuments(data.documents);
+      setLatestCrawl(data.latestCrawl);
     } catch (err) {
       setError(err.message || "Unable to load knowledge");
     } finally {
@@ -77,6 +79,25 @@ export function KnowledgeList({ agentId, siteCrawledAt, siteKnowledgeOrigin }) {
           <UploadPdfKnowledge agentId={agentId} onUploaded={handleCreated} />
         </div>
       </div>
+
+      {latestCrawl?.status === "FAILED" ? (
+        <div className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">
+          <p className="text-sm font-medium text-[var(--color-danger)]">
+            Website crawl failed
+          </p>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            {latestCrawl.error || "The one-time site crawl could not finish."}{" "}
+            Embed again on your live https origin to retry.
+          </p>
+        </div>
+      ) : null}
+
+      {latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING" ? (
+        <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
+          Website crawl {latestCrawl.status === "RUNNING" ? "in progress" : "queued"}
+          {latestCrawl.origin ? ` for ${latestCrawl.origin}` : ""}.
+        </p>
+      ) : null}
 
       {error ? (
         <div className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">

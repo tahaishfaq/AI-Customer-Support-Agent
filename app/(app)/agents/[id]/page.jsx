@@ -28,7 +28,7 @@ export default function AgentDetailPage() {
         if (cancelled) return;
         setOverview(overviewData);
         setConversations(convoData.conversations || []);
-        setKnowledgeCount(knowledge.length);
+        setKnowledgeCount(knowledge.documents?.length || 0);
       } catch {
         if (!cancelled) {
           setOverview(null);

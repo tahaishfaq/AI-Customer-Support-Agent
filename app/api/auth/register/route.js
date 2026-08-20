@@ -16,7 +16,20 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Validation failed",
+            details: { body: "Invalid JSON body" },
+          },
+        },
+        { status: 400 }
+      );
+    }
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
