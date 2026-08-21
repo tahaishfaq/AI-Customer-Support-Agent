@@ -331,6 +331,9 @@ async function main() {
     assert(res.status === 404, `expected 404, got ${res.status}`);
   });
 
+  let lockedConvoId;
+  let lockedAssistantMsgId;
+
   await test("public chat with app Origin still works", async () => {
     const appOrigin = new URL(BASE).origin;
     const res = await fetch(`${BASE}/api/public/agents/${publicKey}/chat`, {
@@ -341,18 +344,88 @@ async function main() {
       },
       body: JSON.stringify({ message: "hi" }),
     });
-    assert(res.status === 200, `chat ${res.status} ${JSON.stringify(await json(res))}`);
+    const body = await json(res);
+    assert(res.status === 200, `chat ${res.status} ${JSON.stringify(body)}`);
+    lockedConvoId = body.conversationId || body.conversation?.id;
+    lockedAssistantMsgId = body.message?.id || body.assistantMessage?.id;
   });
 
-  await test("public files + feedback respond", async () => {
-    const files = await fetch(`${BASE}/api/public/agents/${publicKey}/files`);
-    assert([200, 404, 405].includes(files.status), `files ${files.status}`);
-    const fb = await fetch(`${BASE}/api/public/agents/${publicKey}/feedback`, {
+  await test("locked agent: history/feedback/files need Origin", async () => {
+    const agent = await loadAgent(jar, agentId);
+    const locked = agent.siteKnowledgeOrigin;
+    assert(locked, "not locked");
+    assert(lockedConvoId, "missing conversation from chat");
+
+    const histNoOrigin = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/conversations/${lockedConvoId}`
+    );
+    assert(
+      histNoOrigin.status === 404,
+      `history without Origin expected 404, got ${histNoOrigin.status}`
+    );
+
+    const histOk = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/conversations/${lockedConvoId}`,
+      { headers: { Origin: locked } }
+    );
+    assert(
+      histOk.status === 200,
+      `history with Origin ${histOk.status} ${JSON.stringify(await json(histOk))}`
+    );
+
+    const fbNoOrigin = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/feedback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId: lockedAssistantMsgId || randomUUID(),
+          rating: "UP",
+        }),
+      }
+    );
+    assert(
+      fbNoOrigin.status === 404,
+      `feedback without Origin expected 404, got ${fbNoOrigin.status}`
+    );
+
+    const fbOk = await fetch(`${BASE}/api/public/agents/${publicKey}/feedback`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messageId: randomUUID(), rating: "up" }),
+      headers: {
+        "Content-Type": "application/json",
+        Origin: locked,
+      },
+      body: JSON.stringify({
+        messageId: lockedAssistantMsgId || randomUUID(),
+        rating: "UP",
+      }),
     });
-    assert([200, 400, 404].includes(fb.status), `feedback ${fb.status}`);
+    assert(
+      [200, 400, 403].includes(fbOk.status),
+      `feedback with Origin must not be agent-404, got ${fbOk.status}`
+    );
+
+    const filesNoOrigin = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/files`,
+      { method: "POST", body: new FormData() }
+    );
+    assert(
+      filesNoOrigin.status === 404,
+      `files without Origin expected 404, got ${filesNoOrigin.status}`
+    );
+
+    const filesOk = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/files`,
+      {
+        method: "POST",
+        headers: { Origin: locked },
+        body: new FormData(),
+      }
+    );
+    assert(
+      [400, 403].includes(filesOk.status),
+      `files with Origin must not be agent-404, got ${filesOk.status}`
+    );
   });
 
   console.log("\n=== Bug 2: admin login HTTP ===\n");

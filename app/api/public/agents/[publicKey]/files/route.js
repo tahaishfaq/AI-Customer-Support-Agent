@@ -9,6 +9,7 @@ import {
   formatChatUploadLimit,
 } from "@/lib/utils/chat-attachments";
 import { uploadChatAttachment } from "@/lib/utils/cloudinary-chat";
+import { originFromRequest } from "@/lib/utils/request-origin";
 
 export async function POST(request, { params }) {
   try {
@@ -24,7 +25,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    const agent = await getPublicAgentByKey(publicKey);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: originFromRequest(request),
+    });
     if (!agent) {
       return NextResponse.json(
         { error: { message: "Agent not found", details: {} } },

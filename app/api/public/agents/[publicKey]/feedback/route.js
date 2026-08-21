@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { mergeCustomization } from "@/lib/customization/defaults";
 import { setMessageFeedback } from "@/lib/services/feedback.service";
+import { originFromRequest } from "@/lib/utils/request-origin";
 
 export async function POST(request, { params }) {
   try {
     const { publicKey } = await params;
-    const agent = await getPublicAgentByKey(publicKey);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: originFromRequest(request),
+    });
     if (!agent) {
       return NextResponse.json(
         { error: { message: "Agent not found", details: {} } },

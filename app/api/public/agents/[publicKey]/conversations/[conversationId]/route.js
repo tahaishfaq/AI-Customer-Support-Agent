@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import prisma from "@/lib/prisma";
+import { originFromRequest } from "@/lib/utils/request-origin";
 
 export async function GET(request, { params }) {
   try {
     const { publicKey, conversationId } = await params;
-    const agent = await getPublicAgentByKey(publicKey);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: originFromRequest(request),
+    });
     if (!agent) {
       return NextResponse.json(
         { error: { message: "Agent not found", details: {} } },
