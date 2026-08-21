@@ -16,7 +16,20 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Validation failed",
+            details: { body: "Invalid JSON body" },
+          },
+        },
+        { status: 400 }
+      );
+    }
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -38,6 +51,12 @@ export async function POST(request) {
       return NextResponse.json(
         { error: { message: error.message, details: {} } },
         { status: 409 }
+      );
+    }
+    if (error.status === 403) {
+      return NextResponse.json(
+        { error: { message: error.message, details: {} } },
+        { status: 403 }
       );
     }
     console.error("POST /api/auth/register", error);

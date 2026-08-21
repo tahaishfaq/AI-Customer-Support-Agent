@@ -16,6 +16,8 @@ export const authConfig = {
         token.sub = user.id;
         token.name = user.name;
         token.email = user.email;
+        token.role = user.role || "USER";
+        token.status = user.status || "ACTIVE";
       }
       return token;
     },
@@ -24,6 +26,8 @@ export const authConfig = {
         session.user.id = token.sub;
         if (token.name) session.user.name = token.name;
         if (token.email) session.user.email = token.email;
+        session.user.role = token.role || "USER";
+        session.user.status = token.status || "ACTIVE";
       }
       return session;
     },

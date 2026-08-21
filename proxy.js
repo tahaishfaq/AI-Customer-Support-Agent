@@ -20,10 +20,26 @@ function isProtectedPath(pathname) {
   );
 }
 
+function isAdminPath(pathname) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export async function proxy(request) {
   const session = await auth();
   const isLoggedIn = Boolean(session?.user?.id);
+  const role = session?.user?.role || "USER";
   const { pathname } = request.nextUrl;
+
+  // Admin console: ADMIN only. Everyone else (including /admin/login) → 404.
+  // Operators sign in on shared /login; role sends them to /admin.
+  if (isAdminPath(pathname)) {
+    if (isLoggedIn && role === "ADMIN") {
+      return NextResponse.next();
+    }
+    return NextResponse.rewrite(new URL("/404", request.url), {
+      status: 404,
+    });
+  }
 
   if (isProtectedPath(pathname) && !isLoggedIn) {
     const loginUrl = new URL("/login", request.url);
@@ -32,7 +48,14 @@ export async function proxy(request) {
   }
 
   if (isLoggedIn && PUBLIC_AUTH_PAGES.has(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (
+      pathname === "/login" &&
+      request.nextUrl.searchParams.get("suspended")
+    ) {
+      return NextResponse.next();
+    }
+    const dest = role === "ADMIN" ? "/admin" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   return NextResponse.next();
@@ -53,5 +76,7 @@ export const config = {
     "/conversations/:path*",
     "/analytics",
     "/analytics/:path*",
+    "/admin",
+    "/admin/:path*",
   ],
 };

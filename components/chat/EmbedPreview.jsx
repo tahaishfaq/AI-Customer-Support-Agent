@@ -22,24 +22,34 @@ export const EMBED_PLACEMENTS = [
 
 function FakeWebsite() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#eef2f6]">
-      <div className="border-b border-black/5 bg-white px-5 py-3">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#f4f7fa]">
+      <div className="flex items-center justify-between border-b border-black/[0.06] bg-white px-5 py-3">
         <div className="flex items-center gap-3">
-          <span className="size-6 rounded-md bg-[var(--color-primary)]/15" />
-          <span className="h-2.5 w-24 rounded-full bg-slate-200" />
-          <span className="ml-auto hidden h-2.5 w-14 rounded-full bg-slate-200 sm:block" />
-          <span className="hidden h-2.5 w-14 rounded-full bg-slate-200 sm:block" />
-          <span className="hidden h-2.5 w-14 rounded-full bg-slate-200 sm:block" />
+          <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[10px] font-semibold text-white">
+            S
+          </span>
+          <span className="text-[13px] font-semibold text-slate-800">
+            Storefront
+          </span>
+        </div>
+        <div className="hidden items-center gap-5 text-[12px] text-slate-500 sm:flex">
+          <span>Home</span>
+          <span>Pricing</span>
+          <span>Help</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+            Sign in
+          </span>
         </div>
       </div>
       <div className="mx-auto max-w-3xl px-6 py-8">
-        <div className="h-8 w-2/3 rounded-lg bg-white" />
-        <div className="mt-3 h-3 w-full rounded-full bg-white/80" />
+        <div className="h-3 w-24 rounded-full bg-white" />
+        <div className="mt-4 h-8 w-2/3 rounded-lg bg-white shadow-sm" />
+        <div className="mt-3 h-3 w-full rounded-full bg-white/90" />
         <div className="mt-2 h-3 w-5/6 rounded-full bg-white/80" />
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="h-28 rounded-xl bg-white" />
-          <div className="h-28 rounded-xl bg-white" />
-          <div className="h-28 rounded-xl bg-white" />
+          <div className="h-28 rounded-xl bg-white shadow-sm" />
+          <div className="h-28 rounded-xl bg-white shadow-sm" />
+          <div className="h-28 rounded-xl bg-white shadow-sm" />
         </div>
       </div>
     </div>
@@ -61,15 +71,17 @@ export function EmbedPreview({ placement, children }) {
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden">
       <div className="absolute inset-3 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
-        <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[#f1f5f9] px-3 py-2">
-          <span className="size-2 rounded-full bg-[#fca5a5]" />
-          <span className="size-2 rounded-full bg-[#fcd34d]" />
-          <span className="size-2 rounded-full bg-[#86efac]" />
-          <span className="ml-3 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[var(--color-muted)]">
-            yoursite.com
+        <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[#eceff3] px-3 py-1.5">
+          <span className="size-2.5 rounded-full bg-[#ff5f57]" />
+          <span className="size-2.5 rounded-full bg-[#febc2e]" />
+          <span className="size-2.5 rounded-full bg-[#28c840]" />
+          <span className="ml-3 flex min-w-0 flex-1 items-center justify-center">
+            <span className="truncate rounded-md bg-white px-3 py-0.5 text-center text-[11px] text-slate-500 shadow-sm ring-1 ring-black/[0.04]">
+              https://yoursite.com
+            </span>
           </span>
         </div>
-        <div className="relative h-[calc(100%-36px)]">
+        <div className="relative h-[calc(100%-34px)]">
           <FakeWebsite />
           <div
             className={cn(

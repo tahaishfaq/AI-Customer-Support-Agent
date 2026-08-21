@@ -36,6 +36,11 @@ export function formatTopic(value) {
   return value.charAt(0) + value.slice(1).toLowerCase();
 }
 
+export function embedSiteHost(origin) {
+  if (!origin) return "";
+  return String(origin).replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
 function zeroHint(value) {
   const n = typeof value === "number" ? value : Number(value);
   return n === 0 || value === "0%" || value === "—" ? "No activity in range" : undefined;
@@ -124,7 +129,7 @@ export function AnalyticsKpiGrid({ overview, extra, loading }) {
   );
 }
 
-export function useAnalyticsDashboard({ agentId, range }) {
+export function useAnalyticsDashboard({ agentId, range, loader }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -136,7 +141,9 @@ export function useAnalyticsDashboard({ agentId, range }) {
       setLoading(true);
       setError("");
       try {
-        const dashboard = await getDashboard({ agentId, range });
+        const dashboard = loader
+          ? await loader({ agentId, range })
+          : await getDashboard({ agentId, range });
         if (!cancelled) setData(dashboard);
       } catch (err) {
         if (!cancelled) {
@@ -151,7 +158,7 @@ export function useAnalyticsDashboard({ agentId, range }) {
     return () => {
       cancelled = true;
     };
-  }, [agentId, range]);
+  }, [agentId, range, loader]);
 
   return { data, loading, error };
 }

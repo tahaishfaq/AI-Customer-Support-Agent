@@ -23,6 +23,37 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+export function AgentStatusBadge({ agent, className }) {
+  const disabled = agent?.enabled === false;
+  const embedOff = !disabled && agent?.embedEnabled === false;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1",
+        disabled
+          ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] ring-[var(--color-danger)]/20"
+          : embedOff
+            ? "bg-white text-[var(--color-muted)] ring-[var(--color-border)]"
+            : "bg-white text-[var(--color-muted)] ring-[var(--color-border)]",
+        className
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          disabled
+            ? "bg-[var(--color-danger)]"
+            : embedOff
+              ? "bg-[var(--color-muted)]"
+              : "bg-[var(--color-success)]"
+        )}
+      />
+      {disabled ? "Disabled" : embedOff ? "Embed off" : "Ready"}
+    </span>
+  );
+}
+
 function formatDate(value) {
   if (!value) return "";
   try {
@@ -75,10 +106,7 @@ export function AgentCard({ agent, onDeleted }) {
             <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)] font-[family-name:var(--font-display)] text-sm font-semibold text-white shadow-sm">
               {monogram(agent.name)}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
-              <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
-              Ready
-            </span>
+            <AgentStatusBadge agent={agent} />
           </div>
           <Link href={`/agents/${agent.id}`} className="mt-4 block min-w-0">
             <h3 className="truncate font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-tight text-[var(--color-text)] group-hover:text-[var(--color-primary)]">

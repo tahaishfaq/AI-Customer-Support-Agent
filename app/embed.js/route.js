@@ -2,8 +2,8 @@ export function GET(request) {
   const host = new URL(request.url).origin;
   const hostJson = JSON.stringify(host);
   const body = `(() => {
-  if (window.__hapyEmbedLoaded) return;
-  window.__hapyEmbedLoaded = true;
+  window.__hapyEmbedKeys = window.__hapyEmbedKeys || {};
+  var thisScript = document.currentScript;
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -16,10 +16,11 @@ export function GET(request) {
   function sizeFloatingFrame(iframe, data) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-    var width;
-    var height;
+    var width = 72;
+    var height = 72;
+    // Measured size is clipped by the 72px iframe, so never use it to grow open chat.
     if (data && data.open) {
-      width = Math.min(404, vw - 24);
+      width = Math.min(400, vw - 24);
       height = Math.min(640, vh - 24);
     } else if (data && data.proactive) {
       width = Math.min(300, vw - 24);
@@ -27,22 +28,32 @@ export function GET(request) {
     } else if (data && data.customLauncher) {
       width = Math.min(200, vw - 24);
       height = 72;
-    } else {
-      width = 88;
-      height = 88;
     }
     iframe.style.width = width + "px";
     iframe.style.height = height + "px";
     iframe.style.maxWidth = "calc(100vw - 16px)";
     iframe.style.maxHeight = "calc(100dvh - 16px)";
+    iframe.style.pointerEvents = "auto";
   }
 
   function boot(publicKey, targetSelector) {
     if (!publicKey) return;
+    document.querySelectorAll("iframe[data-hapy-widget]").forEach(function (node) {
+      if (node.getAttribute("data-hapy-widget") !== publicKey) node.remove();
+    });
     var existing = document.querySelector('iframe[data-hapy-widget="' + publicKey + '"]');
     if (existing) return;
 
     var parentOrigin = encodeURIComponent(window.location.origin);
+    // Claim from the parent page so Origin/Referer are the customer site
+    // (iframe pings would only show the Hapy app origin).
+    fetch(${hostJson} + "/api/public/agents/" + encodeURIComponent(publicKey) + "/ping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin: window.location.origin }),
+      mode: "cors",
+      credentials: "omit",
+    }).catch(function () {});
     var iframe = document.createElement("iframe");
     iframe.src = ${hostJson} + "/w/" + encodeURIComponent(publicKey) + "?parentOrigin=" + parentOrigin;
     iframe.setAttribute("data-hapy-widget", publicKey);
@@ -54,6 +65,7 @@ export function GET(request) {
     iframe.style.background = "transparent";
     iframe.style.colorScheme = "light";
     iframe.style.overflow = "hidden";
+    window.__hapyEmbedKeys[publicKey] = true;
 
     var target = targetSelector ? document.querySelector(targetSelector) : null;
     if (target) {
@@ -62,21 +74,24 @@ export function GET(request) {
       iframe.style.minHeight = "480px";
       target.innerHTML = "";
       target.appendChild(iframe);
-      return;
+    } else {
+      iframe.style.position = "fixed";
+      iframe.style.right = "16px";
+      iframe.style.bottom = "16px";
+      iframe.style.left = "auto";
+      sizeFloatingFrame(iframe, { open: false });
+      document.body.appendChild(iframe);
     }
-
-    iframe.style.position = "fixed";
-    iframe.style.right = "16px";
-    iframe.style.bottom = "16px";
-    iframe.style.left = "auto";
-    sizeFloatingFrame(iframe, { open: false });
-    document.body.appendChild(iframe);
 
     window.addEventListener("message", function (event) {
       if (event.origin !== ${hostJson}) return;
       if (!event.data || event.data.source !== "hapy-widget") return;
-      if (event.data.type !== "frame") return;
       if (iframe.contentWindow !== event.source) return;
+      if (event.data.type === "unavailable") {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        return;
+      }
+      if (event.data.type !== "frame") return;
       if (iframe.style.position !== "fixed") return;
       sizeFloatingFrame(iframe, event.data);
     });
@@ -90,7 +105,7 @@ export function GET(request) {
   };
 
   ready(function () {
-    var script = document.currentScript || document.querySelector("script[data-hapy-key]");
+    var script = thisScript || document.querySelector("script[data-hapy-key]");
     var key = script && script.getAttribute("data-hapy-key");
     var target = script && script.getAttribute("data-hapy-target");
     if (key) boot(key, target || undefined);

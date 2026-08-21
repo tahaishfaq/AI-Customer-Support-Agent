@@ -8,6 +8,7 @@ import {
   PanelBottom,
   Paperclip,
   RotateCcw,
+  Send,
   ThumbsUp,
 } from "lucide-react";
 import {
@@ -88,7 +89,7 @@ function fontFamily(font) {
   return "var(--font-display), var(--font-sans), system-ui, sans-serif";
 }
 
-function Avatar({ src, label, sizeClass, primary }) {
+function Avatar({ src, label, sizeClass, primary, invert = false }) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -102,8 +103,12 @@ function Avatar({ src, label, sizeClass, primary }) {
   }
   return (
     <span
-      className={`flex shrink-0 items-center justify-center font-semibold text-white ${sizeClass}`}
-      style={{ backgroundColor: primary, borderRadius: "9999px" }}
+      className={`flex shrink-0 items-center justify-center font-semibold ${sizeClass}`}
+      style={{
+        backgroundColor: invert ? "#ffffff" : primary,
+        color: invert ? primary : "#ffffff",
+        borderRadius: "9999px",
+      }}
     >
       {monogram(label)}
     </span>
@@ -129,11 +134,11 @@ function ChatWindow({
   const shellFg = dark ? "#f8fafc" : "#0f172a";
   const muted = dark ? "#94a3b8" : "#64748b";
   const border = dark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.08)";
-  const inputBg = dark ? "#1e293b" : "#f8fafc";
+  const inputBg = dark ? "#1e293b" : "#ffffff";
   const assistantBg = darkerBubbles
     ? dark
       ? "#334155"
-      : "#1e293b"
+      : "#0f172a"
     : dark
       ? "#1e293b"
       : "#f1f5f9";
@@ -160,6 +165,7 @@ function ChatWindow({
           label={label}
           sizeClass="size-7 text-[11px]"
           primary={primary}
+          invert
         />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {label}
@@ -235,25 +241,29 @@ function ChatWindow({
         </div>
       </div>
 
-      <div className="px-3 py-2.5" style={{ borderTop: `1px solid ${border}` }}>
+      <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: `1px solid ${border}` }}>
         <div
-          className="flex items-center gap-2 px-3 py-2.5 text-[13px]"
+          className="flex min-h-8 min-w-0 flex-1 items-center gap-1 px-3 py-1 text-[13px]"
           style={{
             backgroundColor: inputBg,
             color: muted,
-            border: `1px solid ${border}`,
-            borderRadius: `${Math.max(8, radius)}px`,
+            border: `1px solid color-mix(in srgb, ${primary} 42%, #cbd5e1)`,
+            borderRadius: "9999px",
           }}
         >
           <span className="min-w-0 flex-1 truncate">{placeholder}</span>
-          {features?.fileUpload ? (
-            <Paperclip className="size-3.5 shrink-0 opacity-80" aria-hidden />
-          ) : null}
+          <Paperclip className="size-3.5 shrink-0 opacity-70" aria-hidden />
         </div>
-        <p className="mt-2 text-center text-[10px]" style={{ color: muted }}>
-          {footer}
-        </p>
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
+          style={{ backgroundColor: primary }}
+        >
+          <Send className="size-3.5" />
+        </span>
       </div>
+      <p className="px-3 pb-2 text-center text-[10px]" style={{ color: muted }}>
+        {footer}
+      </p>
     </div>
   );
 }

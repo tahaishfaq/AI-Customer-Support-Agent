@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendChatMessage } from "@/lib/services/chat.service";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { originFromRequest } from "@/lib/utils/request-origin";
 import { chatMessageSchema, zodErrorDetails } from "@/lib/validations/chat";
 
 export async function POST(request, { params }) {
@@ -22,7 +23,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    const agent = await getPublicAgentByKey(publicKey);
+    const agent = await getPublicAgentByKey(publicKey, {
+      origin: originFromRequest(request),
+    });
     if (!agent) {
       return NextResponse.json(
         { error: { message: "Agent not found", details: {} } },

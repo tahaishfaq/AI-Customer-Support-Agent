@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { updateAgent } from "@/lib/api/agents";
 import { resolveCustomization } from "@/lib/customization/defaults";
+import { useUrlTab } from "@/hooks/use-url-tab";
 import { AppearanceForm } from "@/components/customization/AppearanceForm";
 import { CustomizationPreview } from "@/components/customization/CustomizationPreview";
 import { DeployForm } from "@/components/customization/DeployForm";
@@ -44,13 +45,16 @@ const SECTIONS = [
   },
 ];
 
-export function CustomizationStudio({ agent }) {
-  const [sectionId, setSectionId] = useState("identity");
+const SECTION_IDS = SECTIONS.map((s) => s.id);
+
+export function CustomizationStudio({ agent, onAgentChange }) {
+  const [sectionId, setSectionId] = useUrlTab("tab", SECTION_IDS, "identity");
   const [draft, setDraft] = useState(() => resolveCustomization(agent));
   const [saved, setSaved] = useState(() =>
     JSON.stringify(resolveCustomization(agent))
   );
   const [saving, setSaving] = useState(false);
+  const [publicKey, setPublicKey] = useState(agent.publicKey);
   const section = SECTIONS.find((s) => s.id === sectionId) || SECTIONS[0];
   const dirty = JSON.stringify(draft) !== saved;
 
@@ -58,6 +62,7 @@ export function CustomizationStudio({ agent }) {
     const next = resolveCustomization(agent);
     setDraft(next);
     setSaved(JSON.stringify(next));
+    setPublicKey(agent.publicKey);
   }, [agent]);
 
   function patchSection(key, value) {
@@ -175,10 +180,14 @@ export function CustomizationStudio({ agent }) {
             {sectionId === "deploy" ? (
               <DeployForm
                 agentId={agent.id}
-                publicKey={agent.publicKey}
+                publicKey={publicKey}
                 deploy={draft.deploy}
                 identity={draft.identity}
                 onChange={(deploy) => patchSection("deploy", deploy)}
+                onPublicKeyChange={(nextKey) => {
+                  setPublicKey(nextKey);
+                  onAgentChange?.({ ...agent, publicKey: nextKey });
+                }}
               />
             ) : null}
             {sectionId === "features" ? (

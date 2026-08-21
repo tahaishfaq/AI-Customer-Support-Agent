@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BarChart3, BookOpen, FlaskConical } from "lucide-react";
+import { AgentStatusBadge } from "@/components/agents/AgentCard";
 import { cn } from "@/lib/utils";
 
 function monogram(name) {
@@ -29,10 +30,7 @@ export function HomeAgentCard({ agent, conversationCount = 0, messageCount = 0 }
             <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)]">
               {agent.name}
             </h3>
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--color-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)]">
-              <span className="size-1.5 rounded-full bg-[var(--color-success)]" />
-              Ready
-            </span>
+            <AgentStatusBadge agent={agent} className="bg-[var(--color-bg)]" />
           </div>
           <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
             {agent.description || "No description yet"}

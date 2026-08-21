@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AgentStudioFrame } from "@/components/agents/AgentStudioFrame";
 import { AnalyticsBoard } from "@/components/analytics/AnalyticsBoard";
 import { useAgentStudio } from "@/hooks/use-agent-studio";
@@ -15,7 +16,11 @@ export default function AgentAnalyticsPage() {
       deleteOpen={studio.deleteOpen}
       onDeleteOpenChange={studio.setDeleteOpen}
     >
-      {(agent) => <AnalyticsBoard agentId={agent.id} />}
+      {(agent) => (
+        <Suspense>
+          <AnalyticsBoard agentId={agent.id} />
+        </Suspense>
+      )}
     </AgentStudioFrame>
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
+import { homePathForRole } from "@/lib/auth-home";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { formatApiError } from "@/lib/utils/api-error";
 
 const fieldClass =
   "h-12 w-full rounded-xl border border-[#e2e8f0] bg-white px-4 text-[15px] text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-60";
@@ -21,6 +23,22 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupsEnabled, setSignupsEnabled] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/platform")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data?.signupsEnabled === false) {
+          setSignupsEnabled(false);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -37,31 +55,49 @@ export function RegisterForm() {
 
     setLoading(true);
     try {
-      await register({
+      const user = await register({
         name: name.trim(),
         email: email.trim(),
         password,
         confirmPassword,
       });
-      router.push("/dashboard");
+      router.push(homePathForRole(user?.role));
       router.refresh();
     } catch (err) {
-      setError(err.message || "Unable to register");
+      setError(formatApiError(err, "Unable to register"));
     } finally {
       setLoading(false);
     }
   }
 
-  function goDashboard() {
-    router.push("/dashboard");
+  function goHome(user) {
+    router.push(homePathForRole(user?.role));
     router.refresh();
+  }
+
+  if (!signupsEnabled) {
+    return (
+      <div className="space-y-4">
+        <p className="rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#475569]">
+          New signups are closed. If you already have an account, log in.
+        </p>
+        <p className="text-center text-sm text-[#475569]">
+          <Link
+            href="/login"
+            className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+          >
+            Log in
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <GoogleSignInButton
         text="signup_with"
-        onSuccess={goDashboard}
+        onSuccess={(user) => goHome(user)}
         onError={(message) => setError(message)}
       />
 

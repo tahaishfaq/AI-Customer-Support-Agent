@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hapy — 5-minute demo</title>
+    <style>
+      :root {
+        --ink: #0f172a;
+        --muted: #475569;
+        --line: #e2e8f0;
+        --teal: #0f766e;
+        --teal-soft: #ccfbf1;
+        --bg: #f8fafc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .deck {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+        gap: 12px;
+      }
+      .bar strong {
+        color: var(--teal);
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .slide {
+        display: none;
+        flex: 1;
+        padding: 48px 56px 80px;
+        max-width: 920px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .slide.on {
+        display: block;
+      }
+      .kicker {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.15;
+        margin: 0 0 12px;
+      }
+      .time {
+        color: var(--muted);
+        margin-bottom: 28px;
+        font-size: 15px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px 22px;
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--teal);
+      }
+      .card p {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.55;
+      }
+      .nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: #fff;
+        border-top: 1px solid var(--line);
+      }
+      button {
+        appearance: none;
+        border: 0;
+        background: var(--teal);
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .dots {
+        display: flex;
+        gap: 8px;
+      }
+      .dots button {
+        width: 10px;
+        height: 10px;
+        padding: 0;
+        border-radius: 999px;
+        background: var(--line);
+      }
+      .dots button.on {
+        background: var(--teal);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="deck">
+      <div class="bar">
+        <div><strong>Hapy</strong> · 5-minute demo</div>
+        <div class="hint">← → or click · F for fullscreen</div>
+      </div>
+
+      <section class="slide on" data-i="0">
+        <div class="kicker">Slide 1 of 9</div>
+        <h1>Problem</h1>
+        <p class="time">~30 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Open <code>/</code> or, if already signed in, <code>/dashboard</code>. Do not click around yet.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Small sites need 24/7 answers (refunds, hours) without a helpdesk team. Hapy is a workspace-scoped support agent: knowledge in, chat out, then insights on what people asked.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="1">
+        <div class="kicker">Slide 2 of 9</div>
+        <h1>Sign in</h1>
+        <p class="time">~20 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Open <code>/login</code>. Point at email + password (Google if the button loaded). Mention <code>/register</code> for a new user.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Customers sign in here. The one admin uses the same <code>/login</code> with email/password. There is no <code>/admin/register</code>. Google cannot sign in as admin.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="2">
+        <div class="kicker">Slide 3 of 9</div>
+        <h1>Workspace + agent</h1>
+        <p class="time">~40 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>After login, sidebar Workspace (one active). Click <strong>+ New agent</strong>. Fill name, system prompt, welcome. Create agent.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Everything lives in the active workspace. A second workspace would not list this agent (direct URL → 404).</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="3">
+        <div class="kicker">Slide 4 of 9</div>
+        <h1>Knowledge</h1>
+        <p class="time">~40 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Agent → Knowledge → Add Text / FAQ. Name: Refunds FAQ. Q: How long do refunds take? A: Refunds are processed within 5 business days. Add knowledge.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>This is what the model may use. PDF upload is optional if Cloudinary is set.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="4">
+        <div class="kicker">Slide 5 of 9</div>
+        <h1>Studio chat</h1>
+        <p class="time">~50 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Test tab. In the widget, type the refund question → Send. Then open Conversations.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Reply should cite the FAQ (5 business days). Inbox shows this agent only — USER + ASSISTANT, not a playground that disappears.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="5">
+        <div class="kicker">Slide 6 of 9</div>
+        <h1>Analytics</h1>
+        <p class="time">~40 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Same agent → Analytics, or sidebar Analytics.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Conversation count, topic, sentiment come from classify. Week 2: chats are stored and labeled.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="6">
+        <div class="kicker">Slide 7 of 9</div>
+        <h1>Embed + origin lock</h1>
+        <p class="time">~40 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Customization → Deploy. Point at the snippet (<code>embed.js</code> + <code>data-hapy-key</code>). Copy is enough — do not paste on a random live site unless you own it.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>First load on a new origin locks that site and queues a one-time crawl. A second agent cannot steal that origin.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="7">
+        <div class="kicker">Slide 8 of 9 · optional</div>
+        <h1>Admin inspect</h1>
+        <p class="time">~60 seconds · skip if short on time</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Sign out (or a second browser). <code>/login</code> as admin. Open <code>/admin</code>. Users → workspace → agent → transcript. As a normal user, <code>/admin</code> is 404.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>One operator. No impersonation in this MVP.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-i="8">
+        <div class="kicker">Slide 9 of 9</div>
+        <h1>Clone + what we did not build</h1>
+        <p class="time">~20 seconds</p>
+        <div class="card">
+          <h2>Do this</h2>
+          <p>Point at README Local setup and <code>.env.example</code>.</p>
+        </div>
+        <div class="card">
+          <h2>Say this</h2>
+          <p>Copy env → migrate deploy → seed:admin → npm run dev. With the app up: npm run test:product. Out of scope: billing, vector RAG, extra channels — POST_MVP_BACKLOG_PLAN.md.</p>
+        </div>
+      </section>
+
+      <div class="nav">
+        <button type="button" id="prev">← Back</button>
+        <div class="dots" id="dots"></div>
+        <button type="button" id="next">Next →</button>
+      </div>
+    </div>
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      const dots = document.getElementById("dots");
+      const prev = document.getElementById("prev");
+      const next = document.getElementById("next");
+      let i = 0;
+      slides.forEach((_, n) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.addEventListener("click", () => go(n));
+        dots.appendChild(b);
+      });
+      function go(n) {
+        i = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach((s, k) => s.classList.toggle("on", k === i));
+        [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+        prev.disabled = i === 0;
+        next.disabled = i === slides.length - 1;
+      }
+      prev.onclick = () => go(i - 1);
+      next.onclick = () => go(i + 1);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") {
+          e.preventDefault();
+          go(i + 1);
+        }
+        if (e.key === "ArrowLeft") go(i - 1);
+        if (e.key === "f" || e.key === "F") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        }
+      });
+      go(0);
+    </script>
+  </body>
+</html>

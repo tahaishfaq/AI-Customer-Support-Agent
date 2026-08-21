@@ -7,7 +7,7 @@ import { listAgents } from "@/lib/api/agents";
 import { sendChatMessage } from "@/lib/api/chat";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
-import { playNotificationBeep } from "@/lib/customization/theme";
+import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { AgentPicker } from "@/components/chat/AgentPicker";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -266,7 +266,7 @@ export function ChatWorkspace() {
   ) : (
     <>
       {loadingThread ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[#f8fafc] px-3 py-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[var(--wc-chat-bg,#ffffff)] px-3 py-3">
           <Skeleton className="h-14 w-2/3 rounded-2xl bg-[var(--color-border)]" />
           <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
         </div>
@@ -277,6 +277,15 @@ export function ChatWorkspace() {
           compact={compact}
           themed
           showFeedback={customization.features.messageFeedback}
+          intro={widgetIntro(selectedAgent, customization)}
+          onFeedback={async (messageId, rating) => {
+            if (!messageId) return;
+            await fetch(`/api/messages/${messageId}/feedback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rating }),
+            });
+          }}
         />
       )}
       {error ? (
@@ -307,6 +316,7 @@ export function ChatWorkspace() {
         }
         footer={customization.identity.footer || undefined}
         allowFileUpload={customization.features.fileUpload}
+        uploadUrl={agentId ? `/api/agents/${agentId}/files` : undefined}
       />
     </>
   );
@@ -382,6 +392,7 @@ export function ChatWorkspace() {
             setHistoryKey((k) => k + 1);
             setWidgetOpen(true);
           }}
+          onReset={() => resetThread(selectedAgent)}
         >
           {chatBody}
         </ChatWidget>

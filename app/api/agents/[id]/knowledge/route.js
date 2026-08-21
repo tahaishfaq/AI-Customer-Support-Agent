@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/require-auth";
 import {
   createPdfKnowledge,
   createTextKnowledge,
+  getLatestCrawlJob,
   listKnowledgeForAgent,
 } from "@/lib/services/knowledge.service";
 import {
@@ -16,8 +17,11 @@ export async function GET(_request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
-    const documents = await listKnowledgeForAgent(id, authResult.user.id);
-    return NextResponse.json({ documents }, { status: 200 });
+    const [documents, latestCrawl] = await Promise.all([
+      listKnowledgeForAgent(id, authResult.user.id),
+      getLatestCrawlJob(id, authResult.user.id),
+    ]);
+    return NextResponse.json({ documents, latestCrawl }, { status: 200 });
   } catch (error) {
     if (error.status === 403 || error.status === 404) {
       return NextResponse.json(

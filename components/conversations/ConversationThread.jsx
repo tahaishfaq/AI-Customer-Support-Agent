@@ -32,7 +32,12 @@ function groupMessages(messages) {
   return groups;
 }
 
-export function ConversationThread({ conversation, onUpdated }) {
+export function ConversationThread({
+  conversation,
+  onUpdated,
+  readOnly = false,
+  inboxHref,
+}) {
   const [messages, setMessages] = useState(conversation.messages || []);
   const [meta, setMeta] = useState({
     category: conversation.category,
@@ -59,6 +64,7 @@ export function ConversationThread({ conversation, onUpdated }) {
 
   const groups = groupMessages(messages);
   const agentId = conversation.agentId;
+  const backHref = inboxHref || `/agents/${agentId}/conversations`;
 
   async function send(text) {
     if (!agentId || sending) return;
@@ -133,7 +139,7 @@ export function ConversationThread({ conversation, onUpdated }) {
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Link
-              href={`/agents/${agentId}/conversations`}
+              href={backHref}
               className="text-[12px] font-medium text-[var(--color-muted)] hover:text-[var(--color-text)] md:hidden"
             >
               ← Inbox
@@ -150,15 +156,21 @@ export function ConversationThread({ conversation, onUpdated }) {
               </p>
             </div>
           </div>
-          <Link
-            href={`/chat?agentId=${agentId}${conversation.id ? `&conversationId=${conversation.id}` : ""}`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "shrink-0"
-            )}
-          >
-            Open in chat
-          </Link>
+          {readOnly ? (
+            <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-muted)]">
+              Read only
+            </span>
+          ) : (
+            <Link
+              href={`/chat?agentId=${agentId}${conversation.id ? `&conversationId=${conversation.id}` : ""}`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "shrink-0"
+              )}
+            >
+              Open in chat
+            </Link>
+          )}
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -184,7 +196,8 @@ export function ConversationThread({ conversation, onUpdated }) {
             ))}
             {messages.length === 0 ? (
               <p className="py-10 text-center text-sm text-[var(--color-text-secondary)]">
-                No messages yet. Send one below to continue this chat.
+                No messages yet
+                  {readOnly ? "." : ". Send one below to continue this chat."}
               </p>
             ) : null}
             {sending ? (
@@ -196,30 +209,38 @@ export function ConversationThread({ conversation, onUpdated }) {
           </div>
         </div>
 
-        {error ? (
-          <div className="mx-4 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p>{error}</p>
-              {lastFailedText ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={sending}
-                  onClick={() => send(lastFailedText)}
-                >
-                  Retry
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+        {readOnly ? (
+          <p className="border-t border-[var(--color-border)] px-5 py-3 text-center text-[12px] text-[var(--color-muted)]">
+            Admin inspect is read-only. Replying as the customer is not available.
+          </p>
+        ) : (
+          <>
+            {error ? (
+              <div className="mx-4 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p>{error}</p>
+                  {lastFailedText ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={sending}
+                      onClick={() => send(lastFailedText)}
+                    >
+                      Retry
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
-        <ChatComposer
-          disabled={sending || !agentId}
-          onSend={send}
-          compact
-        />
+            <ChatComposer
+              disabled={sending || !agentId}
+              onSend={send}
+              compact
+            />
+          </>
+        )}
       </div>
 
       <aside className="hidden w-[280px] shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] xl:flex">
@@ -268,6 +289,7 @@ export function ConversationThread({ conversation, onUpdated }) {
             </dd>
           </div>
         </dl>
+        {readOnly ? null : (
         <div className="mt-auto border-t border-[var(--color-border)] p-4">
           <p className="mb-2 text-[12px] text-[var(--color-muted)]">
             Reply in this thread below, or open the embed preview.
@@ -279,6 +301,7 @@ export function ConversationThread({ conversation, onUpdated }) {
             Open in chat widget
           </Link>
         </div>
+        )}
       </aside>
     </div>
   );

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessage } from "@/lib/api/chat";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
-import { playNotificationBeep } from "@/lib/customization/theme";
+import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatHistoryPanel } from "@/components/chat/ChatHistoryPanel";
 import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -26,6 +26,7 @@ import { MessageList } from "@/components/chat/MessageList";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useUrlTab } from "@/hooks/use-url-tab";
 
 const DEFAULT_SCRIPTS = [
   {
@@ -64,6 +65,7 @@ const MODES = [
   { id: "self", label: "Ask yourself" },
   { id: "pack", label: "Question pack" },
 ];
+const MODE_IDS = MODES.map((m) => m.id);
 
 function emptySelfQuestion() {
   return {
@@ -85,9 +87,88 @@ function welcomeBubble(agent) {
   ];
 }
 
+function RunTestButtons({
+  runStatus,
+  sending,
+  onStart,
+  startDisabled,
+  onPause,
+  onResume,
+  onStop,
+}) {
+  if (runStatus === "running") {
+    return (
+      <>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={onPause}
+        >
+          <Pause className="size-3.5" />
+          Pause
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-[var(--color-danger)]"
+          onClick={onStop}
+        >
+          <Square className="size-3.5" />
+          Stop
+        </Button>
+      </>
+    );
+  }
+  if (runStatus === "paused") {
+    return (
+      <>
+        <Button
+          type="button"
+          size="sm"
+          className="gap-1.5"
+          onClick={onResume}
+          disabled={sending}
+        >
+          {sending ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
+          Resume
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-[var(--color-danger)]"
+          onClick={onStop}
+        >
+          <Square className="size-3.5" />
+          Stop
+        </Button>
+      </>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      size="sm"
+      className="gap-1.5"
+      onClick={onStart}
+      disabled={startDisabled}
+    >
+      <Play className="size-3.5" />
+      Run test
+    </Button>
+  );
+}
+
 export function AgentTestStudio({ agent }) {
   const customization = useMemo(() => resolveCustomization(agent), [agent]);
-  const [mode, setMode] = useState("self");
+  const [mode, setMode] = useUrlTab("tab", MODE_IDS, "self");
   const [questions, setQuestions] = useState(DEFAULT_SCRIPTS);
   const [generated, setGenerated] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -342,15 +423,28 @@ export function AgentTestStudio({ agent }) {
           compact={false}
           themed
           showFeedback={customization.features.messageFeedback}
+          intro={widgetIntro(agent, customization)}
+          onFeedback={async (messageId, rating) => {
+            if (!messageId) return;
+            await fetch(`/api/messages/${messageId}/feedback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rating }),
+            });
+          }}
         />
       )}
-      {error ? (
+      {agent.enabled === false ? (
+        <p className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
+          This agent is disabled by Hapy admin. Studio chat is off.
+        </p>
+      ) : error ? (
         <p className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
       <ChatComposer
-        disabled={sending || runActive}
+        disabled={sending || runActive || agent.enabled === false}
         onSend={send}
         compact={false}
         themed
@@ -363,82 +457,12 @@ export function AgentTestStudio({ agent }) {
         }
         footer={customization.identity.footer || undefined}
         allowFileUpload={customization.features.fileUpload}
+        uploadUrl={`/api/agents/${agent.id}/files`}
       />
     </>
   );
 
   const panelHeight = "h-[min(640px,72vh)] min-h-[480px]";
-
-  function RunTestButtons({ onStart, startDisabled }) {
-    if (runStatus === "running") {
-      return (
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={pauseSelfTest}
-          >
-            <Pause className="size-3.5" />
-            Pause
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--color-danger)]"
-            onClick={stopSelfTest}
-          >
-            <Square className="size-3.5" />
-            Stop
-          </Button>
-        </>
-      );
-    }
-    if (runStatus === "paused") {
-      return (
-        <>
-          <Button
-            type="button"
-            size="sm"
-            className="gap-1.5"
-            onClick={resumeSelfTest}
-            disabled={sending}
-          >
-            {sending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Play className="size-3.5" />
-            )}
-            Resume
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--color-danger)]"
-            onClick={stopSelfTest}
-          >
-            <Square className="size-3.5" />
-            Stop
-          </Button>
-        </>
-      );
-    }
-    return (
-      <Button
-        type="button"
-        size="sm"
-        className="gap-1.5"
-        onClick={onStart}
-        disabled={startDisabled}
-      >
-        <Play className="size-3.5" />
-        Run test
-      </Button>
-    );
-  }
 
   function runProgressLine() {
     if (runStatus === "idle") return null;
@@ -504,7 +528,12 @@ export function AgentTestStudio({ agent }) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 <RunTestButtons
+                  runStatus={runStatus}
+                  sending={sending}
                   onStart={startSelfTest}
+                  onPause={pauseSelfTest}
+                  onResume={resumeSelfTest}
+                  onStop={stopSelfTest}
                   startDisabled={
                     sending ||
                     !selfQuestions.some((item) => item.prompt.trim())
@@ -590,7 +619,12 @@ export function AgentTestStudio({ agent }) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 <RunTestButtons
+                  runStatus={runStatus}
+                  sending={sending}
                   onStart={startPackTest}
+                  onPause={pauseSelfTest}
+                  onResume={resumeSelfTest}
+                  onStop={stopSelfTest}
                   startDisabled={
                     sending ||
                     generating ||
@@ -723,6 +757,7 @@ export function AgentTestStudio({ agent }) {
               setHistoryOpen((open) => !open);
               setHistoryKey((k) => k + 1);
             }}
+            onReset={resetThread}
           >
             {chatBody}
           </ChatWidget>

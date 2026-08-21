@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, History, MessageCircle, Minus, X } from "lucide-react";
+import { ArrowLeft, History, MessageCircle, Minus, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { widgetStyleVars } from "@/lib/customization/theme";
 
@@ -14,7 +14,7 @@ function monogram(name) {
     .join("");
 }
 
-function Avatar({ src, label, className }) {
+function Avatar({ src, label, className, style }) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -31,6 +31,7 @@ function Avatar({ src, label, className }) {
         "flex shrink-0 items-center justify-center font-semibold",
         className
       )}
+      style={style}
     >
       {monogram(label)}
     </span>
@@ -47,6 +48,7 @@ export function ChatWidget({
   fillHost = false,
   historyOpen = false,
   onHistoryToggle,
+  onReset,
   children,
 }) {
   const identity = customization?.identity || {};
@@ -77,21 +79,21 @@ export function ChatWidget({
         "flex min-h-0 flex-col overflow-hidden border-0 shadow-none outline-none ring-0",
         fullPage
           ? "h-full w-full rounded-none"
-          : fillHost
-            ? "min-h-0 w-full flex-1"
-            : "h-[min(480px,calc(100svh-16rem))] w-[420px] min-w-[420px] max-w-[420px]"
+          : "h-[min(520px,calc(100svh-6rem))] w-[min(380px,calc(100vw-1.5rem))]"
       )}
       style={{
         ...vars,
         border: "none",
-        boxShadow: "none",
         outline: "none",
         overflow: "hidden",
         isolation: "isolate",
-        backgroundColor: "var(--wc-header-bg)",
+        backgroundColor: "var(--wc-shell)",
         color: "var(--wc-shell-fg)",
         fontFamily: "var(--wc-font)",
         borderRadius: fullPage ? 0 : "var(--wc-radius-panel)",
+        boxShadow: fullPage
+          ? "none"
+          : "0 12px 40px rgba(15,23,42,0.12)",
         clipPath: fullPage ? undefined : "inset(0 round var(--wc-radius-panel))",
       }}
     >
@@ -103,18 +105,19 @@ export function ChatWidget({
           <Avatar
             src={identity.avatarUrl}
             label={displayName}
-            className="size-8 rounded-full bg-white/15 text-[11px] text-white"
+            className="size-7 rounded-full text-[11px] font-semibold"
+            style={
+              identity.avatarUrl
+                ? undefined
+                : { backgroundColor: "#ffffff", color: primary }
+            }
           />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{displayName}</p>
-            <p className="flex items-center gap-1.5 text-[11px] text-white/80">
-              <span className="size-1.5 rounded-full bg-emerald-300" />
-              {historyOpen ? "Chat history" : "Online"}
-            </p>
-          </div>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            {historyOpen ? "Chat history" : displayName}
+          </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           {showHistory ? (
             <button
               type="button"
@@ -123,17 +126,7 @@ export function ChatWidget({
                 e.stopPropagation();
                 onHistoryToggle();
               }}
-              className={cn(
-                "inline-flex size-8 items-center justify-center rounded-lg text-white",
-                "bg-white/20 ring-1 ring-white/25 hover:bg-white/30",
-                historyOpen &&
-                  "bg-white text-[var(--color-primary)] ring-0 hover:bg-white"
-              )}
-              style={
-                historyOpen
-                  ? { color: primary }
-                  : undefined
-              }
+              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
               aria-label={historyOpen ? "Back to chat" : "Open chat history"}
               aria-pressed={historyOpen}
               title={historyOpen ? "Back to chat" : "History"}
@@ -146,11 +139,27 @@ export function ChatWidget({
             </button>
           ) : null}
 
+          {onReset ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReset();
+              }}
+              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="New chat"
+              title="New chat"
+            >
+              <RotateCcw className="size-3.5 shrink-0" />
+            </button>
+          ) : null}
+
           {!fullPage && onToggle ? (
             <button
               type="button"
               onClick={onToggle}
-              className="rounded-lg p-1.5 text-white/90 hover:bg-white/15"
+              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
               aria-label="Minimize chat"
               title="Minimize"
             >
@@ -173,8 +182,8 @@ export function ChatWidget({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3",
-        fillHost ? "h-full w-full justify-end" : "",
+        "flex w-fit flex-col gap-3",
+        fillHost ? "ml-auto mt-auto" : "",
         align === "start" ? "items-start" : "items-end"
       )}
       style={vars}
@@ -228,7 +237,7 @@ export function ChatWidget({
           aria-label={open ? "Close chat widget" : "Open chat widget"}
         >
           {open ? (
-            <X className="size-5" />
+            <MessageCircle className="size-5" />
           ) : launcherSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={launcherSrc} alt="" className="size-full object-cover" />

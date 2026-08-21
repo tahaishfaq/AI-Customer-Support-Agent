@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/require-admin";
+import { setUserStatus } from "@/lib/services/admin-users.service";
+import { writeAuditEvent } from "@/lib/services/audit.service";
+import { clientIp } from "@/lib/rate-limit";
+
+export async function POST(request, { params }) {
+  try {
+    const authResult = await requireAdmin();
+    if (authResult.error) return authResult.error;
+
+    const { id } = await params;
+    const user = await setUserStatus(id, "ACTIVE", {
+      actorId: authResult.user.id,
+    });
+    await writeAuditEvent({
+      adminId: authResult.user.id,
+      action: "USER_RESTORE",
+      targetType: "user",
+      targetId: id,
+      metadata: { email: user.email },
+      ip: clientIp(request),
+    });
+    return NextResponse.json({ user }, { status: 200 });
+  } catch (error) {
+    if (error.status === 400 || error.status === 404) {
+      return NextResponse.json(
+        { error: { message: error.message, details: error.details || {} } },
+        { status: error.status }
+      );
+    }
+    console.error("POST /api/admin/users/[id]/restore", error);
+    return NextResponse.json(
+      { error: { message: "Unable to restore user", details: {} } },
+      { status: 500 }
+    );
+  }
+}

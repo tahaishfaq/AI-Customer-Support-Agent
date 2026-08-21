@@ -3,6 +3,8 @@
 import ReactMarkdown from "react-markdown";
 import { ThumbsUp } from "lucide-react";
 import { useState } from "react";
+import { ChatAttachmentPreview } from "@/components/chat/ChatAttachmentPreview";
+import { parseChatAttachment } from "@/lib/utils/chat-attachments";
 import { cn } from "@/lib/utils";
 
 function formatResponseTime(ms) {
@@ -48,6 +50,14 @@ const markdownComponents = {
       {children}
     </a>
   ),
+  img: ({ src, alt }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt || ""}
+      className="mt-1 max-h-40 max-w-full rounded-md object-contain"
+    />
+  ),
   h1: ({ children }) => (
     <p className="mb-2 text-base font-semibold">{children}</p>
   ),
@@ -69,6 +79,36 @@ const markdownComponents = {
   ),
 };
 
+function AgentMark({ identity, className }) {
+  if (identity?.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={identity.avatarUrl}
+        alt=""
+        className={cn("shrink-0 rounded-full object-cover", className)}
+      />
+    );
+  }
+  const letters = (identity?.name || "H")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
+        className
+      )}
+      style={{ backgroundColor: "var(--wc-primary)" }}
+    >
+      {letters}
+    </span>
+  );
+}
+
 export function MessageBubble({
   role,
   content,
@@ -78,9 +118,24 @@ export function MessageBubble({
   showMeta = false,
   themed = false,
   showFeedback = false,
+  identity = null,
+  messageId,
+  initialFeedback = null,
+  onFeedback,
 }) {
   const isUser = role === "USER";
-  const [feedback, setFeedback] = useState(null);
+  const [feedback, setFeedback] = useState(initialFeedback);
+  const showAgentAvatar = themed && !isUser && identity;
+  const parsedFile = parseChatAttachment(content);
+  const caption = parsedFile.display
+    .replace(/!\[[^\]]*\]\(https?:[^)]+\)/g, "")
+    .replace(/Attached file:\s*\[[^\]]+\]\(https?:[^)]+\)/gi, "")
+    .trim();
+  const hasAttachment =
+    Boolean(parsedFile.meta) ||
+    /!\[[^\]]*\]\(https?:/.test(content || "") ||
+    /Attached file:/i.test(content || "");
+  const bodyText = hasAttachment ? caption : parsedFile.display || content;
 
   return (
     <div
@@ -95,7 +150,9 @@ export function MessageBubble({
           isUser ? "justify-end" : "justify-start"
         )}
       >
-        {!isUser && showMeta ? (
+        {!isUser && showAgentAvatar ? (
+          <AgentMark identity={identity} className="mt-0.5 size-6 text-[9px]" />
+        ) : !isUser && showMeta ? (
           <span
             className={cn(
               "mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
@@ -115,7 +172,7 @@ export function MessageBubble({
                 ? "rounded-br-md bg-[var(--wc-primary)] text-white"
                 : "rounded-br-md bg-[var(--color-primary)] text-white"
               : themed
-                ? "rounded-bl-md border border-[var(--wc-border)] bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
+                ? "rounded-bl-md bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
                 : "rounded-bl-md border border-[var(--color-border)] bg-white text-[var(--color-text)]"
           )}
           style={{
@@ -146,13 +203,26 @@ export function MessageBubble({
                 )}
               />
             </span>
-          ) : isUser ? (
-            <p className="whitespace-pre-wrap">{content}</p>
           ) : (
-            <div className="markdown-body">
-              <ReactMarkdown components={markdownComponents}>
-                {content || ""}
-              </ReactMarkdown>
+            <div className="space-y-1">
+              {hasAttachment ? (
+                <ChatAttachmentPreview
+                  content={content}
+                  themed={themed}
+                  isUser={isUser}
+                />
+              ) : null}
+              {bodyText ? (
+                isUser && !bodyText.includes("](") && !bodyText.includes("![") ? (
+                  <p className="whitespace-pre-wrap">{bodyText}</p>
+                ) : (
+                  <div className="markdown-body">
+                    <ReactMarkdown components={markdownComponents}>
+                      {bodyText}
+                    </ReactMarkdown>
+                  </div>
+                )
+              ) : null}
             </div>
           )}
           {showMeta && !pending ? (
@@ -197,16 +267,21 @@ export function MessageBubble({
       {!isUser && !pending && showFeedback ? (
         <div
           className={cn(
-            "ml-1 flex gap-1",
+            "flex gap-1",
+            showAgentAvatar ? "ml-8" : "ml-1",
             themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
           )}
         >
           <button
             type="button"
-            onClick={() => setFeedback("up")}
+            onClick={() => {
+              setFeedback("up");
+              onFeedback?.(messageId, "UP");
+            }}
             className={cn(
               "rounded p-1 hover:bg-black/5",
-              feedback === "up" && "text-[var(--wc-primary,var(--color-primary))]"
+              (feedback === "up" || feedback === "UP") &&
+                "text-[var(--wc-primary,var(--color-primary))]"
             )}
             aria-label="Helpful"
             title="Helpful"
@@ -215,10 +290,13 @@ export function MessageBubble({
           </button>
           <button
             type="button"
-            onClick={() => setFeedback("down")}
+            onClick={() => {
+              setFeedback("down");
+              onFeedback?.(messageId, "DOWN");
+            }}
             className={cn(
               "rounded p-1 hover:bg-black/5",
-              feedback === "down" &&
+              (feedback === "down" || feedback === "DOWN") &&
                 "text-[var(--wc-primary,var(--color-primary))]"
             )}
             aria-label="Not helpful"
