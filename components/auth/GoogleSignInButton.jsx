@@ -38,8 +38,10 @@ export function GoogleSignInButton({
   const [status, setStatus] = useState("loading");
   const [busy, setBusy] = useState(false);
 
-  onErrorRef.current = onError;
-  onSuccessRef.current = onSuccess;
+  useEffect(() => {
+    onErrorRef.current = onError;
+    onSuccessRef.current = onSuccess;
+  }, [onError, onSuccess]);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 

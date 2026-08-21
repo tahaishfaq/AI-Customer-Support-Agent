@@ -87,6 +87,85 @@ function welcomeBubble(agent) {
   ];
 }
 
+function RunTestButtons({
+  runStatus,
+  sending,
+  onStart,
+  startDisabled,
+  onPause,
+  onResume,
+  onStop,
+}) {
+  if (runStatus === "running") {
+    return (
+      <>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={onPause}
+        >
+          <Pause className="size-3.5" />
+          Pause
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-[var(--color-danger)]"
+          onClick={onStop}
+        >
+          <Square className="size-3.5" />
+          Stop
+        </Button>
+      </>
+    );
+  }
+  if (runStatus === "paused") {
+    return (
+      <>
+        <Button
+          type="button"
+          size="sm"
+          className="gap-1.5"
+          onClick={onResume}
+          disabled={sending}
+        >
+          {sending ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
+          Resume
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-[var(--color-danger)]"
+          onClick={onStop}
+        >
+          <Square className="size-3.5" />
+          Stop
+        </Button>
+      </>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      size="sm"
+      className="gap-1.5"
+      onClick={onStart}
+      disabled={startDisabled}
+    >
+      <Play className="size-3.5" />
+      Run test
+    </Button>
+  );
+}
+
 export function AgentTestStudio({ agent }) {
   const customization = useMemo(() => resolveCustomization(agent), [agent]);
   const [mode, setMode] = useUrlTab("tab", MODE_IDS, "self");
@@ -385,77 +464,6 @@ export function AgentTestStudio({ agent }) {
 
   const panelHeight = "h-[min(640px,72vh)] min-h-[480px]";
 
-  function RunTestButtons({ onStart, startDisabled }) {
-    if (runStatus === "running") {
-      return (
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={pauseSelfTest}
-          >
-            <Pause className="size-3.5" />
-            Pause
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--color-danger)]"
-            onClick={stopSelfTest}
-          >
-            <Square className="size-3.5" />
-            Stop
-          </Button>
-        </>
-      );
-    }
-    if (runStatus === "paused") {
-      return (
-        <>
-          <Button
-            type="button"
-            size="sm"
-            className="gap-1.5"
-            onClick={resumeSelfTest}
-            disabled={sending}
-          >
-            {sending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Play className="size-3.5" />
-            )}
-            Resume
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-[var(--color-danger)]"
-            onClick={stopSelfTest}
-          >
-            <Square className="size-3.5" />
-            Stop
-          </Button>
-        </>
-      );
-    }
-    return (
-      <Button
-        type="button"
-        size="sm"
-        className="gap-1.5"
-        onClick={onStart}
-        disabled={startDisabled}
-      >
-        <Play className="size-3.5" />
-        Run test
-      </Button>
-    );
-  }
-
   function runProgressLine() {
     if (runStatus === "idle") return null;
     const ids = new Set(
@@ -520,7 +528,12 @@ export function AgentTestStudio({ agent }) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 <RunTestButtons
+                  runStatus={runStatus}
+                  sending={sending}
                   onStart={startSelfTest}
+                  onPause={pauseSelfTest}
+                  onResume={resumeSelfTest}
+                  onStop={stopSelfTest}
                   startDisabled={
                     sending ||
                     !selfQuestions.some((item) => item.prompt.trim())
@@ -606,7 +619,12 @@ export function AgentTestStudio({ agent }) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 <RunTestButtons
+                  runStatus={runStatus}
+                  sending={sending}
                   onStart={startPackTest}
+                  onPause={pauseSelfTest}
+                  onResume={resumeSelfTest}
+                  onStop={stopSelfTest}
                   startDisabled={
                     sending ||
                     generating ||

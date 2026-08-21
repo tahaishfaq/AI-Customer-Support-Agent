@@ -79,6 +79,36 @@ const markdownComponents = {
   ),
 };
 
+function AgentMark({ identity, className }) {
+  if (identity?.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={identity.avatarUrl}
+        alt=""
+        className={cn("shrink-0 rounded-full object-cover", className)}
+      />
+    );
+  }
+  const letters = (identity?.name || "H")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
+        className
+      )}
+      style={{ backgroundColor: "var(--wc-primary)" }}
+    >
+      {letters}
+    </span>
+  );
+}
+
 export function MessageBubble({
   role,
   content,
@@ -107,36 +137,6 @@ export function MessageBubble({
     /Attached file:/i.test(content || "");
   const bodyText = hasAttachment ? caption : parsedFile.display || content;
 
-  function AgentMark({ className }) {
-    if (identity?.avatarUrl) {
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={identity.avatarUrl}
-          alt=""
-          className={cn("shrink-0 rounded-full object-cover", className)}
-        />
-      );
-    }
-    const letters = (identity?.name || "H")
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join("");
-    return (
-      <span
-        className={cn(
-          "flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
-          className
-        )}
-        style={{ backgroundColor: "var(--wc-primary)" }}
-      >
-        {letters}
-      </span>
-    );
-  }
-
   return (
     <div
       className={cn(
@@ -151,7 +151,7 @@ export function MessageBubble({
         )}
       >
         {!isUser && showAgentAvatar ? (
-          <AgentMark className="mt-0.5 size-6 text-[9px]" />
+          <AgentMark identity={identity} className="mt-0.5 size-6 text-[9px]" />
         ) : !isUser && showMeta ? (
           <span
             className={cn(
