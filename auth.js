@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 import { comparePassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
 import { ensureDefaultWorkspace } from "@/lib/services/workspace.service";
-import { rateLimit } from "@/lib/rate-limit";
+import { isRateLimited, rateLimit } from "@/lib/rate-limit";
 import { isReservedAdminEmail } from "@/lib/admin-email";
 
 class AccountSuspendedError extends CredentialsSignin {
@@ -60,19 +60,28 @@ const providers = [
       if (!email || !password) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });
-      if (!user?.passwordHash) return null;
+      const adminLogin =
+        isReservedAdminEmail(email) || user?.role === "ADMIN";
+      const adminLimitKey = `admin-login:${email}`;
+      const adminLimitOpts = { limit: 5, windowMs: 15 * 60_000 };
 
-      const valid = await comparePassword(password, user.passwordHash);
-      if (!valid) return null;
-      if (user.status === "SUSPENDED") throw new AccountSuspendedError();
-
-      if (user.role === "ADMIN") {
-        const limited = rateLimit(`admin-login:${email}`, {
-          limit: 5,
-          windowMs: 15 * 60_000,
-        });
+      // Count failed guesses only; block before hashing when the window is full.
+      if (adminLogin) {
+        const limited = isRateLimited(adminLimitKey, adminLimitOpts);
         if (!limited.ok) return null;
       }
+
+      if (!user?.passwordHash) {
+        if (adminLogin) rateLimit(adminLimitKey, adminLimitOpts);
+        return null;
+      }
+
+      const valid = await comparePassword(password, user.passwordHash);
+      if (!valid) {
+        if (adminLogin) rateLimit(adminLimitKey, adminLimitOpts);
+        return null;
+      }
+      if (user.status === "SUSPENDED") throw new AccountSuspendedError();
 
       prisma.user
         .update({

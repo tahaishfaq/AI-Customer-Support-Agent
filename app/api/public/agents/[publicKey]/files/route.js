@@ -3,7 +3,11 @@ import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { mergeCustomization } from "@/lib/customization/defaults";
 import { extractUploadedFileText } from "@/lib/services/chat-attachment.service";
-import { buildAttachmentMessage } from "@/lib/utils/chat-attachments";
+import {
+  buildAttachmentMessage,
+  CHAT_UPLOAD_MAX_BYTES,
+  formatChatUploadLimit,
+} from "@/lib/utils/chat-attachments";
 import { uploadChatAttachment } from "@/lib/utils/cloudinary-chat";
 
 export async function POST(request, { params }) {
@@ -42,6 +46,19 @@ export async function POST(request, { params }) {
           error: {
             message: "Validation failed",
             details: { file: "A file is required" },
+          },
+        },
+        { status: 400 }
+      );
+    }
+    if (file.size > CHAT_UPLOAD_MAX_BYTES) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Validation failed",
+            details: {
+              file: `File must be ${formatChatUploadLimit()} or smaller`,
+            },
           },
         },
         { status: 400 }

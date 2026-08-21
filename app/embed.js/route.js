@@ -45,6 +45,15 @@ export function GET(request) {
     if (existing) return;
 
     var parentOrigin = encodeURIComponent(window.location.origin);
+    // Claim from the parent page so Origin/Referer are the customer site
+    // (iframe pings would only show the Hapy app origin).
+    fetch(${hostJson} + "/api/public/agents/" + encodeURIComponent(publicKey) + "/ping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin: window.location.origin }),
+      mode: "cors",
+      credentials: "omit",
+    }).catch(function () {});
     var iframe = document.createElement("iframe");
     iframe.src = ${hostJson} + "/w/" + encodeURIComponent(publicKey) + "?parentOrigin=" + parentOrigin;
     iframe.setAttribute("data-hapy-widget", publicKey);

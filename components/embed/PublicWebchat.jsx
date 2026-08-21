@@ -69,16 +69,18 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   }, [agent.publicKey, historyEnabled, resetMode]);
 
   useEffect(() => {
+    // Origin lock is claimed by embed.js on the parent page (trusted Origin header).
+    // Iframe pings only see the app origin and must not bind from body.parentOrigin.
     if (!agent.publicKey || !parentOrigin) return;
     let cancelled = false;
     fetch(`/api/public/agents/${agent.publicKey}/ping`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ origin: parentOrigin }),
+      body: JSON.stringify({}),
     })
       .then(async (res) => {
         if (cancelled) return;
-        if (res.ok) return;
+        if (res.status !== 403) return;
         try {
           window.parent.postMessage(
             { source: "hapy-widget", type: "unavailable" },

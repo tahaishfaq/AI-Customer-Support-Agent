@@ -5,6 +5,10 @@ import { Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  CHAT_UPLOAD_MAX_BYTES,
+  formatChatUploadLimit,
+} from "@/lib/utils/chat-attachments";
 
 export function ChatComposer({
   disabled,
@@ -28,10 +32,11 @@ export function ChatComposer({
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = `${minH}px`;
+    // Collapse first so empty state does not inherit a tall browser default scrollHeight.
+    el.style.height = "0px";
     const next = Math.min(Math.max(el.scrollHeight, minH), maxH);
     el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
+    el.style.overflowY = next >= maxH ? "auto" : "hidden";
   }, [value]);
 
   function submit() {
@@ -53,6 +58,10 @@ export function ChatComposer({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !uploadUrl) return;
+    if (file.size > CHAT_UPLOAD_MAX_BYTES) {
+      toast.error(`File must be ${formatChatUploadLimit()} or smaller`);
+      return;
+    }
     setUploading(true);
     try {
       const form = new FormData();
@@ -64,7 +73,11 @@ export function ChatComposer({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error?.message || "Upload failed");
+        throw new Error(
+          data?.error?.details?.file ||
+            data?.error?.message ||
+            "Upload failed"
+        );
       }
       if (data.message) await onSend(data.message);
     } catch (err) {
@@ -84,10 +97,10 @@ export function ChatComposer({
         compact || themed ? "px-3 py-2" : "px-4 py-3 sm:px-8"
       )}
     >
-      <div className="flex items-end gap-2">
+      <div className="flex items-center gap-2">
         <div
           className={cn(
-            "flex min-h-9 min-w-0 flex-1 items-end gap-0.5 py-0.5",
+            "flex min-h-9 min-w-0 flex-1 items-center gap-0.5",
             themed
               ? "border bg-[var(--wc-input-bg)] pl-3 pr-1 focus-within:ring-2 focus-within:ring-[var(--wc-primary)]/25"
               : "border border-[var(--color-border)] bg-white pl-3 pr-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20"
@@ -95,10 +108,10 @@ export function ChatComposer({
           style={
             themed
               ? {
-                  borderRadius: 20,
+                  borderRadius: 9999,
                   borderColor: "var(--wc-input-border)",
                 }
-              : { borderRadius: 20 }
+              : { borderRadius: 9999 }
           }
         >
           <textarea
@@ -110,7 +123,7 @@ export function ChatComposer({
             disabled={busy}
             rows={1}
             className={cn(
-              "min-w-0 flex-1 resize-none border-0 bg-transparent py-[7px] text-[13px] leading-[20px] outline-none",
+              "h-9 min-w-0 flex-1 resize-none border-0 bg-transparent py-2 text-[13px] leading-5 outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
               themed
                 ? "text-[var(--wc-shell-fg)] placeholder:text-[var(--wc-muted)]"
@@ -132,13 +145,13 @@ export function ChatComposer({
                 disabled={busy}
                 onClick={() => fileRef.current?.click()}
                 className={cn(
-                  "mb-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full",
+                  "inline-flex size-7 shrink-0 items-center justify-center rounded-full",
                   themed
                     ? "text-[var(--wc-muted)] hover:bg-black/5 hover:text-[var(--wc-shell-fg)]"
                     : "text-[var(--color-muted)] hover:bg-[var(--color-bg)]"
                 )}
                 aria-label="Attach file"
-                title="Attach file"
+                title={`Attach file (max ${formatChatUploadLimit()})`}
               >
                 <Paperclip className="size-3.5" />
               </button>
@@ -152,7 +165,7 @@ export function ChatComposer({
           onClick={submit}
           aria-label="Send message"
           className={cn(
-            "mb-0.5 size-9 shrink-0 rounded-full shadow-none",
+            "size-9 shrink-0 rounded-full shadow-none",
             themed &&
               "bg-[var(--wc-primary)] text-white hover:opacity-90 disabled:bg-[var(--wc-primary)]/35 disabled:opacity-100"
           )}

@@ -102,7 +102,7 @@ From **Agent → Customization → Deploy** (or Share), copy the snippet. On you
 
 ```html
 <script
-  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=5"
+  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=6"
   data-hapy-key="YOUR_PUBLIC_KEY"
   defer
 ></script>
