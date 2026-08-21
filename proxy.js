@@ -24,21 +24,16 @@ function isAdminPath(pathname) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
-function isAdminLogin(pathname) {
-  return pathname === "/admin/login";
-}
-
 export async function proxy(request) {
   const session = await auth();
   const isLoggedIn = Boolean(session?.user?.id);
   const role = session?.user?.role || "USER";
   const { pathname } = request.nextUrl;
 
+  // Admin console: ADMIN only. Everyone else (including /admin/login) → 404.
+  // Operators sign in on shared /login; role sends them to /admin.
   if (isAdminPath(pathname)) {
     if (isLoggedIn && role === "ADMIN") {
-      if (isAdminLogin(pathname)) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
       return NextResponse.next();
     }
     return NextResponse.rewrite(new URL("/404", request.url), {

@@ -150,7 +150,7 @@ Admin APIs = **any** user + **any** of their workspaces.
 
 ```
 app/(app)/*                 USER product (workspace switcher — Phase 11)
-app/admin/(auth)/login      optional dedicated login, or reuse /login + role gate
+app/(auth)/login            shared login; role → /admin or /dashboard
 app/admin/(console)/*       ADMIN shell
 
 Prisma
@@ -170,7 +170,7 @@ Prisma
 
 | Route                                                                            | Phase                                    |
 | -------------------------------------------------------------------------------- | ---------------------------------------- |
-| `/admin/login`                                                                   | A0                                       |
+| `/login`                                                                         | A0 — shared product login; ADMIN → `/admin` |
 | `/admin`                                                                         | A1 dashboard (platform analytics)        |
 | `/admin/users`                                                                   | A2                                       |
 | `/admin/users/[id]`                                                              | A2 user + workspace list                 |
@@ -233,7 +233,7 @@ GET    /api/admin/audit
 
 - Prisma `User.role` (`USER` default, `ADMIN`)
 - Seed/upsert admin from env (no public register-as-admin)
-- `/admin/login` or `/login` then redirect ADMIN → `/admin`, USER → `/dashboard`
+- `/login` then redirect ADMIN → `/admin`, USER → `/dashboard`
 - `requireAdmin()` on `/admin/*` and `/api/admin/*`
 - USER cookie → 401 on admin APIs
 

@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { homePathForRole } from "@/lib/auth-home";
 import { apiFetch } from "@/lib/api-client";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { formatApiError } from "@/lib/utils/api-error";
 
 const fieldClass =
@@ -14,7 +15,7 @@ const fieldClass =
 
 const labelClass = "mb-2 block text-sm font-medium text-[#0f172a]";
 
-export function LoginForm({ variant = "user" }) {
+export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const login = useAuthStore((s) => s.login);
@@ -28,7 +29,6 @@ export function LoginForm({ variant = "user" }) {
   const [appealSent, setAppealSent] = useState(false);
   const [appealBusy, setAppealBusy] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState(null);
-  const isAdmin = variant === "admin";
 
   useEffect(() => {
     if (searchParams.get("suspended") !== "1") return;
@@ -39,8 +39,7 @@ export function LoginForm({ variant = "user" }) {
   }, [searchParams, logout]);
 
   function goHome(user) {
-    const path = isAdmin ? "/admin" : homePathForRole(user?.role);
-    router.push(path);
+    router.push(homePathForRole(user?.role));
     router.refresh();
   }
 
@@ -58,11 +57,6 @@ export function LoginForm({ variant = "user" }) {
 
     try {
       const user = await login(email.trim(), password);
-      if (isAdmin && user?.role !== "ADMIN") {
-        await useAuthStore.getState().logout();
-        setError("This account is not the platform admin.");
-        return;
-      }
       goHome(user);
     } catch (err) {
       if (err.code === "SUSPENDED") markSuspended(err.restoreStatus);
@@ -90,7 +84,7 @@ export function LoginForm({ variant = "user" }) {
     }
   }
 
-  if (suspended && !isAdmin) {
+  if (suspended) {
     return (
       <div className="space-y-4">
         <div className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3">
@@ -181,24 +175,20 @@ export function LoginForm({ variant = "user" }) {
 
   return (
     <div className="space-y-6">
-      {isAdmin ? null : (
-        <>
-          <GoogleSignInButton
-            text="signin_with"
-            onSuccess={(user) => goHome(user)}
-            onError={(message, err) => {
-              if (err?.email) setEmail(err.email);
-              if (err?.code === "SUSPENDED") markSuspended(err.restoreStatus);
-              else setError(message);
-            }}
-          />
-          <div className="flex items-center gap-4">
-            <div className="h-px flex-1 bg-[#e2e8f0]" />
-            <span className="text-xs text-[#64748b]">or</span>
-            <div className="h-px flex-1 bg-[#e2e8f0]" />
-          </div>
-        </>
-      )}
+      <GoogleSignInButton
+        text="signin_with"
+        onSuccess={(user) => goHome(user)}
+        onError={(message, err) => {
+          if (err?.email) setEmail(err.email);
+          if (err?.code === "SUSPENDED") markSuspended(err.restoreStatus);
+          else setError(message);
+        }}
+      />
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-[#e2e8f0]" />
+        <span className="text-xs text-[#64748b]">or</span>
+        <div className="h-px flex-1 bg-[#e2e8f0]" />
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -246,17 +236,15 @@ export function LoginForm({ variant = "user" }) {
         </button>
       </form>
 
-      {isAdmin ? null : (
-        <p className="pt-2 text-center text-sm text-[#475569]">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/register"
-            className="font-medium text-[var(--color-primary)] underline underline-offset-2"
-          >
-            Create one
-          </Link>
-        </p>
-      )}
+      <p className="pt-2 text-center text-sm text-[#475569]">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/register"
+          className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+        >
+          Create one
+        </Link>
+      </p>
     </div>
   );
 }
