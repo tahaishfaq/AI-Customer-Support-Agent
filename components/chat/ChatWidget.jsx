@@ -191,7 +191,7 @@ export function ChatWidget({
       {open ? panel : null}
 
       {proactive ? (
-        <div className="flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
+        <div className="relative mb-0.5 flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
           <div
             className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
             style={{ backgroundColor: primary }}
@@ -208,11 +208,15 @@ export function ChatWidget({
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] text-slate-800">{proactive}</p>
+            <p className="text-[12px] leading-snug text-slate-800">{proactive}</p>
             <p className="mt-0.5 text-[10px] text-slate-400">
               a few moments ago
             </p>
           </div>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -bottom-1.5 right-[18px] size-2.5 rotate-45 border-r border-b border-black/5 bg-white shadow-sm"
+          />
         </div>
       ) : null}
 

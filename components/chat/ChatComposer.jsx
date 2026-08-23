@@ -13,6 +13,7 @@ import {
 export function ChatComposer({
   disabled,
   onSend,
+  onValueChange,
   compact = false,
   placeholder = "Type a message…",
   footer,
@@ -97,27 +98,28 @@ export function ChatComposer({
         compact || themed ? "px-3 py-2" : "px-4 py-3 sm:px-8"
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-end gap-2">
         <div
           className={cn(
-            "flex min-h-9 min-w-0 flex-1 items-center gap-0.5",
+            // Fixed radius (not pill/9999) so multiline + scroll stay ChatGPT-like, not a capsule.
+            "flex min-h-9 min-w-0 flex-1 items-end gap-0.5 rounded-2xl",
             themed
               ? "border bg-[var(--wc-input-bg)] pl-3 pr-1 focus-within:ring-2 focus-within:ring-[var(--wc-primary)]/25"
               : "border border-[var(--color-border)] bg-white pl-3 pr-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20"
           )}
           style={
             themed
-              ? {
-                  borderRadius: 9999,
-                  borderColor: "var(--wc-input-border)",
-                }
-              : { borderRadius: 9999 }
+              ? { borderColor: "var(--wc-input-border)" }
+              : undefined
           }
         >
           <textarea
             ref={textareaRef}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              onValueChange?.(e.target.value);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={busy}
@@ -145,7 +147,7 @@ export function ChatComposer({
                 disabled={busy}
                 onClick={() => fileRef.current?.click()}
                 className={cn(
-                  "inline-flex size-7 shrink-0 items-center justify-center rounded-full",
+                  "mb-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full",
                   themed
                     ? "text-[var(--wc-muted)] hover:bg-black/5 hover:text-[var(--wc-shell-fg)]"
                     : "text-[var(--color-muted)] hover:bg-[var(--color-bg)]"

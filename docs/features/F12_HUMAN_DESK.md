@@ -1,11 +1,140 @@
 # F12 — Human desk handoff (alt next after F00)
 
-**Status:** ⏳ Later P3 — open instead of F11 only if product/demo story is **human escalation**. Prefer **F11** first unless lead says otherwise.  
+**Status:** ✅ **Shipped** — Phases A–H complete  
 **Goal:** Escalate live chats to a **human inbox inside the customer workspace** (not platform admin). Resume AI optional.  
 **Maps to:** P3-DESK · Fin/Zendesk/Botpress handoff lite.  
 **Prerequisite:** Conversations + embed + studio already shipped. F08/F09 unchanged for AI turns.
 
+> **Full architecture** (human connect flow, same-thread chat, security, edge cases): [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md)
+
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** and **Manual test**.
+
+---
+
+## Quick answers
+
+| Question | Answer |
+|----------|--------|
+| Human kaise connect? | Customer handoff → owner **Inbox** (Hapy app) → same conversation; not WhatsApp/phone |
+| Chat seamless? | **Haan** — same widget thread; role `HUMAN` messages |
+| Kaun human? | MVP = **workspace owner** only (not platform admin) |
+| Customer alag app? | **Nahi** — same embed bubble, banner “human will reply” |
+| AI jab human active? | **Band** — sirf owner reply |
+
+---
+
+## Product explain (simple) — kaun kahan hota hai
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│  CUSTOMER           │         │  OWNER (human)      │
+│  Shop website       │         │  Hapy app login     │
+│  Embed widget /w/…  │         │  /inbox             │
+└──────────┬──────────┘         └──────────▲──────────┘
+           │                               │
+           │    SAME conversation thread     │
+           └───────────────────────────────┘
+```
+
+| Step | Kya hota hai |
+|------|--------------|
+| 1 | Customer AI se baat karta hai (status `OPEN`) |
+| 2 | “Talk to human” / keyword / AI escalate |
+| 3 | Status → `WAITING_HUMAN`, AI **off** |
+| 4 | Owner phone/laptop par Hapy **Inbox** kholta hai |
+| 5 | Poori chat history dikhti hai |
+| 6 | Owner type karta hai → customer ko **usi widget** mein reply |
+| 7 | Owner **Resolve** → optional wapas AI |
+
+**Phone call / WhatsApp bridge MVP mein nahi.**
+
+---
+
+## Customer view vs Owner view
+
+| Customer (widget) | Owner (Inbox) |
+|-------------------|---------------|
+| Bot messages (`ASSISTANT`) | Full thread + handoff reason |
+| Banner: “Human will reply soon” | Waiting queue list |
+| Human reply (`HUMAN`) same bubbles | Composer to reply |
+| AI silent while waiting | Resolve / Return to AI buttons |
+
+**Seamless:** Customer ko lagta hai ek hi chat — pehle bot, phir insaan. Alag channel nahi.
+
+---
+
+## Exactly kya hai? (simple)
+
+Jab AI **stuck** ho ya user **insaan** chahe → chat **human inbox** mein chali jati hai → **workspace owner** reply karta hai → user ko **embed/widget** par wahi reply dikhti hai.
+
+```
+User chat → AI jawab nahi / "Talk to human"
+    → Status: WAITING_HUMAN
+    → Owner ke Inbox mein thread
+    → Owner type karta hai (role HUMAN)
+    → User ko human message — same widget
+    → Resolve → optional wapas AI
+```
+
+### Kyun karte hain?
+
+| Problem aaj | F12 ke baad |
+|-------------|-------------|
+| Angry customer, refund fight — AI galat risk | Human le leta hai |
+| Legal / sensitive — AI nahi chahiye | Escalation safe |
+| “Mujhe banda chahiye” — bot ke paas jawab nahi | Real support path |
+
+**Real life:** Intercom/Zendesk **handoff to agent** — hum lite version: **ek owner**, full Zendesk clone nahi.
+
+### Kya NAHI hai
+
+- Phone call / WhatsApp bridge (MVP)  
+- Poori call center / shift scheduling  
+- Team of 10 agents with roles (pehle sirf **ek owner**)  
+- Platform admin customer ko reply karta hai (**inspect-only**)
+
+---
+
+## Handoff triggers (kaise start)
+
+| Trigger | Who | When |
+|---------|-----|------|
+| **Button** “Talk to a human” | Customer | Agent setting se enable |
+| **Keyword** (refund dispute, lawyer, speak to manager) | Auto suggest / auto handoff | Agent config |
+| **AI decides** “I should escalate” | Model | Sirf agar handoff enabled |
+| **Owner force** | Studio / inbox | Testing |
+
+---
+
+## Ab kya hai vs F12 ke baad
+
+| Ab (shipped) | F12 ke baad |
+|--------------|-------------|
+| User message → FAQ → AI text | + escalate → human reply same thread |
+| Sirf **bolna** | **Bolna + escalate** (human) |
+| Stuck user ke liye koi path nahi | Owner Inbox se takeover |
+
+---
+
+## F11 vs F12 (side by side)
+
+| | **F11 Actions** | **F12 Human Desk** |
+|---|-----------------|---------------------|
+| Bot kya karta hai | API call → jawab | Ruk jata hai; insaan bolta hai |
+| Best example | Order status | Refund dispute, angry user |
+| Kaun pehle? | **Default after F00** | Alt — agar handoff story chahiye |
+
+**Ek line:** F12 = bot **hat jata hai**, **insaan inbox se** customer ko reply karta hai.
+
+**F11 + F12 saath (baad mein):** Human active → tools OFF, AI OFF. Resolve ke baad dono wapas ON.
+
+**Full design** (security, fallbacks, edge cases): [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md) Part 2–3.
+
+| Area | Summary |
+|------|---------|
+| Security | Workspace inbox isolation · customer cannot forge HUMAN · AI blocked when waiting · handoff rate-limit |
+| Fallbacks | Owner offline → queue WAITING_HUMAN · double handoff idempotent · summary LLM fail → handoff still works |
+| Edge cases | User keeps chatting while waiting · owner two tabs · embed closed mid-handoff · spam handoff button |
 
 ---
 
@@ -28,7 +157,19 @@
 
 ---
 
-## Phase A — Scope & identity
+## Phase A — Scope & identity ✅
+
+**Delivered (Aug 2026):**
+- `ConversationStatus` enum: `OPEN` | `WAITING_HUMAN` | `RESOLVED`
+- `MessageRole.HUMAN` for owner inbox replies
+- Conversation fields: `handoffReason`, `handoffAt`, `assignedUserId`, `aiPaused`
+- Migration: `prisma/migrations/20260823210000_f12_conversation_desk/`
+- Desk helpers: `lib/desk/conversation-desk.js` (identity guardrails, pause checks)
+- API surfaces desk fields on owner + public conversation reads
+- `MessageBubble` shows **H** avatar for human messages
+- Smoke: `npm run test:f12a`
+
+**Manual test:** Run `npx prisma migrate deploy` then `npm run test:f12a`. Existing conversations default to `OPEN` / `aiPaused=false`.
 
 ### In
 
@@ -69,7 +210,27 @@
 
 ---
 
-## Phase B — Design & functionality
+## Phase B — Design & functionality ✅
+
+**Delivered (Aug 2026):**
+- `lib/services/handoff.service.js` — trigger handoff, human reply, resolve, inbox list
+- `lib/validations/desk.js` — request schemas
+- APIs:
+  - `GET /api/inbox` — workspace waiting threads
+  - `POST /api/conversations/[id]/handoff` — owner force handoff
+  - `POST /api/conversations/[id]/resolve` — resolve / return to AI
+  - `POST /api/conversations/[id]/messages` — owner `HUMAN` reply
+  - `POST /api/public/.../conversations/[id]/handoff` — embed customer handoff
+- `chat.service` — **AI blocked** when `aiPaused` / `WAITING_HUMAN`; USER messages still saved
+- UI: `/inbox`, `/inbox/[id]`, sidebar **Human desk**, `DeskThread` composer + resolve
+- Embed: **Talk to a human** button, waiting banner, poll for human replies (~8s)
+- Smoke: `npm run test:f12b`
+
+**Manual test:**
+1. Embed widget → chat → **Talk to a human**
+2. Hapy app → **Human desk** → thread appears → reply as human
+3. Customer widget shows human bubble (poll)
+4. **Return to AI** → bot answers again
 
 ### State machine
 
@@ -116,8 +277,21 @@ Message.role: USER | ASSISTANT | HUMAN   // add HUMAN if not present
 ### Embed / public chat
 
 - While WAITING_HUMAN: show banner “A human will reply soon”  
-- AI chat **blocked** until resolve (or queue user messages for human only)  
-- Human messages appear in same thread  
+- AI chat **blocked** until resolve (user messages still saved for human)  
+- Human messages appear in **same thread** — customer does not open new app  
+- Embed **polls** every ~5–10s for new HUMAN messages (SSE later optional)  
+
+### Owner connect flow (detail)
+
+1. Customer triggers handoff on widget  
+2. `POST /api/.../handoff` → `Conversation.status = WAITING_HUMAN`, `aiPaused = true`  
+3. Inbox query: `WHERE workspaceId = owner.workspace AND status = WAITING_HUMAN`  
+4. Owner opens thread → reads USER + ASSISTANT history  
+5. Owner `POST` message with `role: HUMAN` (requires owner session — customer cannot forge)  
+6. Public chat fetch returns new HUMAN bubble to customer  
+7. Owner `POST /resolve` → `RESOLVED` or back to `OPEN` if “return to AI” enabled  
+
+**Assigned human (MVP):** always workspace **owner** (`assignedUserId = owner.id`). Teams/multi-seat = later OOS.
 
 ### API (sketch)
 
@@ -131,83 +305,87 @@ Message.role: USER | ASSISTANT | HUMAN   // add HUMAN if not present
 
 ---
 
-## Phase C — Improvements
+## Phase C — Improvements ✅
 
-- Handoff summary: last 10 messages compressed by LLM (optional, cost-aware)
-- Email notify owner when handoff created (Resend/Postmark later)
-- Badge count on nav (waiting count)
-- Sound / desktop notification later (not required)
-- Analytics: handoff rate, time-to-first-human-reply
+**Delivered (Aug 2026):**
+- **Nav badge** — waiting count on Human desk (poll ~30s) via `GET /api/inbox/count`
+- **Keyword auto-handoff** — embed messages matching phrases (e.g. “talk to human”) → `WAITING_HUMAN` without button
+- **Context summary** — last 10 messages as plain-text `handoffSummary` (no LLM cost) on handoff
+- **Desk stats** — `GET /api/inbox/count?mode=stats` — waiting, handoffs in range, resolved
+- **Inbox auto-refresh** — waiting list polls ~15s
+- Idempotent **resolve** when already not waiting
+- Smoke: `npm run test:f12c`
 
----
+**Manual test:** Embed par likho *“I want to speak to human”* → button ke bina handoff. Sidebar badge + inbox summary dekho.
 
-## Phase D — Error handling
-
-| Case | Behavior |
-|------|----------|
-| Handoff while owner offline | Queue WAITING_HUMAN; email when configured |
-| Double resolve | Idempotent |
-| Human reply on wrong workspace | 403 |
-| AI replies while WAITING_HUMAN | Blocked server-side |
-| Embed user spams handoff | Rate limit |
-| Summary LLM fail | Handoff still works; skip summary |
+**Deferred (later):** email notify, sound, LLM-compressed summary.
 
 ---
 
-## Phase E — Production bottlenecks
+## Phase D — Error handling ✅
 
-- Index: `(workspaceId, status, handoffAt)`  
-- Inbox list: select preview fields only  
-- No N+1 on messages in list  
-- Polling every 5–10s for inbox (SSE later)
-
----
-
-## Phase F — Scaling
-
-- Multiple humans → requires **P3-TEAMS** (members) — out of F12 MVP  
-- Until then: workspace **owner** is the only desk agent  
-- Soft cap: waiting queue length warning  
+**Delivered:**
+- Handoff **summary fail-safe** — handoff succeeds even if summary build throws
+- **Double resolve** idempotent (already)
+- Human reply **wrong workspace → 403** (write ops)
+- **AI blocked** while `WAITING_HUMAN` (chat.service)
+- Public handoff **rate limit** + embed **60s cooldown** after handoff
+- **Admin cannot** POST human desk replies
+- **RESOLVED → OPEN** when customer sends a new message (reopen thread)
 
 ---
 
-## Phase G — Infrastructure
+## Phase E — Production bottlenecks ✅
 
-| Decision | Recommendation |
-|----------|----------------|
-| Realtime | Polling first; SSE optional later |
-| Email | Optional provider; feature works without it |
-| Roles | Message.role `HUMAN` in Prisma enum migration |
-| Notifications | In-app badge first |
+**Delivered:**
+- Index `(agentId, status, handoffAt)` — migration Phase A
+- Inbox list uses **`select`** (preview fields only, no full row fetch)
+- Poll intervals centralized: inbox **10s**, embed **8s** (`lib/desk/desk-config.js`)
 
 ---
 
-## Phase H — Production testing
+## Phase F — Scaling ✅
 
-- [ ] Embed user triggers handoff → appears in owner inbox  
-- [ ] Human reply visible on embed within poll interval  
-- [ ] AI does not answer while WAITING_HUMAN  
-- [ ] Resolve → AI can answer again if enabled  
-- [ ] Workspace A never sees Workspace B waiting threads  
-- [ ] Admin cannot send human replies as the customer  
-- [ ] Keyword / button both paths covered  
-- [ ] `npm run test:f12` (to add) green  
+**Delivered:**
+- MVP = **workspace owner only** (unchanged)
+- **Soft cap warning** when waiting queue ≥ 20 (`queueWarning` in stats + inbox banner)
+- Multi-human → **P3-TEAMS** OOS (documented)
 
-### Done when
+---
+
+## Phase G — Infrastructure ✅
+
+| Decision | Shipped |
+|----------|---------|
+| Realtime | Polling (embed 8s, inbox 10s, nav badge 30s) |
+| Email | Deferred — desk works without it |
+| Roles | `MessageRole.HUMAN` in Prisma |
+| Notifications | In-app nav badge + waiting banner |
+
+Config: `lib/desk/desk-config.js`
+
+---
+
+## Phase H — Production testing ✅
+
+**Automated:** `npm run test:f12` (a + b + c + d + h)
+
+| Check | Covered by |
+|-------|------------|
+| Embed user triggers handoff → owner inbox | Manual + test:f12b |
+| Human reply visible on embed within poll interval | Manual + embed poll 8s |
+| AI does not answer while WAITING_HUMAN | test:f12d + chat.service |
+| Resolve → AI can answer again if enabled | Manual + resolve API |
+| Workspace A never sees Workspace B waiting threads | handoff.service workspace filter |
+| Admin cannot send human replies | test:f12d + messages route |
+| Keyword / button both paths | test:f12c + PublicWebchat |
+| `npm run test:f12` green | CI / local |
+
+### Done when ✅
 
 Hot issue leaves AI safely; owner replies from workspace inbox; customer sees human message on embed — **without** Botpress Desk.
 
----
-
-## Implementation order (when coding starts)
-
-1. Prisma status + HUMAN role + migration  
-2. Handoff / resolve / human message APIs  
-3. Block AI in chat.service when paused  
-4. Inbox list + thread UI  
-5. Embed banner + “Talk to human”  
-6. Optional email + analytics counters  
-7. Phase H checklist  
+**Manual demo path:** embed handoff → `/inbox` reply → embed shows human → Return to AI → bot answers again.
 
 ---
 

@@ -1,4 +1,9 @@
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
+import {
+  isHumanTypingRecently,
+  serializeDeskState,
+} from "@/lib/desk/conversation-desk";
+import { DESK_HUMAN_TYPING_TTL_MS } from "@/lib/desk/desk-config";
 import prisma from "@/lib/prisma";
 import { originFromRequest } from "@/lib/utils/request-origin";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
@@ -38,8 +43,16 @@ export async function GET(request, { params }) {
       return jsonError(request, 404, "Conversation not found");
     }
 
+    const desk = serializeDeskState(conversation);
+
     return jsonOk(request, {
       id: conversation.id,
+      ...desk,
+      humanTyping: isHumanTypingRecently(
+        conversation.humanTypingAt,
+        DESK_HUMAN_TYPING_TTL_MS
+      ),
+      hasHumanReply: conversation.messages.some((m) => m.role === "HUMAN"),
       messages: conversation.messages,
     });
   } catch {

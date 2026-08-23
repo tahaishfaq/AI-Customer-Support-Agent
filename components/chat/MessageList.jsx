@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 export function MessageList({
   messages,
   loading,
+  humanTyping = false,
+  humanTypingLabel = "Human agent is typing…",
   compact = false,
   themed = false,
   showFeedback = false,
@@ -18,7 +20,7 @@ export function MessageList({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, humanTyping]);
 
   return (
     <div
@@ -82,6 +84,17 @@ export function MessageList({
       ))}
       {loading ? (
         <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
+      ) : null}
+      {humanTyping ? (
+        <div className="flex items-end gap-2">
+          <MessageBubble role="HUMAN" pending themed={themed} identity={intro} />
+          <span
+            className="pb-2 text-[11px]"
+            style={{ color: themed ? "var(--wc-muted)" : "var(--color-muted)" }}
+          >
+            {humanTypingLabel}
+          </span>
+        </div>
       ) : null}
       <div ref={bottomRef} />
     </div>

@@ -5,7 +5,10 @@ export const PRIMARY_NAV = [
   { href: "/agents", label: "Agents" },
 ];
 
-export const MONITOR_NAV = [{ href: "/analytics", label: "Analytics" }];
+export const MONITOR_NAV = [
+  { href: "/inbox", label: "Human desk" },
+  { href: "/analytics", label: "Analytics" },
+];
 
 export function isNavActive(pathname, href) {
   if (href === "/dashboard") {
@@ -68,6 +71,17 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
 
   if (pathname === "/analytics" || pathname.startsWith("/analytics/")) {
     return [workspace, { label: "Analytics" }];
+  }
+
+  if (pathname === "/inbox") {
+    return [workspace, { label: "Human desk" }];
+  }
+  if (pathname.startsWith("/inbox/")) {
+    return [
+      workspace,
+      { href: "/inbox", label: "Human desk" },
+      { label: "Thread" },
+    ];
   }
 
   return [workspace, { label: "Home" }];

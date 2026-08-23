@@ -2226,3 +2226,53 @@ Fin **Guidance / policy coaching** as **prompt structure** (role → policy → 
 
 ---
 
+# F12 — Human desk handoff
+
+**Goal:** Customer embed → human handoff → workspace owner inbox → same-thread HUMAN reply → resolve / return to AI.  
+**Maps to:** P3-DESK · [`features/F12_HUMAN_DESK.md`](features/F12_HUMAN_DESK.md) · [`ARCHITECTURE_ACTIONS_AND_DESK.md`](features/ARCHITECTURE_ACTIONS_AND_DESK.md)
+
+> Phases A–H ✅ in plan file. Below: test commands + manual path for shipped verification.
+
+---
+
+## Automated tests
+
+| Script | What it checks |
+|--------|----------------|
+| `npm run test:f12a` | Schema, migrations, desk helpers, hot paths |
+| `npm run test:f12b` | API routes, services, embed + inbox UI |
+| `npm run test:f12c` | Keywords, nav badge, handoff summary |
+| `npm run test:f12d` | Error handling, limits, desk config, inbox scope |
+| `npm run test:f12h` | Production file inventory + inbox auth gate |
+| `npm run test:f12e2e` | Live: register → handoff → human reply → resolve → cooldown |
+| **`npm run test:f12`** | All of the above |
+
+**Requires:** `npm run dev` (or `TEST_BASE_URL`) for `test:f12e2e`.  
+**DB:** `npx prisma migrate deploy` before first F12 run (columns `humanTypingAt`, `handoffCount`, `lastHandoffEndedAt`).
+
+---
+
+## Manual test checklist
+
+1. Embed: send message → **Talk to a human** (or keyword) → ack + waiting banner.  
+2. While waiting: AI **no reply** on next customer message.  
+3. Owner `/inbox` → thread visible under **Waiting**; nav badge ≥ 1.  
+4. Owner sends human reply → embed shows `HUMAN` bubble within poll interval.  
+5. **Return to AI** → status open; customer can chat with bot again.  
+6. **Resolved** filter shows handled desk threads (Return to AI + Resolve & close).  
+7. Second handoff within 30m → cooldown message (429 / button disabled).  
+8. Page refresh on embed → fresh chat; **History** reopens old thread.  
+9. Workspace B user cannot see workspace A inbox threads.
+
+---
+
+## Done when ✅
+
+- `npm run test:f12` green (with dev server for e2e).  
+- Two-browser demo: embed handoff → inbox reply → embed human → resolve.  
+- Inbox filters show desk handoff threads only (not every studio chat).
+
+## Steal (not clone)
+
+Intercom/Zendesk **handoff to agent** — not full agent workspace, SLA, or phone bridge.
+

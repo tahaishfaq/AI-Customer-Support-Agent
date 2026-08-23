@@ -9,7 +9,7 @@ import {
   widgetIntro,
 } from "@/lib/customization/theme";
 import {
-  loadEmbedHistory,
+  clearActiveEmbedSession,
   saveEmbedHistory,
   upsertHistoryConversation,
 } from "@/lib/embed-history";
@@ -19,6 +19,12 @@ import { MessageList } from "@/components/chat/MessageList";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatRelative } from "@/components/conversations/format";
+
+import { DESK_EMBED_POLL_MS, DESK_EMBED_WAIT_POLL_MS, DESK_WAIT_TIMEOUT_MS } from "@/lib/desk/desk-config";
+import { DESK_WAIT_TIMEOUT_MESSAGE } from "@/lib/desk/conversation-desk";
+
+const POLL_MS = DESK_EMBED_POLL_MS;
+const WAIT_POLL_MS = DESK_EMBED_WAIT_POLL_MS;
 
 function welcomeBubble(agent) {
   if (!agent?.welcomeMessage) return [];
@@ -36,6 +42,34 @@ function welcomeBubble(agent) {
 function previewFromMessages(messages) {
   const last = [...(messages || [])].reverse().find((m) => m.content);
   return (last?.content || "Conversation").replace(/!\[[^\]]*\]\([^)]+\)/g, "Image").slice(0, 120);
+}
+
+function messagesIncludeHumanReply(messages) {
+  return (messages || []).some((m) => m.role === "HUMAN");
+}
+
+function DeskWaitingBanner({ humanTyping, waitTimedOut }) {
+  let title = "Waiting for a human reply";
+  let body =
+    "A team member will join this chat shortly. You can keep typing — your messages are saved.";
+
+  if (humanTyping) {
+    title = "Human agent is typing";
+    body = "Someone from our team is preparing your reply…";
+  } else if (waitTimedOut) {
+    title = "No one available right now";
+    body = DESK_WAIT_TIMEOUT_MESSAGE;
+  }
+
+  return (
+    <div
+      className="mx-2 mt-2 rounded-lg border border-[var(--wc-primary)]/20 bg-[var(--wc-primary)]/8 px-3 py-2.5"
+      style={{ color: "var(--wc-shell-fg)" }}
+    >
+      <p className="text-[12px] font-medium">{title}</p>
+      <p className="mt-0.5 text-[11px] leading-relaxed opacity-90">{body}</p>
+    </div>
+  );
 }
 
 export function PublicWebchat({ agent, parentOrigin = "" }) {
@@ -58,15 +92,84 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   const [messages, setMessages] = useState(() => welcomeBubble(agent));
   const [pastChats, setPastChats] = useState([]);
   const [sending, setSending] = useState(false);
+  const [handoffLoading, setHandoffLoading] = useState(false);
+  const [waitingForHuman, setWaitingForHuman] = useState(false);
+  const [handoffAt, setHandoffAt] = useState(null);
+  const [humanTyping, setHumanTyping] = useState(false);
+  const [deskHumanReply, setDeskHumanReply] = useState(false);
+  const [waitTimedOut, setWaitTimedOut] = useState(false);
+  const [handoffEligible, setHandoffEligible] = useState(true);
+  const [handoffRemaining, setHandoffRemaining] = useState(3);
+  const [handoffBlockMessage, setHandoffBlockMessage] = useState("");
   const [error, setError] = useState("");
   const [lastFailedText, setLastFailedText] = useState("");
+
+  const humanReplied = useMemo(
+    () => deskHumanReply || messagesIncludeHumanReply(messages),
+    [deskHumanReply, messages]
+  );
+
+  const showWaitingBanner = waitingForHuman && !humanReplied;
+
+  const applyDeskState = useCallback((data) => {
+    if (!data) return;
+    const waiting = Boolean(data.waitingForHuman || data.status === "WAITING_HUMAN");
+    setWaitingForHuman(waiting);
+    if (data.handoffAt) setHandoffAt(data.handoffAt);
+    if (typeof data.handoffEligible === "boolean") {
+      setHandoffEligible(data.handoffEligible);
+    }
+    if (typeof data.handoffRemaining === "number") {
+      setHandoffRemaining(data.handoffRemaining);
+    }
+    if (data.handoffBlockMessage) {
+      setHandoffBlockMessage(data.handoffBlockMessage);
+    } else if (data.handoffEligible) {
+      setHandoffBlockMessage("");
+    }
+    const replied =
+      typeof data.hasHumanReply === "boolean"
+        ? data.hasHumanReply
+        : messagesIncludeHumanReply(data.messages);
+    if (replied) {
+      setDeskHumanReply(true);
+      setHumanTyping(false);
+      setWaitTimedOut(false);
+    }
+    if (!waiting) {
+      setHumanTyping(false);
+      setWaitTimedOut(false);
+    }
+    if (typeof data.humanTyping === "boolean" && !replied && waiting) {
+      setHumanTyping(data.humanTyping);
+    }
+  }, []);
+
+  const refreshConversation = useCallback(async () => {
+    if (!conversationId || !agent.publicKey) return null;
+    try {
+      const res = await fetch(
+        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return null;
+      applyDeskState(data);
+      if (data.handoffAt) setHandoffAt(data.handoffAt);
+      if (Array.isArray(data.messages)) {
+        setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  }, [agent, conversationId, applyDeskState]);
 
   useEffect(() => {
     unlockNotificationAudio();
     if (!historyEnabled) return;
-    const stored = loadEmbedHistory(agent.publicKey, resetMode);
-    setPastChats(stored.conversations || []);
-    if (stored.activeId) setConversationId(stored.activeId);
+    // Fresh chat on every page load; past threads stay in history for manual reopen.
+    const conversations = clearActiveEmbedSession(agent.publicKey, resetMode);
+    setPastChats(conversations || []);
   }, [agent.publicKey, historyEnabled, resetMode]);
 
   useEffect(() => {
@@ -97,6 +200,36 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     };
   }, [agent.publicKey, parentOrigin]);
 
+  useEffect(() => {
+    if (!conversationId || !waitingForHuman) return undefined;
+    const pollMs = humanReplied ? POLL_MS : WAIT_POLL_MS;
+    const id = setInterval(refreshConversation, pollMs);
+    return () => clearInterval(id);
+  }, [conversationId, waitingForHuman, humanReplied, refreshConversation]);
+
+  // Refresh eligibility while desk cooldown is active so the button unlocks after 30m.
+  useEffect(() => {
+    if (!conversationId || waitingForHuman || handoffEligible) return undefined;
+    const id = setInterval(refreshConversation, 30_000);
+    return () => clearInterval(id);
+  }, [conversationId, waitingForHuman, handoffEligible, refreshConversation]);
+
+  useEffect(() => {
+    if (!waitingForHuman || humanReplied || !handoffAt) {
+      setWaitTimedOut(false);
+      return undefined;
+    }
+
+    const check = () => {
+      const elapsed = Date.now() - new Date(handoffAt).getTime();
+      setWaitTimedOut(elapsed >= DESK_WAIT_TIMEOUT_MS);
+    };
+
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
+  }, [waitingForHuman, humanReplied, handoffAt]);
+
   const proactive =
     !widgetOpen &&
     deploy.proactiveEnabled &&
@@ -105,8 +238,9 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   const postFrame = useCallback(() => {
     if (!bubbleMode || window.parent === window) return;
     const el = hostRef.current;
-    const width = el ? Math.ceil(el.getBoundingClientRect().width) : 72;
-    const height = el ? Math.ceil(el.getBoundingClientRect().height) : 72;
+    const rect = el?.getBoundingClientRect();
+    const width = rect ? Math.ceil(rect.width) + 8 : 72;
+    const height = rect ? Math.ceil(rect.height) + 8 : 72;
     window.parent.postMessage(
       {
         source: "hapy-widget",
@@ -176,6 +310,46 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
         throw new Error(data?.error?.message || "Unable to send message");
       }
       setConversationId(data.conversationId);
+      applyDeskState(data);
+      if (data.handoffTriggered || data.waitingForHuman || data.aiPaused) {
+        setWaitingForHuman(true);
+        if (data.handoffAt) setHandoffAt(data.handoffAt);
+      }
+
+      if (data.aiPaused || data.waitingForHuman) {
+        const full = await fetch(
+          `/api/public/agents/${agent.publicKey}/conversations/${data.conversationId}`
+        )
+          .then((r) => r.json().catch(() => ({})))
+          .catch(() => null);
+        if (full?.messages?.length) {
+          applyDeskState(full);
+          setMessages(full.messages);
+          persist(data.conversationId, full.messages);
+        } else {
+          const next = [
+            ...nextUser.filter((m) => m.id !== optimisticId),
+            {
+              id: data.userMessage.id,
+              role: "USER",
+              content: data.userMessage.content,
+            },
+          ];
+          if (data.message) {
+            next.push({
+              id: data.message.id,
+              role: "ASSISTANT",
+              content: data.message.content,
+              responseTime: data.message.responseTime,
+            });
+          }
+          setMessages(next);
+          persist(data.conversationId, next);
+        }
+        setSending(false);
+        return;
+      }
+
       const next = [
         ...nextUser.filter((m) => m.id !== optimisticId),
         {
@@ -183,16 +357,18 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           role: "USER",
           content: data.userMessage.content,
         },
-        {
+      ];
+      if (data.message) {
+        next.push({
           id: data.message.id,
           role: "ASSISTANT",
           content: data.message.content,
           responseTime: data.message.responseTime,
-        },
-      ];
+        });
+      }
       setMessages(next);
       persist(data.conversationId, next);
-      if (features.notificationSound) playNotificationBeep();
+      if (features.notificationSound && data.message) playNotificationBeep();
       if (data.degraded) {
         setError("Generation failed — Try again");
         setLastFailedText(text);
@@ -215,7 +391,10 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
       setConversationId(id);
-      setMessages(data.messages || welcomeBubble(agent));
+      applyDeskState(data);
+      if (Array.isArray(data.messages)) {
+        setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
+      }
       setHistoryOpen(false);
       persist(id, data.messages || []);
     } catch (err) {
@@ -236,9 +415,60 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     }
   }
 
+  async function requestHandoff() {
+    if (!conversationId || waitingForHuman || handoffLoading || !handoffEligible) {
+      if (!handoffEligible && handoffBlockMessage) {
+        setError(handoffBlockMessage);
+      }
+      return;
+    }
+    setHandoffLoading(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/handoff`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Customer requested human support" }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          data?.error?.message ||
+          data?.error?.details?.message ||
+          "Unable to request human support";
+        applyDeskState({
+          ...data?.error?.details,
+          handoffEligible: false,
+          handoffBlockMessage: msg,
+          handoffRemaining: data?.error?.details?.handoffRemaining,
+        });
+        throw new Error(msg);
+      }
+      applyDeskState(data);
+      setWaitingForHuman(true);
+      setDeskHumanReply(false);
+      await refreshConversation();
+      setHandoffLoading(false);
+    } catch (err) {
+      setError(err.message || "Unable to request human support");
+      setHandoffLoading(false);
+    }
+  }
+
   function resetChat() {
     setConversationId(null);
     setMessages(welcomeBubble(agent));
+    setWaitingForHuman(false);
+    setHandoffAt(null);
+    setHumanTyping(false);
+    setDeskHumanReply(false);
+    setWaitTimedOut(false);
+    setHandoffEligible(true);
+    setHandoffRemaining(3);
+    setHandoffBlockMessage("");
     setError("");
     setHistoryOpen(false);
     if (historyEnabled) {
@@ -297,12 +527,20 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     </div>
   ) : (
     <>
+      {showWaitingBanner ? (
+        <DeskWaitingBanner
+          humanTyping={humanTyping}
+          waitTimedOut={waitTimedOut}
+        />
+      ) : null}
       <MessageList
         messages={messages}
         loading={sending}
+        humanTyping={showWaitingBanner && humanTyping}
+        humanTypingLabel="Human agent is typing…"
         compact
         themed
-        showFeedback={features.messageFeedback}
+        showFeedback={features.messageFeedback && !waitingForHuman}
         intro={intro}
         onFeedback={rateMessage}
       />
@@ -324,6 +562,35 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           </div>
         </div>
       ) : null}
+      {!waitingForHuman && conversationId ? (
+        <div className="space-y-1 px-2 pb-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 w-full text-[12px]"
+            disabled={handoffLoading || sending || !handoffEligible}
+            onClick={requestHandoff}
+          >
+            {handoffLoading
+              ? "Connecting…"
+              : !handoffEligible
+                ? handoffRemaining <= 0
+                  ? "Human request limit reached"
+                  : "Talk to a human (unavailable)"
+                : "Talk to a human"}
+          </Button>
+          {handoffEligible ? (
+            <p className="text-center text-[10px] text-[var(--wc-muted)]">
+              {handoffRemaining} of 3 human requests left in this chat
+            </p>
+          ) : handoffBlockMessage ? (
+            <p className="text-center text-[10px] leading-snug text-[var(--wc-muted)]">
+              {handoffBlockMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <ChatComposer
         compact
         themed
@@ -342,7 +609,7 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       ref={hostRef}
       className={
         bubbleMode
-          ? "inline-flex w-fit max-w-full flex-col bg-transparent"
+          ? "flex h-full min-h-0 w-full max-w-full flex-col items-end justify-end bg-transparent"
           : "flex h-dvh min-h-0 flex-col bg-transparent"
       }
     >

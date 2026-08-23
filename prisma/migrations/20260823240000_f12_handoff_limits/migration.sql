@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "humanTypingAt" TIMESTAMP(3);
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "handoffCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Conversation" ADD COLUMN IF NOT EXISTS "lastHandoffEndedAt" TIMESTAMP(3);

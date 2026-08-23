@@ -16,9 +16,9 @@
 | Product extras (embed lock, crawl, customization, studio, admin) | **Done** |
 | F01–F09 Week 3 quality | **Done** — [`SHIPPED_FEATURES.md`](SHIPPED_FEATURES.md) |
 | Scheduled website re-crawl | **Done** |
+| **F12 Human desk** | ✅ **Shipped** — [`features/F12_HUMAN_DESK.md`](features/F12_HUMAN_DESK.md) · `npm run test:f12` |
 | **F00 DoD / demo buffer** | 🎯 **NOW** — [`features/F00_DOD_DEMO_BUFFER.md`](features/F00_DOD_DEMO_BUFFER.md) |
-| F11 Agent actions | Next after F00 — [`features/F11_AGENT_ACTIONS.md`](features/F11_AGENT_ACTIONS.md) |
-| F12 Human desk | Alt next — [`features/F12_HUMAN_DESK.md`](features/F12_HUMAN_DESK.md) |
+| F11 Agent actions | Next alt — [`features/F11_AGENT_ACTIONS.md`](features/F11_AGENT_ACTIONS.md) |
 | F10 Semantic RAG | Only if KB pain — [`features/F10_SEMANTIC_RAG.md`](features/F10_SEMANTIC_RAG.md) |
 | Internship §29 Out of Scope | **Later (brief plans below)** — deep build later |
 

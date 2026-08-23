@@ -13,21 +13,30 @@ export function GET(request) {
     }
   }
 
+  function clampFrame(n, min, max) {
+    return Math.min(Math.max(n || 0, min), max);
+  }
+
   function sizeFloatingFrame(iframe, data) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
+    var maxW = vw - 24;
+    var maxH = vh - 24;
     var width = 72;
     var height = 72;
-    // Measured size is clipped by the 72px iframe, so never use it to grow open chat.
+    // Open chat uses fixed panel size; closed states use measured iframe content.
     if (data && data.open) {
-      width = Math.min(400, vw - 24);
-      height = Math.min(640, vh - 24);
+      width = Math.min(400, maxW);
+      height = Math.min(640, maxH);
     } else if (data && data.proactive) {
-      width = Math.min(300, vw - 24);
-      height = Math.min(168, vh - 24);
+      width = clampFrame(data.width, 220, Math.min(320, maxW));
+      height = clampFrame(data.height, 130, Math.min(260, maxH));
     } else if (data && data.customLauncher) {
-      width = Math.min(200, vw - 24);
-      height = 72;
+      width = clampFrame(data.width, 160, Math.min(220, maxW));
+      height = clampFrame(data.height, 72, Math.min(96, maxH));
+    } else if (data && data.width && data.height) {
+      width = clampFrame(data.width, 72, maxW);
+      height = clampFrame(data.height, 72, maxH);
     }
     iframe.style.width = width + "px";
     iframe.style.height = height + "px";

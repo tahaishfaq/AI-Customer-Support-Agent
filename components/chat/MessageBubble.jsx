@@ -125,6 +125,7 @@ export function MessageBubble({
   usedKnowledge = null,
 }) {
   const isUser = role === "USER";
+  const isHuman = role === "HUMAN";
   const [feedback, setFeedback] = useState(initialFeedback);
   const showAgentAvatar = themed && !isUser && identity;
   const knowledgeTitles = Array.isArray(usedKnowledge)
@@ -165,7 +166,7 @@ export function MessageBubble({
                 : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
             )}
           >
-            AI
+            {isHuman ? "H" : "AI"}
           </span>
         ) : null}
         <div

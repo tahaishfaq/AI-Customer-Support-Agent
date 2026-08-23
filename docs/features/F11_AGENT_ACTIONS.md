@@ -5,7 +5,241 @@
 **Maps to:** Fusion P3-ACTIONS · Botpress tool loop lite · product “wow” without vectors.  
 **Prerequisite:** F08 retrieve + F09 prompts shipped. Actions **add tools**; they do not replace knowledge grounding.
 
+> **Full architecture** (flows, KB vs live, security, fallbacks, edge cases): [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md)
+
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (files/behavior) and **Manual test**.
+
+---
+
+## Exactly kya hai? (simple)
+
+User poochta hai → bot sirf text nahi, **tumhari allowlisted website/API ko call** kar sakta hai → **real data** la kar jawab deta hai.
+
+**Example:**
+- User: *"Order #123 ka status?"*
+- Bot: API hit karta hai → *"Shipped, arrives Tuesday"*
+- Sirf FAQ se nahi — **live system** se
+
+Studio mein owner **Actions** define karta hai: URL, method, sirf **allowlisted** URLs.
+
+### Kyun karte hain?
+
+| Problem aaj | F11 ke baad |
+|-------------|-------------|
+| FAQ mein order status nahi ya purani hai | Live API se fresh status |
+| User ko "portal par dekho" bolna padta hai | Bot khud check karke batata hai |
+| Demo par "sirf chatbot" lagta hai | **"Smart agent jo act karta hai"** |
+
+**Real life:** Zendesk/Botpress bots **tools** use karte hain — hum wahi idea, bina flow canvas ke.
+
+### Kya NAHI hai
+
+- Bot khud se kuch invent nahi karta — sirf owner ki allowed APIs  
+- Koi bhi random website scrape nahi  
+- Visual flow builder nahi  
+- Direct DB / SQL (MVP) — sirf HTTP API  
+
+---
+
+## Quick answers
+
+| Question | Answer |
+|----------|--------|
+| Live API jawab knowledge base banega? | **Nahi** (default). Sirf is chat turn ke liye. FAQ alag rehti hai. |
+| Kaun action + API key deta hai? | **Owner** (Studio). Customer kabhi nahi. |
+| Customer “Allow API” dabata hai? | **Nahi** MVP — owner pehle action enable karta hai. |
+| API key hash karenge? | **Encrypt ya env** — hash-only nahi (API call ke liye key chahiye). |
+| Direct DB call option? | **Nahi** MVP — sirf HTTP allowlisted URL. |
+| Flow? | Message → F08 knowledge → LLM tool call → server HTTP → jawab → messages save (KB unchanged) |
+
+---
+
+## Product explain (simple) — 2 users
+
+| User | Role |
+|------|------|
+| **Owner** | Hapy login — agent banata hai, **Actions** tab mein API define + key set |
+| **Customer** | Website widget — sirf chat likhta hai, key/API nahi dekhta |
+
+**Customer experience:** Normal chat jaisa. Peeche server shop API call karta hai — customer ko pata bhi nahi chalta.
+
+---
+
+## Owner setup — exactly kya define karega
+
+```
+Agent → Actions → Add
+
+  name:          get_order_status
+  description:   Look up shipping status for an order (LLM ko samjhane ke liye)
+  method:        GET
+  urlTemplate:   https://api.myshop.com/orders/{{orderId}}
+  headersJson:   { "Authorization": "Bearer {{env:SHOP_API_KEY}}" }
+  inputSchema:   { "orderId": "string" }   // LLM se args validate
+  enabled:       true
+  timeoutMs:     8000
+```
+
+Owner **apni shop API key** deta hai:
+- **MVP:** Vercel/env `SHOP_API_KEY` set kare; action header mein `env:SHOP_API_KEY`
+- **Later:** Studio mein paste → **encrypt** DB → UI par `••••` only
+
+**Kabhi plain text DB mein key mat rakho.**
+
+---
+
+## API key — hash vs encrypt
+
+| Storage | Use for API keys? |
+|---------|-------------------|
+| bcrypt hash | ❌ Reverse nahi — Bearer header nahi bhej sakte |
+| AES encrypt in DB | ✅ Phase 2 |
+| Environment variable | ✅ Phase 1 MVP |
+
+Logs / LLM / browser: key **never**.
+
+---
+
+## DB call kyun nahi?
+
+| Direct DB | HTTP API |
+|-----------|----------|
+| SQL injection risk | Fixed endpoint |
+| Cross-workspace leak | Allowlist host |
+| Hapy DB ≠ shop orders | Shop controls their backend |
+
+Shop ko chhoti API banani hogi (ya demo mock). Bot sirf woh URL hit karega.
+
+**Demo:** `GET /api/demo/orders/[id]` — fixed JSON, no real shop DB.
+
+---
+
+## Customer “allow” — MVP
+
+- Owner action **enable** = business permission  
+- Server **SSRF + schema** = technical permission  
+- Customer popup **nahi** — optional: bot pooch sakta hai “Order number?”  
+
+### Teen allow levels
+
+| Level | Kya | Kaun |
+|-------|-----|------|
+| **1. Business allow** | Kaun si APIs bot use kar sakta hai | Owner (Actions tab enable) |
+| **2. Technical allow** | Sirf allowlisted URL + SSRF block | Hapy server (auto) |
+| **3. Customer allow** | Popup “Allow API?” | **MVP: nahi** — widget = bot help |
+
+**Baad mein (sensitive):** Bot pooch sakta hai *“Order check karun? Order number batao”* — yeh info dena hai, browser permission nahi.
+
+---
+
+## Customer chat flow (har message)
+
+```
+Customer (widget): "Mera order 123 ka status?"
+
+         ↓
+    [Hapy server]
+         ↓
+    FAQ bhi dekhta hai (F08 knowledge)
+         ↓
+    AI sochta hai: is ke liye live order API chahiye
+         ↓
+    Server check:
+      ✓ Action enabled hai?
+      ✓ Is agent ki hai?
+      ✓ URL safe hai (SSRF)?
+         ↓
+    Server API call (customer browser se NAHI — server se)
+         ↓
+    API: { status: "Shipped" }
+         ↓
+    AI: "Aapka order 123 shipped hai..."
+         ↓
+    Customer ko normal message dikhta hai
+```
+
+**Customer ne sirf message likha.** Baaki sab peeche server par — jaise aaj chat bhi hoti hai.
+
+**Browser security:** Customer ki machine se shop API **direct nahi** chalti. Sirf Hapy server call karta hai (API key wahan). Customer ko key/URL nahi pata.
+
+---
+
+## Customer example (poora scene)
+
+**Shop:** online store · **Owner** ne `get_order_status` action lagayi  
+
+```
+Customer Ali (widget):
+  Ali: Hi
+  Bot: How can I help?
+
+  Ali: Order ORD-999 status?
+  [Server: FAQ check → tool needed → API call — Ali ko nahi dikhta]
+  Bot: Your order ORD-999 is out for delivery.
+
+  Ali: Refund policy?
+  [Server: sirf FAQ — no API]
+  Bot: Refunds within 5 business days...
+```
+
+Ali ne **kabhi “Allow live system” nahi dabaya.** Owner ne pehle permission de di thi.
+
+---
+
+## Kab customer se kuch chahiye?
+
+| Situation | Bot kya kare |
+|-----------|--------------|
+| Order number missing | “Please share your order ID” |
+| Wrong order id | “I couldn’t find that order” |
+| API down | “Order system unavailable — try later or contact support” |
+| Sensitive (future) | Explicit confirm: “Should I look up order 123?” |
+
+Yeh **conversation** hai — browser permission popup nahi.
+
+---
+
+## Ab kya hai vs F11 ke baad
+
+| Ab (shipped F08/F09) | F11 ke baad |
+|----------------------|-------------|
+| User message → FAQ → AI text | + allowlisted HTTP call → live data |
+| Sirf **bolna** | **Bolna + karna** (API) |
+| Order status FAQ mein purani ho sakti hai | Fresh status API se |
+
+---
+
+## F11 vs F12 (side by side)
+
+| | **F11 Actions** | **F12 Human Desk** |
+|---|-----------------|---------------------|
+| Bot kya karta hai | API call → data la kar jawab | Ruk jata hai; insaan bolta hai |
+| User feel | “Bot ne check kar liya” | “Insaan ne help ki” |
+| Best example | Order status, ticket create | Refund dispute, angry user |
+| Demo line | “Bot calls your API” | “Human takes over chat” |
+| Vectors/RAG? | Nahi chahiye | Nahi chahiye |
+
+**Ek line:** F11 = bot FAQ ke alawa **tumhari API se live kaam** kar sakta hai.
+
+---
+
+## Developer — kya implement karoge
+
+| Layer | Kaam |
+|-------|------|
+| Owner UI | Actions CRUD (allowlist) |
+| Chat API | Tool loop in `chat.service` |
+| Tool executor | HTTP + secrets + SSRF block |
+| Customer widget | Kam change (same chat box) |
+| Audit | `ToolRun` rows |
+
+**Full design** (security, fallbacks, edge cases, diagrams): [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md) Part 1.
+
+| Area | Summary |
+|------|---------|
+| Security | Allowlist only · SSRF block · secrets server-side · max 3–5 steps · workspace isolation |
+| Fallbacks | Timeout → honest fail · 4xx → clarify · OpenAI down → F01 degraded (no tools) |
+| Edge cases | FAQ + order same message · huge JSON truncate · action deleted mid-chat |
 
 ---
 
@@ -49,6 +283,7 @@
 | Arbitrary code sandbox (JS eval) | Security |
 | User-uploaded scripts | SSRF / RCE risk |
 | Unlimited outbound URLs | Must allowlist host |
+| **Direct DB / SQL queries** | Leak + injection; use HTTP API instead |
 
 ### Identity guardrails
 
@@ -175,10 +410,12 @@ Safe logs: action name, status, duration, requestId — **not** full response bo
 
 | Decision | Recommendation |
 |----------|----------------|
-| Secrets | Prefer env / encrypted column; never send secret values to the LLM |
+| Secrets | **Phase 1:** env vars (`env:KEY_NAME` in header template). **Phase 2:** encrypted DB column |
+| Secret storage | **Never** plain text DB; **never** bcrypt hash (need decrypt for calls) |
 | Egress | Allowlist hostnames per action URL |
 | Provider | Keep one LLM with tools support (current OpenAI path) |
 | Audit | Store `ToolRun` rows: agentId, actionId, status, durationMs, requestId |
+| Demo without shop | Mock route `GET /api/demo/orders/[id]` returning fixed JSON |
 
 Migration: `AgentAction` + `ToolRun` tables.
 

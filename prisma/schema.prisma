@@ -13,6 +13,13 @@ datasource db {
 enum MessageRole {
   USER
   ASSISTANT
+  HUMAN
+}
+
+enum ConversationStatus {
+  OPEN
+  WAITING_HUMAN
+  RESOLVED
 }
 
 enum Sentiment {
@@ -77,6 +84,7 @@ model User {
   sessions      Session[]
   auditEvents   AuditEvent[]
   restoreRequests RestoreRequest[]
+  assignedConversations Conversation[] @relation("AssignedConversations")
 }
 
 model Account {
@@ -195,20 +203,33 @@ model SiteCrawlJob {
 }
 
 model Conversation {
-  id        String     @id @default(cuid())
-  agentId   String
-  category  Category?
-  sentiment Sentiment?
-  startedAt DateTime   @default(now())
-  endedAt   DateTime?
-  createdAt DateTime   @default(now())
-  agent     Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  id               String             @id @default(cuid())
+  agentId          String
+  category         Category?
+  sentiment        Sentiment?
+  status           ConversationStatus @default(OPEN)
+  handoffReason       String?
+  handoffSummary      String?
+  handoffAt           DateTime?
+  handoffCount        Int                @default(0)
+  lastHandoffEndedAt  DateTime?
+  humanTypingAt       DateTime?
+  assignedUserId      String?
+  aiPaused            Boolean            @default(false)
+  startedAt           DateTime           @default(now())
+  endedAt             DateTime?
+  createdAt        DateTime           @default(now())
+  agent            Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  assignedUser     User?              @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages         Message[]
 
   @@index([agentId])
+  @@index([agentId, status, handoffAt])
+  @@index([status])
   @@index([category])
   @@index([sentiment])
   @@index([startedAt])
+  @@index([assignedUserId])
 }
 
 model Message {

@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
+  Headphones,
   Home,
   MessageSquare,
   MessagesSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { useDeskWaitingCount } from "@/hooks/use-desk-waiting-count";
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
 import {
   MONITOR_NAV,
@@ -23,6 +25,7 @@ const ICONS = {
   "/agents": Bot,
   "/chat": MessageSquare,
   "/conversations": MessagesSquare,
+  "/inbox": Headphones,
   "/analytics": BarChart3,
 };
 
@@ -36,10 +39,11 @@ function initials(name) {
     .join("");
 }
 
-function NavLink({ item, onNavigate }) {
+function NavLink({ item, onNavigate, badge }) {
   const pathname = usePathname();
   const active = isNavActive(pathname, item.href);
   const Icon = ICONS[item.href];
+  const showBadge = badge > 0 && item.href === "/inbox";
 
   return (
     <Link
@@ -66,13 +70,19 @@ function NavLink({ item, onNavigate }) {
           )}
         />
       ) : null}
-      {item.label}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {showBadge ? (
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-warning)] text-[10px] font-semibold text-white">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
 
 export function AppSidebar({ onNavigate }) {
   const user = useAuthStore((s) => s.user);
+  const deskWaiting = useDeskWaitingCount();
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-surface)]">
@@ -93,7 +103,12 @@ export function AppSidebar({ onNavigate }) {
           </p>
           <div className="space-y-px">
             {MONITOR_NAV.map((item) => (
-              <NavLink key={item.href} item={item} onNavigate={onNavigate} />
+              <NavLink
+                key={item.href}
+                item={item}
+                onNavigate={onNavigate}
+                badge={item.href === "/inbox" ? deskWaiting : 0}
+              />
             ))}
           </div>
         </div>
