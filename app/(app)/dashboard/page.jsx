@@ -19,6 +19,8 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { DashboardShortcuts } from "@/components/dashboard/DashboardShortcuts";
 import { HomeAgentCard } from "@/components/dashboard/HomeAgentCard";
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +60,7 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +91,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const metricsLoading = loading || authLoading;
   const firstName = user?.name?.split(" ")[0];
@@ -110,23 +113,22 @@ export default function DashboardPage() {
 
   return (
     <main className="hapy-page">
-      <header className="hapy-card flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex items-center gap-4">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] font-[family-name:var(--font-display)] text-lg font-semibold text-white">
-            H
-          </span>
-          <div>
-            <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-[var(--color-text)] sm:text-2xl">
-              {authLoading
-                ? "Workspace"
-                : firstName
-                  ? `${firstName}'s workspace`
-                  : "Hapy workspace"}
-            </h1>
-            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
-              Conversations, sentiment, and agents in one place.
-            </p>
-          </div>
+      {/* First viewport: one composition — brand + one CTA (F04-B) */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+            Hapy
+          </p>
+          <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-[var(--color-text)] sm:text-3xl">
+            {authLoading
+              ? "Workspace"
+              : firstName
+                ? `${firstName}'s workspace`
+                : "Hapy workspace"}
+          </h1>
+          <p className="mt-1 max-w-md text-sm text-[var(--color-text-secondary)]">
+            Conversations, sentiment, and agents in one place.
+          </p>
         </div>
         <Link
           href="/agents/new"
@@ -137,20 +139,20 @@ export default function DashboardPage() {
         </Link>
       </header>
 
-      <section className="mt-6">
-        <DashboardShortcuts />
-      </section>
-
       {error ? (
-        <p
-          className="mt-5 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3 text-sm text-[var(--color-danger)]"
-          role="alert"
+        <InlineAlert
+          className="mt-5"
+          onRetry={() => setReloadKey((k) => k + 1)}
         >
           {error}
-        </p>
+        </InlineAlert>
       ) : null}
 
-      <section className="mt-6">
+      {/* One job: workspace health */}
+      <section className="mt-8" aria-label="Workspace insights">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--color-text)]">
+          Insights
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <MetricCard
             label="Total Conversations"
@@ -201,6 +203,10 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <section className="mt-6">
+        <DashboardShortcuts />
+      </section>
+
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section>
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -222,17 +228,18 @@ export default function DashboardPage() {
               <Skeleton className="h-48 rounded-xl bg-[var(--color-border)]" />
             </div>
           ) : agents.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center">
-              <p className="text-sm font-medium text-[var(--color-text)]">
-                Create an agent to get started.
-              </p>
-              <Link
-                href="/agents/new"
-                className={cn(buttonVariants({ size: "sm" }), "mt-4 inline-flex")}
-              >
-                New agent
-              </Link>
-            </div>
+            <EmptyState
+              className="py-12"
+              title="Create an agent to get started"
+              action={
+                <Link
+                  href="/agents/new"
+                  className={cn(buttonVariants({ size: "sm" }), "inline-flex")}
+                >
+                  New agent
+                </Link>
+              }
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {agents.map((agent) => (

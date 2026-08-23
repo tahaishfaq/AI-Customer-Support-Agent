@@ -83,6 +83,20 @@ async function main() {
     if (count.rows[0].n !== 1) {
       throw new Error(`Expected exactly 1 ADMIN, found ${count.rows[0].n}`);
     }
+
+    // F06-G: persist reserved email so missing env cannot reopen Google signup.
+    await pool.query(
+      `INSERT INTO "PlatformSettings" (
+         id, "signupsEnabled", "maintenanceMode", "globalEmbedKill",
+         "maxWorkspacesPerUser", "maxAgentsPerWorkspace", "reservedAdminEmail", "updatedAt"
+       )
+       VALUES ('global', true, false, false, 10, 25, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         "reservedAdminEmail" = EXCLUDED."reservedAdminEmail",
+         "updatedAt" = NOW()`,
+      [email]
+    );
+    console.log(`PlatformSettings.reservedAdminEmail = ${email}`);
   } finally {
     await pool.end();
   }

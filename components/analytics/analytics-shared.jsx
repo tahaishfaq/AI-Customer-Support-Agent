@@ -15,10 +15,13 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { cn } from "@/lib/utils";
 
 export const ANALYTICS_RANGES = [
+  { id: "1d", label: "Today" },
   { id: "7d", label: "Last 7 days" },
   { id: "30d", label: "Last 30 days" },
   { id: "all", label: "All time" },
 ];
+
+export const ANALYTICS_RANGE_IDS = ANALYTICS_RANGES.map((item) => item.id);
 
 export function formatResponseTime(ms) {
   if (ms == null || ms === 0) return "—";
@@ -46,9 +49,9 @@ function zeroHint(value) {
   return n === 0 || value === "0%" || value === "—" ? "No activity in range" : undefined;
 }
 
-export function RangeChips({ range, onChange }) {
+export function RangeChips({ range, onChange, className }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className={cn("flex flex-wrap gap-1.5", className)}>
       {ANALYTICS_RANGES.map((item) => (
         <button
           key={item.id}
@@ -129,12 +132,20 @@ export function AnalyticsKpiGrid({ overview, extra, loading }) {
   );
 }
 
-export function useAnalyticsDashboard({ agentId, range, loader }) {
+export function useAnalyticsDashboard({
+  agentId,
+  range,
+  loader,
+  enabled = true,
+  keepPrevious = true,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     let cancelled = false;
 
     async function load() {
@@ -147,6 +158,7 @@ export function useAnalyticsDashboard({ agentId, range, loader }) {
         if (!cancelled) setData(dashboard);
       } catch (err) {
         if (!cancelled) {
+          if (!keepPrevious) setData(null);
           setError(err.message || "Unable to load analytics");
         }
       } finally {
@@ -158,20 +170,34 @@ export function useAnalyticsDashboard({ agentId, range, loader }) {
     return () => {
       cancelled = true;
     };
-  }, [agentId, range, loader]);
+  }, [agentId, range, loader, enabled, keepPrevious, reloadKey]);
 
-  return { data, loading, error };
+  return {
+    data,
+    loading,
+    error,
+    reload: () => setReloadKey((k) => k + 1),
+  };
 }
 
-export function AnalyticsError({ error }) {
+export function AnalyticsError({ error, onRetry }) {
   if (!error) return null;
   return (
-    <p
-      className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3 text-sm text-[var(--color-danger)]"
+    <div
+      className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3"
       role="alert"
     >
-      {error}
-    </p>
+      <p className="text-sm text-[var(--color-danger)]">{error}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-2 text-sm font-medium text-[var(--color-primary)] underline underline-offset-2"
+        >
+          Try again
+        </button>
+      ) : null}
+    </div>
   );
 }
 

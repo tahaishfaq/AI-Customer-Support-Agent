@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  Download,
   FlaskConical,
   Loader2,
   Pause,
@@ -35,6 +36,7 @@ const DEFAULT_SCRIPTS = [
     kind: "greeting",
     prompt: "hello",
     expected: "Short welcome in the knowledge language.",
+    expectIncludes: "",
   },
   {
     id: "about",
@@ -42,6 +44,7 @@ const DEFAULT_SCRIPTS = [
     kind: "knowledge",
     prompt: "What do you help with?",
     expected: "Stay on knowledge. Do not invent products or prices.",
+    expectIncludes: "",
   },
   {
     id: "price",
@@ -49,6 +52,7 @@ const DEFAULT_SCRIPTS = [
     kind: "pricing",
     prompt: "How much does it cost?",
     expected: "No invented price list.",
+    expectIncludes: "",
   },
   {
     id: "unknown",
@@ -56,10 +60,13 @@ const DEFAULT_SCRIPTS = [
     kind: "unknown",
     prompt: "What is your office address?",
     expected: "Refuse if it is not in knowledge.",
+    expectIncludes: "",
   },
 ];
 
+/** Hard cap — never parallel-blast OpenAI (F05-E). */
 const MAX_SELF_QUESTIONS = 20;
+const MAX_RUN_QUESTIONS = 20;
 
 const MODES = [
   { id: "self", label: "Ask yourself" },
@@ -71,7 +78,47 @@ function emptySelfQuestion() {
   return {
     id: `q-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`,
     prompt: "",
+    expectIncludes: "",
   };
+}
+
+function softPassFail(answer, expectIncludes) {
+  const needle = String(expectIncludes || "").trim().toLowerCase();
+  if (!needle) return null;
+  const hay = String(answer || "").toLowerCase();
+  return hay.includes(needle) ? "pass" : "fail";
+}
+
+function ResultBadge({ status }) {
+  if (!status || status === "sent") {
+    return (
+      <span className="ml-1.5 text-[11px] font-normal text-[var(--color-muted)]">
+        Sent
+      </span>
+    );
+  }
+  if (status === "pass") {
+    return (
+      <span className="ml-1.5 rounded bg-[var(--color-success)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-success)]">
+        Pass
+      </span>
+    );
+  }
+  if (status === "fail") {
+    return (
+      <span className="ml-1.5 rounded bg-[var(--color-danger)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-danger)]">
+        Fail
+      </span>
+    );
+  }
+  if (status === "flaky") {
+    return (
+      <span className="ml-1.5 rounded bg-[var(--color-warning)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-warning)]">
+        Flaky
+      </span>
+    );
+  }
+  return null;
 }
 
 function welcomeBubble(agent) {
@@ -186,6 +233,8 @@ export function AgentTestStudio({ agent }) {
   const [runStatus, setRunStatus] = useState("idle");
   const [runIndex, setRunIndex] = useState(0);
   const [runQueue, setRunQueue] = useState([]);
+  const [runResults, setRunResults] = useState([]);
+  const [pauseReason, setPauseReason] = useState("");
   const conversationIdRef = useRef(null);
   const sendingRef = useRef(false);
   const runRef = useRef({ status: "idle", index: 0, queue: [] });
@@ -202,11 +251,14 @@ export function AgentTestStudio({ agent }) {
     setError("");
     setHistoryOpen(false);
     setLastPrompt("");
+    setPauseReason("");
   }, [agent]);
 
-  async function send(text) {
+  async function send(text, meta = {}) {
     const prompt = text.trim();
-    if (!agent?.id || sendingRef.current || !prompt) return false;
+    if (!agent?.id || sendingRef.current || !prompt) {
+      return { ok: false, reason: "Nothing to send" };
+    }
     sendingRef.current = true;
     setSending(true);
     setError("");
@@ -224,6 +276,7 @@ export function AgentTestStudio({ agent }) {
       });
       conversationIdRef.current = result.conversationId;
       setConversationId(result.conversationId);
+      const usedKnowledge = result.usedKnowledge || [];
       setMessages((prev) => {
         const withoutOptimistic = prev.filter((m) => m.id !== optimisticId);
         return [
@@ -240,21 +293,72 @@ export function AgentTestStudio({ agent }) {
             content: result.message.content,
             responseTime: result.message.responseTime,
             createdAt: result.message.createdAt,
+            usedKnowledge,
           },
         ];
       });
       setHistoryKey((k) => k + 1);
+      setSending(false);
+      sendingRef.current = false;
       if (customization.features.notificationSound) {
         playNotificationBeep();
       }
-      return true;
+
+      const soft = softPassFail(result.message?.content, meta.expectIncludes);
+      if (meta.questionId) {
+        setRunResults((prev) => [
+          ...prev.filter((row) => row.id !== meta.questionId),
+          {
+            id: meta.questionId,
+            prompt,
+            answer: result.message?.content || "",
+            responseTime: result.message?.responseTime ?? null,
+            usedKnowledge,
+            status: result.degraded ? "flaky" : soft || "sent",
+            soft,
+          },
+        ]);
+      }
+
+      if (result.degraded) {
+        const reason =
+          "OpenAI error — marked flaky; remaining questions not sent";
+        setError("Generation failed — Try again");
+        setPauseReason(reason);
+        return { ok: false, reason };
+      }
+      return { ok: true };
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-      setError(err.message || "Unable to send message");
-      return false;
-    } finally {
-      sendingRef.current = false;
+      const status = err.status;
+      const message =
+        status === 429
+          ? "Rate limited — wait a moment, then resume"
+          : err.message || "Unable to send message";
+      const reason =
+        status === 429
+          ? "Rate limit — pause and retry shortly"
+          : "Request failed — remaining questions not marked Sent";
+      setError(message);
+      setPauseReason(reason);
+      if (meta.questionId) {
+        setRunResults((prev) => [
+          ...prev.filter((row) => row.id !== meta.questionId),
+          {
+            id: meta.questionId,
+            prompt,
+            answer: "",
+            responseTime: null,
+            usedKnowledge: [],
+            status: "flaky",
+            soft: null,
+            error: message,
+          },
+        ]);
+      }
       setSending(false);
+      sendingRef.current = false;
+      return { ok: false, reason: message };
     }
   }
 
@@ -264,7 +368,12 @@ export function AgentTestStudio({ agent }) {
       const data = await generateTestQuestions(agent.id, {
         previousPrompts: questions.map((item) => item.prompt),
       });
-      setQuestions(data.questions || []);
+      setQuestions(
+        (data.questions || []).map((q) => ({
+          ...q,
+          expectIncludes: q.expectIncludes || "",
+        }))
+      );
       setGenerated(true);
       toast.success("New test questions ready");
     } catch (err) {
@@ -274,15 +383,23 @@ export function AgentTestStudio({ agent }) {
     }
   }
 
-  function patchQuestion(id, prompt) {
-    setQuestions((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, prompt } : item))
+  function patchSelfQuestion(id, partial) {
+    setSelfQuestions((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, ...(typeof partial === "string" ? { prompt: partial } : partial) }
+          : item
+      )
     );
   }
 
-  function patchSelfQuestion(id, prompt) {
-    setSelfQuestions((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, prompt } : item))
+  function patchQuestion(id, partial) {
+    setQuestions((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, ...(typeof partial === "string" ? { prompt: partial } : partial) }
+          : item
+      )
     );
   }
 
@@ -305,17 +422,22 @@ export function AgentTestStudio({ agent }) {
     if (index >= queue.length) {
       runRef.current.status = "done";
       setRunStatus("done");
+      setPauseReason("");
       toast.success(`Test finished · ${queue.length} questions`);
       return;
     }
 
     setRunIndex(index);
-    const ok = await send(queue[index].prompt);
+    const item = queue[index];
+    const result = await send(item.prompt, {
+      questionId: item.id,
+      expectIncludes: item.expectIncludes,
+    });
     if (runRef.current.status === "stopped") return;
-    if (!ok) {
+    if (!result.ok) {
       runRef.current.status = "paused";
       setRunStatus("paused");
-      toast.error("Test paused — fix the error, then resume");
+      toast.error(result.reason || "Test paused — fix the error, then resume");
       return;
     }
 
@@ -325,6 +447,7 @@ export function AgentTestStudio({ agent }) {
     if (next >= queue.length) {
       runRef.current.status = "done";
       setRunStatus("done");
+      setPauseReason("");
       toast.success(`Test finished · ${queue.length} questions`);
       return;
     }
@@ -334,13 +457,27 @@ export function AgentTestStudio({ agent }) {
 
   function startRun(items) {
     if (runRef.current.status === "running") return;
-    const queue = items
-      .map((item) => ({ id: item.id, prompt: (item.prompt || "").trim() }))
-      .filter((item) => item.prompt);
+    const trimmed = items.map((item) => ({
+      id: item.id,
+      prompt: (item.prompt || "").trim(),
+      expectIncludes: item.expectIncludes || "",
+      title: item.title || "",
+    }));
+    const skipped = trimmed.filter((item) => !item.prompt).length;
+    let queue = trimmed.filter((item) => item.prompt);
     if (queue.length === 0) {
       toast.error("Add at least one question");
       return;
     }
+    if (queue.length > MAX_RUN_QUESTIONS) {
+      queue = queue.slice(0, MAX_RUN_QUESTIONS);
+      toast.message(`Capped at ${MAX_RUN_QUESTIONS} questions (sequential)`);
+    }
+    if (skipped > 0) {
+      toast.message(`Skipped ${skipped} empty prompt${skipped === 1 ? "" : "s"}`);
+    }
+    setRunResults([]);
+    setPauseReason("");
     runRef.current = { status: "running", index: 0, queue };
     setRunQueue(queue);
     setRunIndex(0);
@@ -375,12 +512,51 @@ export function AgentTestStudio({ agent }) {
     }
     runRef.current.status = "stopped";
     setRunStatus("stopped");
+    setPauseReason("");
     toast.message("Test stopped");
   }
 
   function switchMode(next) {
     if (next !== mode && runActive) stopSelfTest();
     setMode(next);
+  }
+
+  function exportLastRun() {
+    if (!runResults.length) {
+      toast.error("Run a test first");
+      return;
+    }
+    const payload = {
+      agentId: agent.id,
+      agentName: agent.name,
+      mode,
+      exportedAt: new Date().toISOString(),
+      pauseReason: pauseReason || null,
+      results: runResults.map((row) => ({
+        id: row.id,
+        prompt: row.prompt,
+        answer: row.answer,
+        responseTime: row.responseTime,
+        usedKnowledge: row.usedKnowledge,
+        status: row.status,
+        soft: row.soft,
+        error: row.error || null,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `hapy-test-run-${agent.id.slice(0, 8)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exported last run");
+  }
+
+  function resultStatusFor(questionId) {
+    return runResults.find((row) => row.id === questionId)?.status;
   }
 
   const chatBody = historyOpen ? (
@@ -439,9 +615,22 @@ export function AgentTestStudio({ agent }) {
           This agent is disabled by Hapy admin. Studio chat is off.
         </p>
       ) : error ? (
-        <p className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
-          {error}
-        </p>
+        <div className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p>{error}</p>
+            {lastPrompt ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={sending || runActive || agent.enabled === false}
+                onClick={() => send(lastPrompt)}
+              >
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        </div>
       ) : null}
       <ChatComposer
         disabled={sending || runActive || agent.enabled === false}
@@ -495,9 +684,21 @@ export function AgentTestStudio({ agent }) {
               Studio emulator
             </h2>
             <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
-              Test this agent’s prompt, knowledge, and widget look.
+              Train → test → deploy: run questions, inspect knowledge used, export
+              results.
             </p>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={exportLastRun}
+            disabled={!runResults.length}
+          >
+            <Download className="size-3.5" />
+            Export run
+          </Button>
         </div>
 
         <div className="mt-4 flex shrink-0 justify-start">
@@ -543,6 +744,11 @@ export function AgentTestStudio({ agent }) {
             </div>
 
             {runProgressLine()}
+            {pauseReason && runStatus === "paused" ? (
+              <p className="mt-1 shrink-0 text-[12px] text-[var(--color-warning)]">
+                {pauseReason}
+              </p>
+            ) : null}
 
             <ol className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {selfQuestions.map((item, index) => {
@@ -552,7 +758,10 @@ export function AgentTestStudio({ agent }) {
                 const done =
                   queuePos >= 0 &&
                   runStatus !== "idle" &&
-                  (runStatus === "done" || runIndex > queuePos);
+                  (runStatus === "done" ||
+                    runStatus === "stopped" ||
+                    runIndex > queuePos);
+                const resultStatus = resultStatusFor(item.id);
                 return (
                   <li
                     key={item.id}
@@ -570,10 +779,8 @@ export function AgentTestStudio({ agent }) {
                           <span className="ml-1.5 text-[11px] font-normal text-[var(--color-primary)]">
                             Sending…
                           </span>
-                        ) : done ? (
-                          <span className="ml-1.5 text-[11px] font-normal text-[var(--color-muted)]">
-                            Sent
-                          </span>
+                        ) : done || resultStatus ? (
+                          <ResultBadge status={resultStatus || "sent"} />
                         ) : null}
                       </p>
                       <button
@@ -588,11 +795,25 @@ export function AgentTestStudio({ agent }) {
                     </div>
                     <textarea
                       value={item.prompt}
-                      onChange={(e) => patchSelfQuestion(item.id, e.target.value)}
+                      onChange={(e) =>
+                        patchSelfQuestion(item.id, { prompt: e.target.value })
+                      }
                       rows={2}
                       disabled={runActive}
                       placeholder={`Question ${index + 1} — e.g. What are your hours?`}
                       className="mt-2 w-full resize-none rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-[12px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)] disabled:opacity-60"
+                    />
+                    <input
+                      type="text"
+                      value={item.expectIncludes || ""}
+                      onChange={(e) =>
+                        patchSelfQuestion(item.id, {
+                          expectIncludes: e.target.value,
+                        })
+                      }
+                      disabled={runActive}
+                      placeholder="Optional: expect reply to include…"
+                      className="mt-1.5 w-full rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1 text-[11px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)] disabled:opacity-60"
                     />
                   </li>
                 );
@@ -656,6 +877,11 @@ export function AgentTestStudio({ agent }) {
             </div>
 
             {runProgressLine()}
+            {pauseReason && runStatus === "paused" ? (
+              <p className="mt-1 shrink-0 text-[12px] text-[var(--color-warning)]">
+                {pauseReason}
+              </p>
+            ) : null}
 
             <ol className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {questions.map((item, index) => {
@@ -665,7 +891,10 @@ export function AgentTestStudio({ agent }) {
                 const done =
                   queuePos >= 0 &&
                   runStatus !== "idle" &&
-                  (runStatus === "done" || runIndex > queuePos);
+                  (runStatus === "done" ||
+                    runStatus === "stopped" ||
+                    runIndex > queuePos);
+                const resultStatus = resultStatusFor(item.id);
                 return (
                 <li
                   key={item.id}
@@ -683,16 +912,19 @@ export function AgentTestStudio({ agent }) {
                         <span className="ml-1.5 text-[11px] font-normal text-[var(--color-primary)]">
                           Sending…
                         </span>
-                      ) : done ? (
-                        <span className="ml-1.5 text-[11px] font-normal text-[var(--color-muted)]">
-                          Sent
-                        </span>
+                      ) : done || resultStatus ? (
+                        <ResultBadge status={resultStatus || "sent"} />
                       ) : null}
                     </p>
                     <button
                       type="button"
                       disabled={sending || runActive || !item.prompt.trim()}
-                      onClick={() => send(item.prompt)}
+                      onClick={() =>
+                        send(item.prompt, {
+                          questionId: item.id,
+                          expectIncludes: item.expectIncludes,
+                        })
+                      }
                       className="rounded-md bg-[var(--color-bg)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-muted)] hover:text-[var(--color-primary)] disabled:opacity-50"
                     >
                       Send
@@ -700,7 +932,9 @@ export function AgentTestStudio({ agent }) {
                   </div>
                   <textarea
                     value={item.prompt}
-                    onChange={(e) => patchQuestion(item.id, e.target.value)}
+                    onChange={(e) =>
+                      patchQuestion(item.id, { prompt: e.target.value })
+                    }
                     rows={2}
                     disabled={runActive}
                     className="mt-2 w-full resize-none rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1.5 font-mono text-[12px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)] disabled:opacity-60"
@@ -710,6 +944,18 @@ export function AgentTestStudio({ agent }) {
                       Expect: {item.expected}
                     </p>
                   ) : null}
+                  <input
+                    type="text"
+                    value={item.expectIncludes || ""}
+                    onChange={(e) =>
+                      patchQuestion(item.id, {
+                        expectIncludes: e.target.value,
+                      })
+                    }
+                    disabled={runActive}
+                    placeholder="Optional: expect reply to include…"
+                    className="mt-1.5 w-full rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1 text-[11px] text-[var(--color-text)] outline-none focus-visible:border-[var(--color-primary)] disabled:opacity-60"
+                  />
                 </li>
                 );
               })}

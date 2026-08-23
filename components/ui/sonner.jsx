@@ -41,6 +41,8 @@ const Toaster = ({
       toastOptions={{
         classNames: {
           toast: "cn-toast",
+          title: "text-[var(--color-text)]",
+          description: "text-[var(--color-text-secondary)]",
         },
       }}
       {...props} />

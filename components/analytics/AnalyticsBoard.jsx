@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   AnalyticsError,
   AnalyticsKpiGrid,
+  ANALYTICS_RANGE_IDS,
   embedSiteHost,
   RangeChips,
   useAnalyticsDashboard,
@@ -14,19 +15,22 @@ import {
   SentimentShareChart,
   TopicMixChart,
   VolumeTrendChart,
-} from "@/components/analytics/WorkspaceCharts";
+} from "@/components/analytics/lazy-charts";
 import { useUrlTab } from "@/hooks/use-url-tab";
 
-const RANGES = ["7d", "30d"];
-
 export function AnalyticsBoard({ agentId }) {
-  const [range, setRange] = useUrlTab("range", RANGES, "7d");
-  const { data, loading, error } = useAnalyticsDashboard({ agentId, range });
+  const [range, setRange] = useUrlTab("range", ANALYTICS_RANGE_IDS, "7d");
+  const { data, loading, error, reload } = useAnalyticsDashboard({ agentId, range });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <RangeChips range={range} onChange={setRange} />
+        <div>
+          <RangeChips range={range} onChange={setRange} />
+          <p className="mt-1.5 text-[11px] text-[var(--color-muted)]">
+            Range applies to every KPI and chart on this page.
+          </p>
+        </div>
         <p className="text-[12px] text-[var(--color-muted)]">
           This agent only.{" "}
           <Link href="/analytics" className="font-medium text-[var(--color-primary)] hover:underline">
@@ -36,7 +40,7 @@ export function AnalyticsBoard({ agentId }) {
         </p>
       </div>
 
-      <AnalyticsError error={error} />
+      <AnalyticsError error={error} onRetry={reload} />
 
       <AnalyticsKpiGrid overview={data?.overview} loading={loading} />
 

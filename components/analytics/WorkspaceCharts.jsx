@@ -36,13 +36,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ChartEmpty } from "@/components/analytics/AnalyticsCharts";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +82,10 @@ const interactiveConfig = {
 };
 
 const RANGE_COPY = {
+  "1d": {
+    title: "Today",
+    description: "Showing chats and messages by hour for today",
+  },
   "7d": {
     title: "Last 7 days",
     description: "Showing chats and messages for the last 7 days",
@@ -99,7 +96,7 @@ const RANGE_COPY = {
   },
   all: {
     title: "All time",
-    description: "Showing chats and messages for all time",
+    description: "Showing chats and messages for the last 12 months",
   },
 };
 
@@ -126,37 +123,18 @@ function hasSeries(rows, keys) {
 export function ChartAreaInteractive({
   points = [],
   range = "7d",
-  onRangeChange,
   loading = false,
 }) {
   const copy = RANGE_COPY[range] || RANGE_COPY["7d"];
+  const xKey = range === "1d" ? "label" : "date";
 
   return (
-    <Card className="pt-0">
+    <Card className="pt-0" data-hapy-chart="volume-over-time">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle>Volume over time</CardTitle>
           <CardDescription>{copy.description}</CardDescription>
         </div>
-        <Select value={range} onValueChange={onRangeChange}>
-          <SelectTrigger
-            className="w-[160px] rounded-lg sm:ml-auto"
-            aria-label="Select a time range"
-          >
-            <SelectValue placeholder="Last 7 days">{copy.title}</SelectValue>
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="7d" className="rounded-lg">
-              Last 7 days
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Last 30 days
-            </SelectItem>
-            <SelectItem value="all" className="rounded-lg">
-              All time
-            </SelectItem>
-          </SelectContent>
-        </Select>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         {loading ? (
@@ -165,7 +143,10 @@ export function ChartAreaInteractive({
           <ChartEmpty message="No chats in this range yet." />
         ) : (
           <ChartContainer config={interactiveConfig} className="aspect-auto h-[250px] w-full">
-            <AreaChart data={points}>
+            <AreaChart
+              data={points}
+              margin={{ left: 8, right: 8, top: 12, bottom: 4 }}
+            >
               <defs>
                 <linearGradient id="fillConversations" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="var(--color-conversations)" stopOpacity={0.8} />
@@ -178,27 +159,47 @@ export function ChartAreaInteractive({
               </defs>
               <CartesianGrid vertical={false} />
               <XAxis
-                dataKey="date"
+                dataKey={xKey}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                minTickGap={32}
+                minTickGap={range === "1d" ? 16 : 32}
                 tickFormatter={(value) => {
+                  if (range === "1d") return String(value);
                   const date = new Date(value);
                   if (Number.isNaN(date.getTime())) return String(value);
+                  if (range === "all") {
+                    return date.toLocaleDateString("en-US", {
+                      month: "short",
+                      year: "2-digit",
+                    });
+                  }
                   return date.toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                   });
                 }}
               />
+              <YAxis
+                domain={[0, "auto"]}
+                allowDecimals={false}
+                hide
+                width={0}
+              />
               <ChartTooltip
                 cursor={false}
                 content={
                   <ChartTooltipContent
                     labelFormatter={(value) => {
+                      if (range === "1d") return String(value);
                       const date = new Date(value);
                       if (Number.isNaN(date.getTime())) return String(value);
+                      if (range === "all") {
+                        return date.toLocaleDateString("en-US", {
+                          month: "long",
+                          year: "numeric",
+                        });
+                      }
                       return date.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -210,17 +211,21 @@ export function ChartAreaInteractive({
               />
               <Area
                 dataKey="messages"
-                type="natural"
+                type="linear"
                 fill="url(#fillMessages)"
                 stroke="var(--color-messages)"
                 stackId="a"
+                baseValue={0}
+                isAnimationActive={false}
               />
               <Area
                 dataKey="conversations"
-                type="natural"
+                type="linear"
                 fill="url(#fillConversations)"
                 stroke="var(--color-conversations)"
                 stackId="a"
+                baseValue={0}
+                isAnimationActive={false}
               />
               <ChartLegend content={<ChartLegendContent />} />
             </AreaChart>

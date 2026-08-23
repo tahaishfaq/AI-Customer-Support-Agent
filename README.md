@@ -8,263 +8,149 @@ Next.js fullstack MVP: build an agent, add knowledge, chat, customize webchat, e
 
 - **Next.js 16** (App Router) · React 19 · Tailwind CSS 4 · shadcn/ui
 - **Prisma 7** · **Neon PostgreSQL**
-- **Auth.js (NextAuth v5)** · **OpenAI** · **Cloudinary** · **unpdf**
-- JavaScript (`.js` / `.jsx`)
+- **Auth.js (NextAuth v5)** · **OpenAI** · **Cloudinary**
 - Hosting: **Vercel** (Node **22+**)
 
-## Local setup (clone → run)
+## Local setup
 
 ```bash
 git clone <this-repo>
 cd AI-Customer-Support-Agent
 npm install
 cp .env.example .env
-# fill the env table below — never commit .env
+# fill env — never commit .env
 npx prisma generate
 npx prisma migrate deploy
-npm run seed:admin    # once: creates the single ADMIN from ADMIN_BOOTSTRAP_*
+npm run seed:admin
 npm run dev
 ```
 
-- App: http://localhost:3000 — register at `/register`, sign in at `/login`
-- Admin: same `/login` with the bootstrap **email + password**. There is **no** `/admin/register`.
-- Health: http://localhost:3000/api/health — `{ "status": "ok", "database": "ok" }`
-- 5-minute slides (browser): http://localhost:3000/demo-slides.html
-- Intern sign-off (process): [`docs/INTERN_REVIEW_CHECKLIST.md`](docs/INTERN_REVIEW_CHECKLIST.md)
+- App: http://localhost:3000 — `/register`, `/login`
+- Admin: same `/login` with bootstrap **email + password** (no `/admin/register`)
+- Health: `/api/health`
 
-### Env (copy names from `.env.example`)
+Copy variable names from `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `OPENAI_API_KEY`. Optional: Cloudinary, Google, `LOG_LEVEL`, admin bootstrap (`ADMIN_BOOTSTRAP_*` + `seed:admin`).
 
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `DATABASE_URL` | Yes | Neon **pooled** |
-| `DIRECT_URL` | Yes | Neon **direct** (migrations) |
-| `AUTH_SECRET` | Yes | `openssl rand -base64 32` |
-| `AUTH_URL` | Yes | `http://localhost:3000` locally; HTTPS origin in production, no trailing slash |
-| `NEXT_PUBLIC_APP_URL` | Yes | Same origin as the app |
-| `OPENAI_API_KEY` | Yes | Chat, classify, test questions |
-| `CLOUDINARY_CLOUD_NAME` / `API_KEY` / `API_SECRET` | For PDFs | TEXT knowledge works without this |
-| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | For GIS | Same client ID; leave empty to hide Google |
-| `ADMIN_BOOTSTRAP_EMAIL` / `PASSWORD` | For admin | Then `npm run seed:admin` |
-| `TEST_BASE_URL` | CI only | Optional; see CI below |
+## Vercel
 
-### Workspaces
+1. Connect the repo · Node **22.x**
+2. Set the same env vars as `.env.example` (`AUTH_URL` / `NEXT_PUBLIC_APP_URL` = your HTTPS origin)
+3. `npx prisma migrate deploy` against production Neon
+4. Seed admin once: `npm run seed:admin`
 
-After login, the product is **one active workspace**. Create extra workspaces from the dashboard switcher. Agents, knowledge, chats, and analytics stay inside the active workspace. Switching workspaces hides the other workspace’s agents (direct URL → 404).
+### Logs
 
-### Prisma migrations
+API responses include **`x-request-id`**. Failures log JSON with that id (no chat transcripts). In Vercel → **Logs**, search the header value or codes like `LLM_FAILED` / `CRAWL_FAILED`. Optional: `LOG_LEVEL=warn|error`. See [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) (F01).
 
-Apply with `npx prisma migrate deploy` (clone / production) or `npm run prisma:migrate` (local schema edits). Folders under `prisma/migrations/`:
+### Neon (pooler vs direct)
 
-`20260811180000_init` · NextAuth tables · Google fields · Cloudinary PDF · customization · workspaces · embed/crawl · WEB knowledge · message feedback · user role admin · audit/last login · agent enabled · restore request · restore decision · platform settings · single admin email · unique embed origin.
+| URL | Use |
+|-----|-----|
+| `DATABASE_URL` | App / Prisma Client — Neon **pooled** host (`-pooler` in hostname) |
+| `DIRECT_URL` | `prisma migrate` only — **non-pooler** direct host |
 
-## Vercel (production)
+Keep `PG_POOL_MAX` small (default 3) per serverless instance. See F02 Phase G.
 
-1. Connect this GitHub repo. Framework: Next.js. Node.js **22.x**.
-2. Set env vars (same names as `.env.example`):
+### Vercel function budget
 
-| Variable | Notes |
-|----------|--------|
-| `DATABASE_URL` | Neon **pooled** URL |
-| `DIRECT_URL` | Neon **direct** (migrations) |
-| `AUTH_SECRET` | `openssl rand -base64 32` |
-| `AUTH_URL` | `https://YOUR-APP.vercel.app` (HTTPS, no trailing slash) |
-| `NEXT_PUBLIC_APP_URL` | Same production origin |
-| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | GIS button |
-| `OPENAI_API_KEY` | Chat + classify + test questions |
-| `CLOUDINARY_*` | PDF + avatars |
-| `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` | Seed the **one** platform admin (`npm run seed:admin`) |
+Chat routes set `maxDuration = 60`. Keep `OPENAI_TIMEOUT_MS` (default 45000) **under** that so the function does not die mid-reply. Analytics timeouts use `ANALYTICS_TIMEOUT_MS` (default 15s).
 
-3. After first deploy: `npx prisma migrate deploy` against production Neon (or run it from a machine with `DIRECT_URL`).
-4. Google Cloud: add the Vercel origin to authorized JavaScript origins.
+### Rate limits
 
-`postinstall` runs `prisma generate`. Do not commit `.env`.
+In-memory per instance (`lib/rate-limit.js`). Tune via `RATE_LIMIT_PUB_CHAT`, `RATE_LIMIT_STUDIO_CHAT`, etc. **Upstash Redis:** deferred until multi-instance 429 drift hurts (F02-G decision: not yet).
 
-## Seed the one admin (A0)
-
-There is **no** `/admin/register`. Create the operator from env:
+## Seed the one admin
 
 ```bash
-# .env
 ADMIN_BOOTSTRAP_EMAIL=you@example.com
 ADMIN_BOOTSTRAP_PASSWORD=at-least-10-chars
 npm run seed:admin
 ```
 
-Sign in at `/login` with the operator **email and password** (Google cannot sign in as admin). `ADMIN_BOOTSTRAP_EMAIL` cannot be used on `/register` or Google. User emails stay unique; there can be only one `ADMIN` row. Visiting `/admin` without an admin session returns 404.
+One platform admin. Google cannot sign in as admin. Non-admin hitting `/admin` → 404.
 
-**Legal (A6):** `/admin/audit` is the inspect log. On a user detail page, **Export** downloads JSON (all workspaces, agents, knowledge, chats). **Delete** requires typing that user’s email; the platform admin cannot be deleted.
+**Console denseness (F07):** Users filters live in the URL; Requests shows a pending badge; Dashboard KPIs deep-link to Users / Suspended / Requests; agent inspect shows last chat without loading full knowledge bodies.
 
-Product `/api/agents` stays workspace-scoped even when the session is ADMIN.
+**Production:** point `DATABASE_URL` at the **same Neon** the Vercel app uses, then run `npm run seed:admin` once (local machine or CI with prod URL). Seed also writes `PlatformSettings.reservedAdminEmail` so a missing `ADMIN_BOOTSTRAP_EMAIL` on a future deploy cannot reopen Google signup for that address. After seed, keep `ADMIN_BOOTSTRAP_*` set on Vercel for smokes and reclaim.
 
-## Embed (live widget)
+## Embed
 
-From **Agent → Customization → Deploy** (or Share), copy the snippet. On your marketing site:
+Agent → **Customization** → **Deploy** — copy the snippet (`embed.js` + `data-hapy-key`). First load on a new origin locks that site and queues a website crawl.
 
-```html
-<script
-  src="https://ai-customer-support-agent-ashen.vercel.app/embed.js?v=6"
-  data-hapy-key="YOUR_PUBLIC_KEY"
-  defer
-></script>
-```
-
-First load of the widget on a new origin queues a **one-time** crawl of that origin into WEB knowledge (not a daily recrawl).
-
-Public chat is rate-limited (~20 messages / minute / IP).
+Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / weekly / etc.). When due, the next widget visit refreshes website knowledge automatically.
 
 ## Product map
 
 | Area | Where |
 |------|--------|
-| Login / register | `/login`, `/register` (admin also uses `/login` only) |
-| Workspaces | Dashboard switcher |
-| Agents | `/agents` |
-| Knowledge (TEXT / PDF / WEB) | `/agents/[id]/knowledge` |
-| Conversations (per agent) | `/agents/[id]/conversations` |
-| Customization / embed snippet | `/agents/[id]/customization` |
-| Studio test | `/agents/[id]/test` |
-| Analytics | `/analytics` and `/agents/[id]/analytics` |
+| Auth | `/login`, `/register` |
+| Agents / knowledge / chat | `/agents`, `/agents/[id]/…` |
+| Analytics | `/analytics` |
 | Public webchat | `/w/[publicKey]` |
-| Admin console | `/admin` (ADMIN session; others get 404) |
+| Admin | `/admin` |
 
-## 5-minute demo slides
+## Go-live smoke
 
-**Yeh slides README tables nahi — browser deck hai:**
-
-**http://localhost:3000/demo-slides.html**
-
-(`npm run dev` chalu ho.) Arrow keys / Next · **F** fullscreen. App doosri tab mein rakho.
-
-Speaker notes (Do this / Say this) README ke neeche bhi hain. Full deck: [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)
-
----
-
-### Slide 1 — Problem
-
-| | |
-|---|---|
-| **Time** | ~30s |
-| **Do this** | Landing `/` or, if already signed in, `/dashboard`. Do not click around yet. |
-| **Say this** | Small sites need 24/7 answers (refunds, hours) without a helpdesk team. Hapy is a **workspace-scoped** support agent: knowledge in, chat out, then **insights** on what people asked. |
-
----
-
-### Slide 2 — Sign in
-
-| | |
-|---|---|
-| **Time** | ~20s |
-| **Do this** | Open `/login`. Point at email + password (Google if the button loaded). Mention `/register` for a new user. |
-| **Say this** | Customers sign in here. The **one admin** uses the **same** `/login` with email/password. There is **no** `/admin/register`. Google cannot sign in as admin. |
-
----
-
-### Slide 3 — Workspace + agent
-
-| | |
-|---|---|
-| **Time** | ~40s |
-| **Do this** | After login, sidebar **Workspace** (one active). Click **+ New agent**. Fill name, system prompt, welcome. **Create agent**. |
-| **Say this** | Everything lives in the **active** workspace. A second workspace would **not** list this agent (direct URL → 404). |
-
----
-
-### Slide 4 — Knowledge
-
-| | |
-|---|---|
-| **Time** | ~40s |
-| **Do this** | Agent → **Knowledge** → **Add Text / FAQ**. Name e.g. Refunds FAQ. Q: *How long do refunds take?* A: *Refunds are processed within 5 business days.* **Add knowledge**. |
-| **Say this** | This is what the model may use. PDF upload is optional if Cloudinary is set. |
-
----
-
-### Slide 5 — Studio chat
-
-| | |
-|---|---|
-| **Time** | ~50s |
-| **Do this** | **Test** tab. In the widget, type the refund question → Send. Then open **Conversations**. |
-| **Say this** | Reply should cite the FAQ (5 business days). Inbox shows **this agent only** — USER + ASSISTANT, not a playground that disappears. |
-
----
-
-### Slide 6 — Analytics
-
-| | |
-|---|---|
-| **Time** | ~40s |
-| **Do this** | Same agent → **Analytics**, or sidebar **Analytics**. |
-| **Say this** | Conversation count, topic, sentiment come from classify. Week 2: chats are **stored and labeled**. |
-
----
-
-### Slide 7 — Embed + origin lock
-
-| | |
-|---|---|
-| **Time** | ~40s |
-| **Do this** | **Customization** → **Deploy**. Point at the snippet (`embed.js` + `data-hapy-key`). Copy is enough — do not paste on a random live site in the talk unless you own it. |
-| **Say this** | First load on a new origin **locks** that site and queues a **one-time** crawl. A second agent cannot steal that origin. |
-
----
-
-### Slide 8 — Admin inspect *(optional)*
-
-| | |
-|---|---|
-| **Time** | ~60s |
-| **Do this** | Sign out (or a second browser). `/login` as admin. Open `/admin`. Users → workspace → agent → transcript. As a normal user, `/admin` is **404**. |
-| **Say this** | One operator. No impersonation in this MVP. Skip this slide if you are short on time. |
-
----
-
-### Slide 9 — Clone + what we did not build
-
-| | |
-|---|---|
-| **Time** | ~20s |
-| **Do this** | Stay on this README. Point at **Local setup** and `.env.example`. |
-| **Say this** | Stranger path: copy env → `migrate deploy` → `seed:admin` → `npm run dev`. With the app up: `npm run test:product`. Out of scope: billing, vector RAG, extra channels — named in `docs/POST_MVP_BACKLOG_PLAN.md`. |
-
----
-
-## Go-live smoke (after each deploy)
-
-1. Register / login on the Vercel URL.
-2. Create an agent → add TEXT knowledge → **Test** (optional auto-run pack).
-3. Upload a real PDF on Knowledge.
-4. Open **Conversations** on that agent — thread stays on this agent only.
-5. Customization → copy embed → paste on a page → send one public chat.
-6. `/api/health` returns `"database": "ok"`.
-7. `/analytics` shows the new conversation.
+1. Login → create agent → TEXT knowledge → Test chat  
+2. Conversations + Analytics update  
+3. `/api/health` → `"database": "ok"`  
+4. Embed once on an allowed origin (site you own)  
+5. Admin email/password → `/admin` loads  
+6. Normal USER → `/admin` = **404**  
+7. Optional: `TEST_BASE_URL=<live> npm run test:product`  
 
 ## Docs
 
-Canonical MVP plan: [`docs/NEXTJS_FULLSTACK_PLAN.md`](docs/NEXTJS_FULLSTACK_PLAN.md) · Admin: [`docs/ADMIN_SAAS_PLAN.md`](docs/ADMIN_SAAS_PLAN.md) · Backlog: [`docs/POST_MVP_BACKLOG_PLAN.md`](docs/POST_MVP_BACKLOG_PLAN.md) · Vercel smoke: [`docs/VERCEL_SMOKE.md`](docs/VERCEL_SMOKE.md) · Competitor audits: [`docs/AUDIT_ZENDESK_VS_HAPY.md`](docs/AUDIT_ZENDESK_VS_HAPY.md) · [`docs/AUDIT_INTERCOM_VS_HAPY.md`](docs/AUDIT_INTERCOM_VS_HAPY.md) · [`docs/AUDIT_BOTPRESS_VS_HAPY.md`](docs/AUDIT_BOTPRESS_VS_HAPY.md) · Fusion: [`docs/FUSION_PLAN_HAPY_UNIQUE.md`](docs/FUSION_PLAN_HAPY_UNIQUE.md)
+| File | Role |
+|------|------|
+| [`docs/ROADMAP_NEXT.md`](docs/ROADMAP_NEXT.md) | What to do next (F00 → F11 · OOS later) |
+| [`docs/features/F00_DOD_DEMO_BUFFER.md`](docs/features/F00_DOD_DEMO_BUFFER.md) | DoD / demo buffer (do first) |
+| [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) | Simple summary — kyun add kiya, kya improve hua (F01–F09) |
+| [`docs/features/`](docs/features/) | Future plans F10–F12 |
+| [`docs/POST_MVP_BACKLOG_PLAN.md`](docs/POST_MVP_BACKLOG_PLAN.md) | Backlog |
+| Internship `.docx` + audits | Under `docs/` |
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `npm run dev` | Dev server |
-| `npm run build` | Production build (what Vercel runs) |
-| `npm run prisma:generate` | Generate Prisma Client |
-| `npm run prisma:migrate` | `prisma migrate dev` |
-| `npm run prisma:studio` | Open Prisma Studio |
-| `npm run seed:admin` | Create the one platform admin |
-| `npm run test:product` | Product API smoke (`npm run dev` + OpenAI) |
-| `npm run test:admin` | Admin A0 + v1 tests (dev server + DB + admin seed) |
+| `npm run build` | Production build |
+| `npm run seed:admin` | Create the one admin |
+| `npm run test:product` | Product API smoke |
+| `npm run test:admin` | Admin smoke |
+| `npm run test:bugfix` | Origin lock + security HTTP regression |
+| `npm run test:f01` | F01 observability smokes |
+| `npm run test:f02` | F02 A–H contract smokes |
+| `npm run test:f03` | F03 CI / smoke contract |
+| `npm run test:f04` | F04 design identity A–H |
+| `npm run test:f05` | F05 agent test studio |
+| `npm run test:f06` | F06 admin security |
+| `npm run test:f07` | F07 admin platform |
+| `npm run test:f08a` | F08-A knowledge retrieval scope |
+| `npm run test:f08b` | F08-B chunk / score / select |
+| `npm run test:f08c` | F08-C WEB boost / dedupe |
+| `npm run test:f08d` | F08-D empty KB / large-doc hint |
+| `npm run test:f08e` | F08-E retrieve caps |
+| `npm run test:f08` | F08 A–H knowledge retrieval |
+| `npm run test:f09` | F09 A–H prompts & guidance |
+| `npm run test:crawl-schedule` | Scheduled website re-crawl |
+| `npm run test:shipped` | Full F01–F09 + crawl schedule smoke |
+| `npm run bench:f02b` | Latency baselines |
+| `npm run load:f02h` | Concurrent chat + analytics cold (needs server) |
 
 ## CI
 
-PRs run `.github/workflows/ci.yml`: **lint always**. HTTP smoke (`test:product`, then `test:admin`) runs only when these GitHub repo secrets exist:
+PRs: **Lint** always (red = cannot merge once branch protection is on). **Shipped smoke** (`npm run test:shipped` — F01–F09 + crawl schedule) always runs without secrets. **HTTP smoke** (`test:product`, `test:bugfix`, optional `test:admin`) runs only when GitHub secrets are set; missing secrets → explicit skip (still green). When secrets *are* set, a failing smoke **fails the job**.
 
-- `TEST_BASE_URL` — live app origin, no trailing slash (preview or production)
-- `DATABASE_URL` — same Neon as that app (cleanup + A0 checks)
-- `OPENAI_API_KEY` — needed for studio chat
-- `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` — required for `test:admin` only
+| Secret | Used for |
+|--------|----------|
+| `TEST_BASE_URL` | Prefer a **Vercel preview** URL (not localhost) for merge gates |
+| `DATABASE_URL` | Product smoke cleanup (delete temp users) |
+| `OPENAI_API_KEY` | One FAQ chat in product smoke |
+| `ADMIN_BOOTSTRAP_EMAIL` | Admin smoke + reserved-email register check |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Admin smoke |
 
-If those secrets are missing, the smoke job **skips and still passes** (documented skip). After secrets are set, a failing smoke **fails the PR**. Branch protection (require “Lint”) is up to the repo admin.
+**Branch protection:** require the **Lint** check; also require **HTTP smoke** once the secrets above are configured.
 
-Local: `npm run dev`, then `npm run test:product`. Signups must be open.
+**Release / preview:** run `npx prisma migrate deploy` against Neon (`DIRECT_URL`) before or with prod promote — never `prisma migrate dev` on Vercel. For preview deploys, set `AUTH_URL` and `NEXT_PUBLIC_APP_URL` to the preview host.

@@ -1,10 +1,11 @@
 # Hapy — Week 3, intern leftovers, and named out-of-scope backlog
 
 **Who this is for:** after product Phases **0–11** and Admin **A0–A6**.  
-**Sources:** internship doc *Hapy — AI Customer Support & Customer Insights* §28 Optional Week 3, §29 Out of Scope, §30 Definition of Done; `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`; `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`; live app review (login/register/admin 404).  
+**Sources:** internship requirements `.docx` §28 Optional Week 3, §29 Out of Scope, §30 Definition of Done; live app.  
 **Rule from the internship doc:** Week 3 = *choose only a few engineering items*. *Do not expand the product horizontally.* Out-of-scope stays named here so it is planned, not forgotten — **do not start P3+ until this file is explicitly reopened.**
 
-**Competitor deep audits (Zendesk / Intercom / Botpress) + fusion roadmap:** [`AUDIT_ZENDESK_VS_HAPY.md`](AUDIT_ZENDESK_VS_HAPY.md) · [`AUDIT_INTERCOM_VS_HAPY.md`](AUDIT_INTERCOM_VS_HAPY.md) · [`AUDIT_BOTPRESS_VS_HAPY.md`](AUDIT_BOTPRESS_VS_HAPY.md) · [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
+**Start here for execution:** [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md) · per-feature plans in [`features/`](features/) (F01–F12).  
+**Competitor audits + fusion:** [`AUDIT_ZENDESK_VS_HAPY.md`](AUDIT_ZENDESK_VS_HAPY.md) · [`AUDIT_INTERCOM_VS_HAPY.md`](AUDIT_INTERCOM_VS_HAPY.md) · [`AUDIT_BOTPRESS_VS_HAPY.md`](AUDIT_BOTPRESS_VS_HAPY.md) · [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
 
 This file is the **priority-ordered backlog**. Checkboxes are the work remaining, not history of Phases 0–11.
 
@@ -101,7 +102,7 @@ Internship §30 still has items that are process/ops, not new screens. Browser p
 
 **Done when:** written smoke notes (pass/fail) against the live URL. Do not mark done from localhost only.
 
-**Blocked:** needs Vercel access. Checklist: [`docs/VERCEL_SMOKE.md`](VERCEL_SMOKE.md).
+**Blocked:** needs Vercel access. Use README → Go-live smoke against the live URL.
 
 ---
 
@@ -109,7 +110,7 @@ Internship §30 still has items that are process/ops, not new screens. Browser p
 
 ### P0-3 — Automated tests + CI (Week 3 item, treated as P0)
 
-Internship Week 3 lists *Automated tests* and *CI/CD*. Admin has `scripts/test-a0.mjs` + `scripts/test-admin-v1.mjs`. Product happy path is not in CI.
+Internship Week 3 lists *Automated tests* and *CI/CD*. **F03 shipped:** lint always; contract smokes; product + bugfix + admin HTTP smoke when GitHub secrets exist (`TEST_BASE_URL` prefer preview). See [`features/F03_PRODUCTION_TESTING_CI.md`](features/F03_PRODUCTION_TESTING_CI.md).
 
 **Depth:**
 
@@ -136,9 +137,9 @@ Internship §30–31: README complete, GitHub organized, reviewed by both intern
 - 8–12 slide / 5-minute demo: problem → agent + knowledge → chat → insights → embed → admin inspect (optional).
 - Intern review checklist signed (process, not code).
 
-**Done when:** a stranger can clone + `.env.example` + run; demo script exists in `docs/` or README.
+**Done when:** a stranger can clone + `.env.example` + run; demo notes live in README (+ `/demo-slides.html`).
 
-**Code:** README clone path + env + workspaces + migrations list; [`docs/DEMO_SCRIPT.md`](DEMO_SCRIPT.md); [`docs/INTERN_REVIEW_CHECKLIST.md`](INTERN_REVIEW_CHECKLIST.md) (names/dates are process — fill when you review). `.env` stays gitignored.
+**Code:** README clone path + env + workspaces + migrations list; demo slides at `/demo-slides.html`. `.env` stays gitignored.
 
 ---
 
@@ -473,7 +474,7 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ## P3-PRODUCT-EXTRAS — Fullstack “optional post-MVP” (not intern Week 3)
 
-From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain).
+Named post-MVP product extras (not intern Week 3): Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain).
 
 **Depth (when opened, one at a time):**
 
@@ -509,9 +510,9 @@ From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citati
 ### P0
 
 - [x] P0-1 Google button *(code done; confirm locally on /login + /register)*
-- [x] P0-2 Vercel smoke *(product pass 2026-08-20; admin login on live still fail — see docs/VERCEL_SMOKE.md)*
-- [x] P0-3 Tests + CI *(lint always; HTTP smoke skips without GitHub secrets)*
-- [x] P0-4 README + demo *(interns still fill the review checklist)*
+- [x] P0-2 Vercel smoke *(product pass 2026-08-20; re-check admin login on live if needed)*
+- [x] P0-3 Tests + CI *(F03: lint + contracts always; HTTP smoke when secrets; unique emails / isolation / knowledge phrase)*
+- [x] P0-4 README + demo
 - [x] P0-5 Critical errors
 
 
@@ -551,12 +552,13 @@ From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citati
 ## Related docs
 
 
-| File                                                   | Role                                   |
-| ------------------------------------------------------ | -------------------------------------- |
-| Internship `.docx` §28–31                              | Original Week 3 / OOS / DoD wording    |
-| This file                                              | **Priority backlog + named OOS depth** |
-| `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)` | Phases 0–11 + product P-O*             |
-| `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`             | Admin A0–A6 + O1+                      |
-| `[docs/data-pipeline.md](data-pipeline.md)`            | Classify / analytics pipeline          |
+| File | Role |
+|------|------|
+| Internship `.docx` | Requirements (§28–31 Week 3 / OOS / DoD) |
+| [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md) | **This-week order + analysis** |
+| [`features/`](features/) | Individual feature plans F01–F12 |
+| This file | Priority backlog + named OOS |
+| [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md) | Unique product roadmap |
+| Audits Zendesk / Intercom / Botpress | Competitor deep dives |
 
 

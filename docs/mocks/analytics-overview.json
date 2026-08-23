@@ -1,9 +1,0 @@
-{
-  "totalConversations": 128,
-  "totalMessages": 512,
-  "averageResponseTimeMs": 1800,
-  "averageConversationLength": 4.0,
-  "positiveSentimentPercent": 72.5,
-  "negativeSentimentPercent": 8.2,
-  "mostCommonTopic": "TECHNICAL"
-}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { AvatarImage } from "@/components/ui/avatar-image";
 import { cn } from "@/lib/utils";
 
 export function MessageList({
@@ -30,11 +31,10 @@ export function MessageList({
       {intro ? (
         <div className="mb-1 flex flex-col items-center gap-2 px-2 py-4 text-center">
           {intro.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <AvatarImage
               src={intro.avatarUrl}
-              alt=""
-              className="size-14 rounded-full object-cover"
+              size={56}
+              className="size-14 rounded-full"
             />
           ) : (
             <span
@@ -77,6 +77,7 @@ export function MessageList({
           messageId={msg.id}
           initialFeedback={msg.feedback}
           onFeedback={onFeedback}
+          usedKnowledge={msg.usedKnowledge}
         />
       ))}
       {loading ? (

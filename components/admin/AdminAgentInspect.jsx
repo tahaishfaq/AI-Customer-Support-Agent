@@ -168,7 +168,7 @@ export function AdminAgentInspect() {
         }
       />
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Info
           label="Agent"
           value={agent.enabled ? "Live" : "Disabled"}
@@ -179,7 +179,6 @@ export function AdminAgentInspect() {
           value={agent.embedEnabled ? "On" : "Off"}
           danger={!agent.embedEnabled}
         />
-        <Info label="Conversations" value={String(agent.conversationCount || 0)} />
         <Info
           label="Live website"
           href={agent.siteKnowledgeOrigin || null}
@@ -187,6 +186,27 @@ export function AdminAgentInspect() {
             agent.siteKnowledgeOrigin
               ? String(agent.siteKnowledgeOrigin).replace(/^https?:\/\//, "")
               : "Not embedded"
+          }
+        />
+        <Info label="Conversations" value={String(agent.conversationCount || 0)} />
+        <Info
+          label="Last chat"
+          href={
+            agent.lastChatId
+              ? `/admin/users/${agent.user.id}/workspaces/${agent.workspace.id}/agents/${agent.id}/conversations/${agent.lastChatId}`
+              : agent.lastChatAt
+                ? `/admin/users/${agent.user.id}/workspaces/${agent.workspace.id}/agents/${agent.id}/conversations`
+                : null
+          }
+          value={
+            agent.lastChatAt
+              ? new Date(agent.lastChatAt).toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Never"
           }
         />
       </section>

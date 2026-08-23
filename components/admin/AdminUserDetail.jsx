@@ -127,7 +127,16 @@ export function AdminUserDetail() {
       a.download = `hapy-user-${payload.user.email || id}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Export downloaded");
+      toast.success(
+        payload.truncated
+          ? "Export downloaded (truncated — see banner)"
+          : "Export downloaded"
+      );
+      if (payload.truncated) {
+        toast.message(
+          `Included up to ${payload.messageCap || 2000} messages per conversation`
+        );
+      }
     } catch (err) {
       toast.error(err.message || "Unable to export");
     } finally {

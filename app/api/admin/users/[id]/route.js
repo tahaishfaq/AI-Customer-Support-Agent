@@ -7,7 +7,7 @@ import { clientIp } from "@/lib/rate-limit";
 
 export async function GET(_request, { params }) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(_request);
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
@@ -30,7 +30,7 @@ export async function GET(_request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
 
     const { id } = await params;

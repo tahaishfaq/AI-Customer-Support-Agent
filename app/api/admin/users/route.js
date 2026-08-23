@@ -4,7 +4,7 @@ import { listAdminUsers } from "@/lib/services/admin-users.service";
 
 export async function GET(request) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
 
     const { searchParams } = new URL(request.url);

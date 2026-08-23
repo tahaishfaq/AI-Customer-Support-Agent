@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { AvatarImage } from "@/components/ui/avatar-image";
 
 const PLACEMENTS = [
   {
@@ -89,15 +90,13 @@ function fontFamily(font) {
   return "var(--font-display), var(--font-sans), system-ui, sans-serif";
 }
 
-function Avatar({ src, label, sizeClass, primary, invert = false }) {
+function Avatar({ src, label, sizeClass, primary, invert = false, size = 28 }) {
   if (src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <AvatarImage
         src={src}
-        alt=""
-        className={`${sizeClass} shrink-0 object-cover`}
-        style={{ borderRadius: "9999px" }}
+        size={size}
+        className={cn(sizeClass, "shrink-0 rounded-full")}
       />
     );
   }
@@ -147,7 +146,7 @@ function ChatWindow({
 
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden border shadow-[0_12px_40px_rgba(15,23,42,0.12)] ${className}`}
+      className={`flex w-full min-w-[280px] flex-col overflow-hidden border shadow-[0_12px_40px_rgba(15,23,42,0.12)] ${className}`}
       style={{
         backgroundColor: shellBg,
         color: shellFg,
@@ -157,7 +156,7 @@ function ChatWindow({
       }}
     >
       <div
-        className="flex items-center gap-2 px-3 py-2.5"
+        className="flex shrink-0 items-center gap-2 px-3 py-2.5"
         style={{ backgroundColor: headerBg, color: "#ffffff" }}
       >
         <Avatar
@@ -176,8 +175,9 @@ function ChatWindow({
         <RotateCcw className="size-3.5 shrink-0 opacity-80" aria-hidden />
       </div>
 
-      <div className="flex min-h-[220px] flex-1 flex-col gap-2 px-3 py-4">
-        <div className="mb-2 flex flex-col items-center gap-2 py-3">
+      {/* min-h-0 + overflow so max-height never lets bubbles bleed into the composer */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
+        <div className="mb-1 flex shrink-0 flex-col items-center gap-2 py-2">
           <Avatar
             src={identity.avatarUrl}
             label={label}
@@ -197,7 +197,7 @@ function ChatWindow({
           ) : null}
         </div>
 
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-2 pb-1">
           <div className="flex items-end gap-2">
             <Avatar
               src={identity.avatarUrl}
@@ -227,23 +227,18 @@ function ChatWindow({
               ) : null}
             </div>
           </div>
-          <div className="flex justify-end">
-            <div
-              className="max-w-[75%] px-3 py-2 text-[12px] text-white"
-              style={{
-                backgroundColor: primary,
-                borderRadius: `${Math.max(8, radius)}px`,
-              }}
-            >
-              I have a question
-            </div>
-          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderTop: `1px solid ${border}` }}>
+      <div
+        className="flex shrink-0 items-center gap-2 bg-inherit px-3 py-2"
+        style={{
+          borderTop: `1px solid ${border}`,
+          backgroundColor: shellBg,
+        }}
+      >
         <div
-          className="flex min-h-8 min-w-0 flex-1 items-center gap-1 px-3 py-1 text-[13px]"
+          className="flex min-h-8 min-w-0 flex-1 items-center gap-1 overflow-hidden px-3 py-1 text-[13px]"
           style={{
             backgroundColor: inputBg,
             color: muted,
@@ -257,11 +252,15 @@ function ChatWindow({
         <span
           className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
           style={{ backgroundColor: primary }}
+          aria-hidden
         >
           <Send className="size-3.5" />
         </span>
       </div>
-      <p className="px-3 pb-2 text-center text-[10px]" style={{ color: muted }}>
+      <p
+        className="shrink-0 px-3 pb-2 text-center text-[10px]"
+        style={{ color: muted, backgroundColor: shellBg }}
+      >
         {footer}
       </p>
     </div>
@@ -344,7 +343,10 @@ export function CustomizationPreview({ agent, customization }) {
         placement === "bottom-left" ? "items-start" : "items-end"
       )}
     >
-      <ChatWindow {...windowProps} className="max-h-[min(420px,52vh)] max-w-[320px]" />
+      <ChatWindow
+        {...windowProps}
+        className="h-[min(420px,52vh)] w-[320px] max-w-[calc(100vw-3rem)]"
+      />
       {proactive ? (
         <div className="flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
           <Avatar
@@ -363,48 +365,73 @@ export function CustomizationPreview({ agent, customization }) {
     </div>
   );
 
+  const siteChrome = (
+    <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[#f1f5f9] px-3 py-2">
+      <span className="size-2 rounded-full bg-[#fca5a5]" />
+      <span className="size-2 rounded-full bg-[#fcd34d]" />
+      <span className="size-2 rounded-full bg-[#86efac]" />
+      <span className="ml-3 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
+        yoursite.com
+      </span>
+    </div>
+  );
+
+  const siteBody = (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto max-w-lg">
+        <div className="h-3 w-24 rounded-full bg-white/90" />
+        <div className="mt-4 h-7 w-3/4 max-w-sm rounded-lg bg-white" />
+        <div className="mt-3 h-2.5 w-full rounded-full bg-white/75" />
+        <div className="mt-2 h-2.5 w-5/6 rounded-full bg-white/75" />
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="h-24 rounded-xl bg-white/95 shadow-sm" />
+          <div className="h-24 rounded-xl bg-white/80 shadow-sm" />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <div className="relative flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[linear-gradient(180deg,#e8eef3_0%,#dfe7ee_100%)]">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(15,23,42,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.06) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-
-        {embedded ? (
-          <div className="relative z-10 flex flex-1 p-4 sm:p-5">
-            <ChatWindow {...windowProps} className="max-w-none flex-1" />
-          </div>
-        ) : (
-          <div className="relative z-10 flex flex-1 flex-col items-end justify-start gap-3 px-4 pb-5 pt-5 sm:px-5">
-            <ChatWindow {...windowProps} className="max-w-[320px]" />
-            {proactive ? (
-              <div className="flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
-                <Avatar
-                  src={identity.avatarUrl}
-                  label={label}
-                  sizeClass="size-7 text-[10px]"
-                  primary={primary}
-                />
-                <div className="min-w-0">
-                  <p className="text-[12px] text-slate-800">{proactive}</p>
-                  <p className="mt-0.5 text-[10px] text-slate-400">
-                    a few moments ago
-                  </p>
+      {/* Live preview — reads as a real site + widget, not a toy grid */}
+      <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
+        {siteChrome}
+        <div className="relative min-h-[520px] bg-[#eef2f6]">
+          {siteBody}
+          {embedded ? (
+            <div className="relative z-10 flex min-h-[520px] p-3 sm:p-4">
+              <ChatWindow {...windowProps} className="max-w-none flex-1" />
+            </div>
+          ) : (
+            <div className="absolute bottom-4 right-4 z-10 flex max-w-[calc(100%-2rem)] flex-col items-end gap-3">
+              <ChatWindow
+                {...windowProps}
+                className="h-[380px] w-[320px] max-w-full"
+              />
+              {proactive ? (
+                <div className="flex max-w-[240px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
+                  <Avatar
+                    src={identity.avatarUrl}
+                    label={label}
+                    sizeClass="size-7 text-[10px]"
+                    primary={primary}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[12px] text-slate-800">{proactive}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400">
+                      a few moments ago
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : null}
-            {launcher}
-          </div>
-        )}
+              ) : null}
+              {launcher}
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="mt-3 text-[11px] font-medium text-[var(--color-muted)]">
-        Chat interface preview
+        How the widget sits on a customer site
       </p>
       <PlacementPicker
         className="mt-1.5"

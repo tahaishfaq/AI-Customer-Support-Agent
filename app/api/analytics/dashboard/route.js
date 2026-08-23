@@ -5,10 +5,13 @@ import {
   assertAnalyticsQuery,
   getDashboardForUser,
 } from "@/lib/services/analytics.service";
+import { resolveRequestId, requestIdHeaders } from "@/lib/observability/request-id";
+import { durationHeaders } from "@/lib/observability/duration";
 
 export async function GET(request) {
+  const started = Date.now();
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
 
     const agentId = request.nextUrl.searchParams.get("agentId") || undefined;
@@ -19,8 +22,14 @@ export async function GET(request) {
       agentId,
       range,
     });
-    return NextResponse.json(dashboard, { status: 200 });
+    return NextResponse.json(dashboard, {
+      status: 200,
+      headers: {
+        ...requestIdHeaders(resolveRequestId(request)),
+        ...durationHeaders(started),
+      },
+    });
   } catch (error) {
-    return handleAnalyticsError("GET /api/analytics/dashboard", error);
+    return handleAnalyticsError("GET /api/analytics/dashboard", error, request);
   }
 }

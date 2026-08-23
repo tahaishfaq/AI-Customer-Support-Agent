@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, ExternalLink, FileText, FileType2, Globe, Trash2 } from "lucide-react";
 import { DeleteKnowledgeDialog } from "@/components/knowledge/DeleteKnowledgeDialog";
 import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
+import { isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
 import { cn } from "@/lib/utils";
 
 function formatDate(value) {
@@ -24,6 +25,7 @@ export function KnowledgeItem({ document, onDeleted }) {
   const isPdf = document.type === "PDF";
   const isWeb = document.type === "WEB";
   const fileUrl = document.fileUrl;
+  const large = isLargeKnowledgeDoc(document);
 
   return (
     <>
@@ -73,6 +75,7 @@ export function KnowledgeItem({ document, onDeleted }) {
               {isWeb && document.origin
                 ? `${document.origin.replace(/^https?:\/\//, "")} · ${formatDate(document.createdAt)}`
                 : formatDate(document.createdAt)}
+              {large ? " · Large — relevant sections used in chat" : ""}
             </span>
           </span>
         </button>

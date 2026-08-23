@@ -1,16 +1,28 @@
-import { NextResponse } from "next/server";
+import { jsonError } from "@/lib/api/error-response";
+import { safeLogError } from "@/lib/observability/safe-log";
+import {
+  ANALYTICS_BUSY_MESSAGE,
+  isAnalyticsBusyError,
+} from "@/lib/observability/analytics-timeout";
 
-export function handleAnalyticsError(route, error) {
+export function handleAnalyticsError(route, error, request = null) {
   if (error.status === 400 || error.status === 403 || error.status === 404) {
-    return NextResponse.json(
-      { error: { message: error.message, details: {} } },
-      { status: error.status }
-    );
+    return jsonError(request, error.status, error.message);
   }
 
-  console.error(route, error);
-  return NextResponse.json(
-    { error: { message: "Unable to load analytics", details: {} } },
-    { status: 500 }
-  );
+  if (isAnalyticsBusyError(error)) {
+    safeLogError(route, {
+      route: "analytics",
+      status: 503,
+      code: error?.code || "ANALYTICS_TIMEOUT",
+    });
+    return jsonError(request, 503, ANALYTICS_BUSY_MESSAGE);
+  }
+
+  safeLogError(route, {
+    route: "analytics",
+    status: 500,
+    code: error?.code || error?.status || undefined,
+  });
+  return jsonError(request, 500, "Unable to load analytics");
 }

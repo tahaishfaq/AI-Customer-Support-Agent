@@ -93,16 +93,16 @@ export function AgentOverview({ agent, overview, knowledgeCount, conversations }
 
   const shortcuts = [
     {
-      href: `/agents/${agent.id}/test`,
-      label: "Test",
-      hint: "Studio emulator",
-      icon: FlaskConical,
-    },
-    {
       href: `/agents/${agent.id}/knowledge`,
       label: "Knowledge",
       hint: `${knowledgeCount} source${knowledgeCount === 1 ? "" : "s"}`,
       icon: BookOpen,
+    },
+    {
+      href: `/agents/${agent.id}/test`,
+      label: "Test",
+      hint: "Studio emulator",
+      icon: FlaskConical,
     },
     {
       href: `/agents/${agent.id}/customization`,

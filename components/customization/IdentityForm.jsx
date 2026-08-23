@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadAgentAvatar } from "@/lib/api/agents";
+import { AvatarImage } from "@/components/ui/avatar-image";
 import {
   FieldBlock,
   FormSection,
@@ -13,6 +14,8 @@ import {
   areaClass,
   fieldClass,
 } from "@/components/customization/CustomizationFields";
+
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 function monogram(name) {
   if (!name) return "A";
@@ -34,6 +37,10 @@ export function IdentityForm({ agentId, identity, onChange }) {
 
   async function handleAvatar(file) {
     if (!file) return;
+    if (file.size > AVATAR_MAX_BYTES) {
+      toast.error("Image must be 2MB or smaller");
+      return;
+    }
     setUploading(true);
     try {
       const data = await uploadAgentAvatar(agentId, file);
@@ -62,11 +69,10 @@ export function IdentityForm({ agentId, identity, onChange }) {
               className="relative flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm"
             >
               {identity.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <AvatarImage
                   src={identity.avatarUrl}
-                  alt=""
-                  className="size-full object-cover"
+                  size={72}
+                  className="size-full"
                 />
               ) : (
                 <span className="text-base font-semibold text-[var(--color-primary)]">
@@ -98,7 +104,7 @@ export function IdentityForm({ agentId, identity, onChange }) {
                   disabled={uploading}
                   className="text-[12px] font-medium text-[var(--color-primary)] hover:underline"
                 >
-                  Upload image
+                  Upload image (max 2MB)
                 </button>
                 {identity.avatarUrl ? (
                   <button

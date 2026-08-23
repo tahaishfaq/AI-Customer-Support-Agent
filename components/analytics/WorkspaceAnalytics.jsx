@@ -6,10 +6,12 @@ import {
   AgentCountCard,
   AnalyticsError,
   AnalyticsKpiGrid,
+  ANALYTICS_RANGE_IDS,
   embedSiteHost,
   formatPercent,
   formatResponseTime,
   formatTopic,
+  RangeChips,
   useAnalyticsDashboard,
 } from "@/components/analytics/analytics-shared";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
@@ -17,38 +19,41 @@ import {
   ActivityHeatmap,
   AgentRadarChart,
   ChartAreaInteractive,
+  ChartSkeleton,
   ResponseHistogram,
   StackedSentimentChart,
   TopicMixChart,
   WorkloadChart,
-} from "@/components/analytics/WorkspaceCharts";
+} from "@/components/analytics/lazy-charts";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUrlTab } from "@/hooks/use-url-tab";
-
-function ChartSkeleton({ className }) {
-  return <div className={cn("animate-pulse rounded-lg bg-[var(--color-bg)]", className)} />;
-}
-
-const RANGES = ["7d", "30d"];
 
 export function WorkspaceAnalytics({
   loader,
   agentHref,
   hideManageAgents = false,
 }) {
-  const [range, setRange] = useUrlTab("range", RANGES, "7d");
-  const { data, loading, error } = useAnalyticsDashboard({ range, loader });
+  const [range, setRange] = useUrlTab("range", ANALYTICS_RANGE_IDS, "7d");
+  const { data, loading, error, reload } = useAnalyticsDashboard({ range, loader });
   const overview = data?.overview;
   const agents = data?.agents || [];
 
   return (
     <div className="space-y-4">
-      <p className="text-[12px] text-[var(--color-muted)]">
-        Combined insight across every agent in this workspace.
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[12px] text-[var(--color-muted)]">
+            Combined insight across every agent in this workspace.
+          </p>
+          <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+            Range applies to KPIs, charts, and the agent table below.
+          </p>
+        </div>
+        <RangeChips range={range} onChange={setRange} />
+      </div>
 
-      <AnalyticsError error={error} />
+      <AnalyticsError error={error} onRetry={reload} />
 
       <AnalyticsKpiGrid
         overview={overview}
@@ -65,7 +70,6 @@ export function WorkspaceAnalytics({
       <ChartAreaInteractive
         points={data?.trends?.points || []}
         range={range}
-        onRangeChange={setRange}
         loading={loading}
       />
 

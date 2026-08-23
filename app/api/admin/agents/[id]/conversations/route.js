@@ -4,7 +4,7 @@ import { listAdminConversations } from "@/lib/services/admin-inspect.service";
 
 export async function GET(request, { params }) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
 
     const { id } = await params;

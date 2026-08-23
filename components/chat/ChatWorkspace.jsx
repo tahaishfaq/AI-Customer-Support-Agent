@@ -206,11 +206,15 @@ export function ChatWorkspace() {
       if (customization.features.notificationSound) {
         playNotificationBeep();
       }
+      if (result.degraded) {
+        setError("Generation failed — Try again");
+        setLastFailedText(text);
+      }
+      setSending(false);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setError(err.message || "Unable to send message");
       setLastFailedText(text);
-    } finally {
       setSending(false);
     }
   }
@@ -300,7 +304,7 @@ export function ChatWorkspace() {
                 disabled={sending}
                 onClick={() => send(lastFailedText)}
               >
-                Retry
+                Try again
               </Button>
             ) : null}
           </div>

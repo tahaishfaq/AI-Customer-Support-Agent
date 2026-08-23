@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { ChatAttachmentPreview } from "@/components/chat/ChatAttachmentPreview";
+import { AvatarImage } from "@/components/ui/avatar-image";
 import { parseChatAttachment } from "@/lib/utils/chat-attachments";
 import { cn } from "@/lib/utils";
 
@@ -82,11 +83,10 @@ const markdownComponents = {
 function AgentMark({ identity, className }) {
   if (identity?.avatarUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <AvatarImage
         src={identity.avatarUrl}
-        alt=""
-        className={cn("shrink-0 rounded-full object-cover", className)}
+        size={24}
+        className={cn("shrink-0 rounded-full", className)}
       />
     );
   }
@@ -122,10 +122,14 @@ export function MessageBubble({
   messageId,
   initialFeedback = null,
   onFeedback,
+  usedKnowledge = null,
 }) {
   const isUser = role === "USER";
   const [feedback, setFeedback] = useState(initialFeedback);
   const showAgentAvatar = themed && !isUser && identity;
+  const knowledgeTitles = Array.isArray(usedKnowledge)
+    ? usedKnowledge.map((d) => d?.name).filter(Boolean)
+    : [];
   const parsedFile = parseChatAttachment(content);
   const caption = parsedFile.display
     .replace(/!\[[^\]]*\]\(https?:[^)]+\)/g, "")
@@ -140,7 +144,7 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "flex w-full flex-col gap-1",
+        "animate-message-in flex w-full flex-col gap-1",
         isUser ? "items-end" : "items-start"
       )}
     >
@@ -263,6 +267,21 @@ export function MessageBubble({
           </span>
         ) : null}
       </div>
+
+      {!isUser && !pending && knowledgeTitles.length > 0 ? (
+        <p
+          className={cn(
+            "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1",
+            themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+          )}
+        >
+          <span className="font-medium text-[var(--color-primary)]">
+            Used knowledge:
+          </span>{" "}
+          {knowledgeTitles.join(" · ")}
+        </p>
+      ) : null}
 
       {!isUser && !pending && showFeedback ? (
         <div

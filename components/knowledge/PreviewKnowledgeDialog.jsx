@@ -68,7 +68,15 @@ export function PreviewKnowledgeDialog({ document, open, onOpenChange }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/80 p-4 sm:p-5">
-            <KnowledgeMarkdown content={document.content} />
+            {document.content ? (
+              <KnowledgeMarkdown content={document.content} />
+            ) : (
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Body not loaded in admin inspect (metadata only). Use the
+                customer workspace to edit full knowledge text
+                {fileUrl ? ", or open the original file." : "."}
+              </p>
+            )}
           </div>
         </div>
 

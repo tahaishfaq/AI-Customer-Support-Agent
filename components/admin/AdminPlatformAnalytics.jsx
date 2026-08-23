@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { getAdminPlatformDashboard } from "@/lib/api/admin";
+import { getAdminOverview, getAdminPlatformDashboard } from "@/lib/api/admin";
 import {
   AnalyticsError,
   embedSiteHost,
@@ -17,7 +17,7 @@ import {
   ActivityHeatmap,
   PlatformGrowthChart,
   StackedSentimentChart,
-} from "@/components/analytics/WorkspaceCharts";
+} from "@/components/analytics/lazy-charts";
 import {
   ChartContainer,
   ChartLegend,
@@ -27,12 +27,12 @@ import {
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { useUrlTab } from "@/hooks/use-url-tab";
+import { ANALYTICS_RANGE_IDS, ANALYTICS_RANGES } from "@/components/analytics/analytics-shared";
 
-const RANGES = [
-  { id: "7d", label: "7d" },
-  { id: "30d", label: "30d" },
-  { id: "all", label: "All" },
-];
+const RANGES = ANALYTICS_RANGES.map((item) => ({
+  id: item.id,
+  label: item.id === "1d" ? "Today" : item.id === "all" ? "All" : item.id,
+}));
 
 const AGENT_PAGE_SIZE = 6;
 
@@ -64,22 +64,34 @@ function Panel({ title, aside, children, className }) {
   );
 }
 
-function Stat({ label, value, warn }) {
-  return (
-    <div className="min-w-0 px-2.5 py-1.5">
+function Stat({ label, value, warn, href }) {
+  const inner = (
+    <>
       <p className="truncate text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
         {label}
       </p>
       <p
         className={cn(
           "mt-0.5 truncate text-[15px] font-semibold tabular-nums leading-tight text-[var(--color-text)]",
-          warn && "text-[var(--color-danger)]"
+          warn && "text-[var(--color-danger)]",
+          href && "group-hover:text-[var(--color-primary)]"
         )}
       >
         {value}
       </p>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="group min-w-0 px-2.5 py-1.5 outline-none focus-visible:bg-[var(--color-bg)]"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="min-w-0 px-2.5 py-1.5">{inner}</div>;
 }
 
 function Empty({ children }) {
@@ -299,15 +311,68 @@ function SentimentSplit({ positive, negative }) {
 }
 
 export function AdminPlatformAnalytics() {
-  const [range, setRange] = useUrlTab("range", ["7d", "30d", "all"], "7d");
+  const [range, setRange] = useUrlTab("range", ANALYTICS_RANGE_IDS, "7d");
+  const [chartsEnabled, setChartsEnabled] = useState(false);
+  const [shell, setShell] = useState(null);
+
+  // Fast KPI shell (counts only) — paints before heavy dashboard.
+  useEffect(() => {
+    let cancelled = false;
+    getAdminOverview()
+      .then((overview) => {
+        if (!cancelled) setShell(overview);
+      })
+      .catch(() => {
+        /* shell optional */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Defer heavy dashboard fetch until idle so KPI shell can paint (F04-E).
+  useEffect(() => {
+    setChartsEnabled(false);
+    let cancelled = false;
+    const enable = () => {
+      if (!cancelled) setChartsEnabled(true);
+    };
+    let idleId;
+    let timeoutId;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(enable, { timeout: 400 });
+    } else {
+      timeoutId = window.setTimeout(enable, 50);
+    }
+    return () => {
+      cancelled = true;
+      if (idleId != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [range]);
+
   const loader = useCallback(
     ({ range: nextRange } = {}) => getAdminPlatformDashboard({ range: nextRange }),
     []
   );
-  const { data, loading, error } = useAnalyticsDashboard({ range, loader });
+  const { data, loading, error, reload } = useAnalyticsDashboard({
+    range,
+    loader,
+    enabled: chartsEnabled,
+    keepPrevious: true,
+  });
   const overview = data?.overview;
   const platform = data?.platform;
   const agents = data?.agents || [];
+  const chartsLoading = !chartsEnabled || loading;
+  const shellUsers = platform?.users ?? shell?.users;
+  const shellSpaces = platform?.workspaces ?? shell?.workspaces;
+  const shellAgents = platform?.agents ?? shell?.agents;
+  const shellChatsTotal = platform?.conversationsTotal ?? shell?.conversationsTotal;
+  const pendingRestores = shell?.pendingRestoreCount ?? 0;
+  const suspendedUsers = shell?.suspendedUsers ?? 0;
   const [agentPage, setAgentPage] = useState(1);
   const agentPages = Math.max(1, Math.ceil(agents.length / AGENT_PAGE_SIZE));
   const safeAgentPage = Math.min(agentPage, agentPages);
@@ -388,41 +453,73 @@ export function AdminPlatformAnalytics() {
         </div>
       </header>
 
-      <AnalyticsError error={error} />
+      <AnalyticsError error={error} onRetry={reload} />
 
-      <section className="mt-2 grid grid-cols-2 overflow-hidden rounded-md border border-[var(--color-border)] bg-white sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-11 [&>div]:border-b [&>div]:border-r [&>div]:border-[var(--color-border)]">
-        <Stat label="Users" value={loading ? "—" : platform?.users ?? 0} />
-        <Stat label="Spaces" value={loading ? "—" : platform?.workspaces ?? 0} />
-        <Stat label="Agents" value={loading ? "—" : platform?.agents ?? 0} />
-        <Stat label="Live sites" value={loading ? "—" : platform?.liveEmbeds ?? 0} />
-        <Stat label="Embed %" value={loading ? "—" : `${embedRate}%`} />
+      <section className="mt-2 grid grid-cols-2 overflow-hidden rounded-md border border-[var(--color-border)] bg-white sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-12 [&>a]:border-b [&>a]:border-r [&>a]:border-[var(--color-border)] [&>div]:border-b [&>div]:border-r [&>div]:border-[var(--color-border)]">
+        <Stat
+          label="Users"
+          value={shellUsers == null ? "—" : shellUsers}
+          href="/admin/users"
+        />
+        <Stat
+          label="Suspended"
+          value={shell == null ? "—" : suspendedUsers}
+          href="/admin/users?status=SUSPENDED"
+          warn={suspendedUsers > 0}
+        />
+        <Stat
+          label="Requests"
+          value={shell == null ? "—" : pendingRestores}
+          href="/admin/requests"
+          warn={pendingRestores > 0}
+        />
+        <Stat
+          label="Spaces"
+          value={shellSpaces == null ? "—" : shellSpaces}
+        />
+        <Stat
+          label="Agents"
+          value={shellAgents == null ? "—" : shellAgents}
+        />
+        <Stat label="Live sites" value={chartsLoading && !platform ? "—" : platform?.liveEmbeds ?? 0} />
+        <Stat label="Embed %" value={chartsLoading && !platform ? "—" : `${embedRate}%`} />
         <Stat
           label="Active agents"
-          value={loading ? "—" : `${activeAgents}/${platform?.agents ?? 0}`}
+          value={
+            chartsLoading && !data
+              ? "—"
+              : `${activeAgents}/${platform?.agents ?? shellAgents ?? 0}`
+          }
         />
         <Stat
           label="Chats"
-          value={loading ? "—" : overview?.totalConversations ?? 0}
+          value={
+            chartsLoading && !overview
+              ? shellChatsTotal == null
+                ? "—"
+                : shellChatsTotal
+              : overview?.totalConversations ?? 0
+          }
         />
-        <Stat label="Messages" value={loading ? "—" : overview?.totalMessages ?? 0} />
-        <Stat
-          label="Avg reply"
-          value={loading ? "—" : formatResponseTime(overview?.averageResponseTimeMs)}
-        />
+        <Stat label="Messages" value={chartsLoading && !overview ? "—" : overview?.totalMessages ?? 0} />
         <Stat
           label="Positive"
-          value={loading ? "—" : formatPercent(overview?.positiveSentimentPercent)}
+          value={chartsLoading && !overview ? "—" : formatPercent(overview?.positiveSentimentPercent)}
         />
         <Stat
           label="Negative"
-          value={loading ? "—" : formatPercent(overview?.negativeSentimentPercent)}
+          value={chartsLoading && !overview ? "—" : formatPercent(overview?.negativeSentimentPercent)}
           warn={(overview?.negativeSentimentPercent || 0) >= 25}
         />
       </section>
 
+      <p className="mt-1.5 text-[10px] text-[var(--color-muted)]">
+        Growth KPIs (users / spaces / agents / chats) · Quality KPIs (positive / negative sentiment)
+      </p>
+
       <div className="mt-2 grid min-w-0 gap-2 lg:grid-cols-2">
         <Panel title="Growth" aside="new users / agents / sites / chats">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[168px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <PlatformGrowthChart
@@ -432,7 +529,7 @@ export function AdminPlatformAnalytics() {
           )}
         </Panel>
         <Panel title="Chat volume" aside={`${overview?.totalConversations ?? 0} chats`}>
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[168px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <VolumeChart points={data?.trends?.points || []} />
@@ -442,7 +539,7 @@ export function AdminPlatformAnalytics() {
 
       <div className="mt-2 grid min-w-0 gap-2 lg:grid-cols-3">
         <Panel title="Reach hours" aside={data?.heatmap?.peak?.label || "—"} className="lg:col-span-1">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[148px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <ActivityHeatmap heatmap={data?.heatmap} compact />
@@ -452,14 +549,14 @@ export function AdminPlatformAnalytics() {
           title="Topics"
           aside={`${overview?.totalConversations ?? 0} chats`}
         >
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[120px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <Composition rows={topicRows} empty="No categorized chats yet." />
           )}
         </Panel>
         <Panel title="Sentiment mix">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[120px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <Composition rows={sentimentRows} empty="No labeled sentiment yet." />
@@ -469,7 +566,7 @@ export function AdminPlatformAnalytics() {
 
       <div className="mt-2 grid min-w-0 gap-2 lg:grid-cols-3">
         <Panel title="Sentiment trend" className="lg:col-span-1">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[168px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <StackedSentimentChart
@@ -482,14 +579,14 @@ export function AdminPlatformAnalytics() {
           title="Latency buckets"
           aside={formatResponseTime(overview?.averageResponseTimeMs)}
         >
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[120px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (
             <LatencyBars buckets={buckets} />
           )}
         </Panel>
         <Panel title="Notes">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[168px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : (data?.insights || []).length === 0 ? (
             <Empty>No notes for this range.</Empty>
@@ -515,7 +612,7 @@ export function AdminPlatformAnalytics() {
           title="Live websites"
           aside={`${liveSites.length} origin${liveSites.length === 1 ? "" : "s"}`}
         >
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[120px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : liveSites.length === 0 ? (
             <Empty>No public origins locked yet.</Empty>
@@ -545,7 +642,7 @@ export function AdminPlatformAnalytics() {
           )}
         </Panel>
         <Panel title="Reply mix" className="lg:col-span-2">
-          {loading ? (
+          {chartsLoading && !data ? (
             <div className="h-[88px] animate-pulse rounded bg-[var(--color-bg)]" />
           ) : buckets.every((row) => !row.count) ? (
             <Empty>No timed replies.</Empty>
@@ -588,7 +685,7 @@ export function AdminPlatformAnalytics() {
             {agents.length} total · {AGENT_PAGE_SIZE} / page
           </p>
         </div>
-        {loading ? (
+        {chartsLoading && !data ? (
           <p className="flex flex-1 items-center px-3 text-[12px] text-[var(--color-muted)]">Loading…</p>
         ) : agents.length === 0 ? (
           <p className="flex flex-1 items-center px-3 text-[12px] text-[var(--color-muted)]">No agents.</p>

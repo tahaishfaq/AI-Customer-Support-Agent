@@ -136,6 +136,7 @@ model Agent {
   name                 String
   description          String?
   systemPrompt         String
+  answerStyle          String              @default("DETAILED")
   welcomeMessage       String
   customization        Json?
   publicKey            String?             @unique
@@ -143,6 +144,7 @@ model Agent {
   embedEnabled         Boolean             @default(true)
   siteKnowledgeOrigin  String?             @unique
   siteCrawledAt        DateTime?
+  crawlRecrawlHours    Int                 @default(0)
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -181,6 +183,7 @@ model SiteCrawlJob {
   status       CrawlJobStatus @default(QUEUED)
   pagesCrawled Int            @default(0)
   error        String?
+  requestId    String?
   startedAt    DateTime?
   finishedAt   DateTime?
   createdAt    DateTime       @default(now())
@@ -188,6 +191,7 @@ model SiteCrawlJob {
 
   @@index([agentId])
   @@index([status])
+  @@index([requestId])
 }
 
 model Conversation {
@@ -256,5 +260,7 @@ model PlatformSettings {
   globalEmbedKill       Boolean  @default(false)
   maxWorkspacesPerUser  Int      @default(20)
   maxAgentsPerWorkspace Int      @default(0)
+  /** Mirror of ADMIN_BOOTSTRAP_EMAIL after seed — blocks Google if env drifts */
+  reservedAdminEmail    String?
   updatedAt             DateTime @updatedAt
 }

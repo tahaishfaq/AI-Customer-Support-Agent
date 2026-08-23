@@ -59,6 +59,7 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   const [pastChats, setPastChats] = useState([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [lastFailedText, setLastFailedText] = useState("");
 
   useEffect(() => {
     unlockNotificationAudio();
@@ -155,6 +156,7 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     unlockNotificationAudio();
     setSending(true);
     setError("");
+    setLastFailedText("");
     setHistoryOpen(false);
     const optimisticId = `local-${Date.now()}`;
     const nextUser = [...messages, { id: optimisticId, role: "USER", content: text, local: true }];
@@ -191,10 +193,15 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       setMessages(next);
       persist(data.conversationId, next);
       if (features.notificationSound) playNotificationBeep();
+      if (data.degraded) {
+        setError("Generation failed — Try again");
+        setLastFailedText(text);
+      }
+      setSending(false);
     } catch (err) {
       setError(err.message || "Unable to send message");
+      setLastFailedText(text);
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-    } finally {
       setSending(false);
     }
   }
@@ -300,7 +307,22 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
         onFeedback={rateMessage}
       />
       {error ? (
-        <p className="px-3 pb-1 text-[12px] text-red-500">{error}</p>
+        <div className="mx-2 mb-1 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-2 py-1.5 text-[12px] text-[var(--color-danger)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p>{error}</p>
+            {lastFailedText ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={sending}
+                onClick={() => send(lastFailedText)}
+              >
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        </div>
       ) : null}
       <ChatComposer
         compact

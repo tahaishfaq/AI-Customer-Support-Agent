@@ -9,10 +9,10 @@ export default function AuthError({ error, retry }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-[#0f172a]">
+      <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-[var(--color-text)]">
         Something went wrong
       </h2>
-      <p className="text-sm text-[#475569]">
+      <p className="text-sm text-[var(--color-text-secondary)]">
         Please try again. If the problem continues, refresh the page.
       </p>
       <button

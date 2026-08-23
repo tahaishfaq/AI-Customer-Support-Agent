@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getAdminOverview } from "@/lib/api/admin";
 import { useAuthStore } from "@/store/auth-store";
 import {
   ADMIN_NAV_GROUPS,
@@ -34,10 +36,11 @@ function initials(name) {
     .join("");
 }
 
-function NavLink({ item, onNavigate }) {
+function NavLink({ item, onNavigate, badge }) {
   const pathname = usePathname();
   const active = isAdminNavActive(pathname, item);
   const Icon = ICONS[item.icon];
+  const showBadge = Number(badge) > 0;
 
   return (
     <Link
@@ -58,13 +61,40 @@ function NavLink({ item, onNavigate }) {
           )}
         />
       ) : null}
-      <span className="truncate">{item.label}</span>
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {showBadge ? (
+        <span
+          className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-danger)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white"
+          aria-label={`${badge} pending`}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
 
 export function AdminSidebar({ onNavigate }) {
   const user = useAuthStore((s) => s.user);
+  const pathname = usePathname();
+  const [pendingRestoreCount, setPendingRestoreCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getAdminOverview();
+        if (!cancelled) {
+          setPendingRestoreCount(Number(data?.pendingRestoreCount) || 0);
+        }
+      } catch {
+        if (!cancelled) setPendingRestoreCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-surface)]">
@@ -93,6 +123,9 @@ export function AdminSidebar({ onNavigate }) {
                   key={item.href}
                   item={item}
                   onNavigate={onNavigate}
+                  badge={
+                    item.icon === "requests" ? pendingRestoreCount : undefined
+                  }
                 />
               ))}
             </div>

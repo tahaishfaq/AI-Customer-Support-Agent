@@ -46,8 +46,8 @@ function Row({ title, hint, children }) {
 export function AdminSafety() {
   const [settings, setSettings] = useState(null);
   const [draftCaps, setDraftCaps] = useState({
-    maxWorkspacesPerUser: 20,
-    maxAgentsPerWorkspace: 0,
+    maxWorkspacesPerUser: 10,
+    maxAgentsPerWorkspace: 25,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -156,7 +156,8 @@ export function AdminSafety() {
             Soft caps
           </p>
           <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">
-            0 means unlimited. Existing items are not deleted if you lower a cap.
+            Cost brakes. 0 means unlimited. Suggested: ~10 workspaces / ~25 agents.
+            Existing items are not deleted if you lower a cap.
           </p>
         </div>
         <div className="grid gap-4 border-t border-[var(--color-border)] px-4 py-4 sm:grid-cols-2">

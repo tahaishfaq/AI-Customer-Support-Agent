@@ -1,6 +1,6 @@
 # Deep audit — Botpress vs Hapy
 
-**Sources (2026-08-20):** [Botpress.com](https://botpress.com/), [Botpress Engine / LLMz](https://botpress.com/features/engine), [How Botpress interfaces with LLMs](https://botpress.com/blog/botpress-interfaces-llms), [Autonomous Node docs](https://www.botpress.com/docs/studio/concepts/nodes/autonomous-node), existing repo note [`BOTPRESS_GAP_PLAN.md`](BOTPRESS_GAP_PLAN.md).  
+**Sources (2026-08-20):** [Botpress.com](https://botpress.com/), [Botpress Engine / LLMz](https://botpress.com/features/engine), [How Botpress interfaces with LLMs](https://botpress.com/blog/botpress-interfaces-llms), [Autonomous Node docs](https://www.botpress.com/docs/studio/concepts/nodes/autonomous-node).  
 **Hapy baseline:** Agent Studio tabs (Overview/Knowledge/Test/Customization), embed.js webchat, no flow canvas.  
 **Demo / video:** Site footer **Videos**; homepage interactive tour (Build → Resolve → Escalate → Improve). Studio is best understood via product login / docs, not a single ungated full-length public demo.
 
@@ -13,7 +13,7 @@ Botpress positions as **AI-native customer service / agent platform** (and incre
 Tagline energy: *Your AI answers. Ours acts.*  
 Pricing narrative: **no per-seat**; usage-oriented (contrast Intercom seat+outcome).
 
-Hapy historically aimed at **Botpress Studio feel** (shell, tabs, webchat) — see `BOTPRESS_GAP_PLAN.md` — while **explicitly skipping** canvas, Desk, Always Alive, billing clone.
+Hapy historically aimed at **Botpress Studio feel** (shell, tabs, webchat) while **explicitly skipping** canvas, Desk, Always Alive, billing clone.
 
 ---
 
@@ -146,10 +146,10 @@ Only under explicit reopen of **P3-FLOWS**, after RAG + tools exist — otherwis
 
 ---
 
-## 6. Alignment with existing `BOTPRESS_GAP_PLAN.md`
+## 6. Alignment with shipped Hapy MVP
 
-That file’s MVP checklist (shell, chat, tabs, embed, analytics) is **done**.  
-Remaining Botpress gaps are exactly the **OOS** list it already named: canvas, multi-channel, human desk, billing.
+Studio shell, chat, tabs, embed, and analytics are **done**.  
+Remaining Botpress gaps are named **OOS** in [`POST_MVP_BACKLOG_PLAN.md`](POST_MVP_BACKLOG_PLAN.md): canvas, multi-channel, human desk, billing.
 
 Update mental model: **UI catch-up complete; engine catch-up is the new gap.**
 

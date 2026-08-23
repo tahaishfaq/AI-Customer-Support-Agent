@@ -5,7 +5,7 @@ import { getSentimentForUser } from "@/lib/services/analytics.service";
 
 export async function GET(request) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
 
     const agentId = request.nextUrl.searchParams.get("agentId") || undefined;
@@ -14,6 +14,6 @@ export async function GET(request) {
     });
     return NextResponse.json(sentiment, { status: 200 });
   } catch (error) {
-    return handleAnalyticsError("GET /api/analytics/sentiment", error);
+    return handleAnalyticsError("GET /api/analytics/sentiment", error, request);
   }
 }

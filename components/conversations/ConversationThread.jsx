@@ -124,11 +124,15 @@ export function ConversationThread({
           role: "USER",
         },
       });
+      if (result.degraded) {
+        setError("Generation failed — Try again");
+        setLastFailedText(text);
+      }
+      setSending(false);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setError(err.message || "Unable to send message");
       setLastFailedText(text);
-    } finally {
       setSending(false);
     }
   }
@@ -227,7 +231,7 @@ export function ConversationThread({
                       disabled={sending}
                       onClick={() => send(lastFailedText)}
                     >
-                      Retry
+                      Try again
                     </Button>
                   ) : null}
                 </div>

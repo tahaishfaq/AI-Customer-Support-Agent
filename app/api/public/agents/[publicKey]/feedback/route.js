@@ -1,58 +1,48 @@
-import { NextResponse } from "next/server";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { mergeCustomization } from "@/lib/customization/defaults";
 import { setMessageFeedback } from "@/lib/services/feedback.service";
 import { originFromRequest } from "@/lib/utils/request-origin";
+import { jsonError, jsonOk } from "@/lib/api/error-response";
+import { resolveRequestId } from "@/lib/observability/request-id";
+import { safeLogError } from "@/lib/observability/safe-log";
 
 export async function POST(request, { params }) {
+  const requestId = resolveRequestId(request);
+
   try {
     const { publicKey } = await params;
     const agent = await getPublicAgentByKey(publicKey, {
       origin: originFromRequest(request),
     });
     if (!agent) {
-      return NextResponse.json(
-        { error: { message: "Agent not found", details: {} } },
-        { status: 404 }
-      );
+      return jsonError(request, 404, "Agent not found");
     }
     if (!mergeCustomization(agent.customization).features.messageFeedback) {
-      return NextResponse.json(
-        { error: { message: "Feedback is disabled for this agent", details: {} } },
-        { status: 403 }
-      );
+      return jsonError(request, 403, "Feedback is disabled for this agent");
     }
 
     const body = await request.json().catch(() => ({}));
     const messageId = String(body.messageId || "");
     const rating = body.rating === "DOWN" ? "DOWN" : "UP";
     if (!messageId) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            details: { messageId: "Required" },
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(request, 400, "Validation failed", {
+        messageId: "Required",
+      });
     }
 
     const result = await setMessageFeedback(messageId, rating, {
       agentId: agent.id,
     });
-    return NextResponse.json(result, { status: 200 });
+    return jsonOk(request, result, 200);
   } catch (error) {
     if (error.status) {
-      return NextResponse.json(
-        { error: { message: error.message, details: {} } },
-        { status: error.status }
-      );
+      return jsonError(request, error.status, error.message);
     }
-    console.error("POST /api/public/agents/[publicKey]/feedback", error);
-    return NextResponse.json(
-      { error: { message: "Unable to save feedback", details: {} } },
-      { status: 500 }
-    );
+    safeLogError("POST /api/public/agents/[publicKey]/feedback", {
+      requestId,
+      route: "public-feedback",
+      status: 500,
+    });
+    return jsonError(request, 500, "Unable to save feedback");
   }
 }

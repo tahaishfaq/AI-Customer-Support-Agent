@@ -9,6 +9,8 @@ import {
 } from "@/lib/api/admin";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function formatWhen(value) {
@@ -30,6 +32,8 @@ function statusLabel(status) {
   if (status === "REJECTED") return "Rejected";
   return "Pending";
 }
+
+const OPEN_ALL_CAP = 10;
 
 export function AdminRestoreRequests() {
   const [status, setStatus] = useState("PENDING");
@@ -68,11 +72,37 @@ export function AdminRestoreRequests() {
     }
   }
 
+  function openAllPendingUsers() {
+    const targets = rows.filter((row) => row.user?.id).slice(0, OPEN_ALL_CAP);
+    if (targets.length === 0) {
+      toast.message("No users to open");
+      return;
+    }
+    for (const row of targets) {
+      window.open(`/admin/users/${row.user.id}`, "_blank", "noopener,noreferrer");
+    }
+    if (rows.length > OPEN_ALL_CAP) {
+      toast.message(`Opened first ${OPEN_ALL_CAP} of ${rows.length}`);
+    }
+  }
+
   return (
     <main className="hapy-page">
       <PageHeader
         title="Access requests"
         description="Restore a suspended user, or reject the request. They stay suspended until you restore them."
+        actions={
+          status === "PENDING" && rows.length > 0 && !loading ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={openAllPendingUsers}
+            >
+              Open all users
+            </Button>
+          ) : null
+        }
       />
 
       <div className="mt-5 flex flex-wrap gap-2">
@@ -97,7 +127,9 @@ export function AdminRestoreRequests() {
       </div>
 
       {error ? (
-        <p className="mt-4 text-sm text-[var(--color-danger)]">{error}</p>
+        <InlineAlert className="mt-4" onRetry={() => load()}>
+          {error}
+        </InlineAlert>
       ) : null}
 
       <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
@@ -107,9 +139,11 @@ export function AdminRestoreRequests() {
             <Skeleton className="h-16 bg-[var(--color-border)]" />
           </div>
         ) : rows.length === 0 ? (
-          <p className="px-5 py-14 text-center text-sm text-[var(--color-muted)]">
-            No {statusLabel(status).toLowerCase()} requests.
-          </p>
+          <EmptyState
+            className="border-0 shadow-none"
+            title={`No ${statusLabel(status).toLowerCase()} requests`}
+            description="When a suspended user asks for access again, it shows up here."
+          />
         ) : (
           <ul className="divide-y divide-[var(--color-border)]">
             {rows.map((row) => (

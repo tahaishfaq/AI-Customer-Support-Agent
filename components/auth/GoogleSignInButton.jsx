@@ -243,9 +243,20 @@ export function GoogleSignInButton({
       />
 
       {phase === "error" ? (
-        <p className="text-center text-sm text-[var(--color-muted)]">
-          Continue with Google unavailable. Use email instead.
-        </p>
+        <div className="space-y-2 text-center">
+          <p className="text-sm text-[var(--color-muted)]">
+            Continue with Google unavailable. Use email instead.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => setPhase("idle")}
+          >
+            Try Google again
+          </Button>
+        </div>
       ) : null}
     </div>
   );

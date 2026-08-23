@@ -6,6 +6,7 @@ import { Bot, Search } from "lucide-react";
 import { listAgents } from "@/lib/api/agents";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -71,23 +72,19 @@ export function AgentList() {
 
   if (agents.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-16 text-center">
-        <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-          <Bot className="size-5" />
-        </span>
-        <h2 className="mt-4 text-sm font-semibold text-[var(--color-text)]">
-          No agents yet.
-        </h2>
-        <p className="mx-auto mt-1 max-w-md text-[13px] text-[var(--color-text-secondary)]">
-          Create your first agent in this workspace.
-        </p>
-        <Link
-          href="/agents/new"
-          className={cn(buttonVariants({ size: "sm" }), "mt-5 inline-flex")}
-        >
-          New agent
-        </Link>
-      </div>
+      <EmptyState
+        icon={Bot}
+        title="No agents yet"
+        description="Create your first agent in this workspace."
+        action={
+          <Link
+            href="/agents/new"
+            className={cn(buttonVariants({ size: "sm" }), "inline-flex")}
+          >
+            New agent
+          </Link>
+        }
+      />
     );
   }
 

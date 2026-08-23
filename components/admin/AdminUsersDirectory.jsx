@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, Search, Users } from "lucide-react";
 import { listAdminUsers } from "@/lib/api/admin";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +98,7 @@ function FilterPills({ items, value, onChange, label }) {
       <div
         role="group"
         aria-label={label}
-        className="inline-flex flex-wrap rounded-lg border border-[var(--color-border)] bg-white p-0.5"
+        className="inline-flex flex-wrap rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
       >
         {items.map((item) => {
           const active = value === item.id;
@@ -143,6 +145,7 @@ export function AdminUsersDirectory() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     setQInput(q);
@@ -193,7 +196,7 @@ export function AdminUsersDirectory() {
     return () => {
       cancelled = true;
     };
-  }, [q, status, role, page, replaceQuery]);
+  }, [q, status, role, page, replaceQuery, reloadKey]);
 
   const rangeStart = total === 0 ? 0 : (page - 1) * 20 + 1;
   const rangeEnd = Math.min(page * 20, total);
@@ -246,15 +249,15 @@ export function AdminUsersDirectory() {
       </div>
 
       {error ? (
-        <p
-          className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3 text-sm text-[var(--color-danger)]"
-          role="alert"
+        <InlineAlert
+          className="mt-4"
+          onRetry={() => setReloadKey((n) => n + 1)}
         >
           {error}
-        </p>
+        </InlineAlert>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
+      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
         {loading ? (
           <div className="space-y-3 p-4">
             <Skeleton className="h-14 bg-[var(--color-border)]" />
@@ -262,16 +265,42 @@ export function AdminUsersDirectory() {
             <Skeleton className="h-14 bg-[var(--color-border)]" />
           </div>
         ) : users.length === 0 ? (
-          <p className="px-5 py-14 text-center text-sm text-[var(--color-muted)]">
-            No users match this search.
-          </p>
+          <EmptyState
+            icon={Users}
+            className="border-0 shadow-none"
+            title={hasFilters ? "No users match" : "No users yet"}
+            description={
+              hasFilters
+                ? "Try clearing filters or searching a different name/email."
+                : "Customer accounts will appear here after signup."
+            }
+            action={
+              hasFilters ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQInput("");
+                    replaceQuery({
+                      q: null,
+                      status: null,
+                      role: null,
+                      page: null,
+                    });
+                  }}
+                  className="h-8 rounded-lg bg-[var(--color-primary)] px-3 text-[12px] font-medium text-white"
+                >
+                  Clear filters
+                </button>
+              ) : null
+            }
+          />
         ) : (
           <ul className="divide-y divide-[var(--color-border)]">
             {users.map((user) => (
               <li key={user.id}>
                 <Link
                   href={`/admin/users/${user.id}`}
-                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-[var(--color-bg)]"
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--color-bg)]"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[11px] font-semibold text-[var(--color-primary)]">
                     {initials(user.name)}

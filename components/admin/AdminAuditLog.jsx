@@ -7,6 +7,7 @@ import { Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { exportAdminAudit, listAdminAudit } from "@/lib/api/admin";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -21,8 +22,10 @@ import { cn } from "@/lib/utils";
 const ACTION_FILTERS = [
   { id: "", label: "All" },
   { id: "USER_SUSPEND", label: "Suspend" },
+  { id: "USER_SUSPEND_FAILED", label: "Suspend fail" },
   { id: "USER_RESTORE", label: "Restore" },
   { id: "USER_EXPORT", label: "Export" },
+  { id: "USER_EXPORT_FAILED", label: "Export fail" },
   { id: "USER_DELETE", label: "Delete" },
   { id: "CONVERSATION_OPEN", label: "Transcript" },
   { id: "AGENT_OPEN", label: "Agent" },
@@ -191,6 +194,7 @@ export function AdminAuditLog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [exportTruncated, setExportTruncated] = useState(null);
 
   useEffect(() => {
     setSearch(q);
@@ -270,6 +274,14 @@ export function AdminAuditLog() {
           ? `Exported first ${events.length} of ${payload.total} events`
           : `Exported ${events.length} events`
       );
+      if (payload.truncated) {
+        setExportTruncated({
+          exported: events.length,
+          total: payload.total,
+        });
+      } else {
+        setExportTruncated(null);
+      }
     } catch (err) {
       toast.error(err.message || "Unable to export");
     } finally {
@@ -318,6 +330,14 @@ export function AdminAuditLog() {
           </DropdownMenu>
         }
       />
+
+      {exportTruncated ? (
+        <InlineAlert className="mt-4">
+          Audit export was truncated: downloaded {exportTruncated.exported} of{" "}
+          {exportTruncated.total} matching events (cap 10,000). Narrow filters
+          by date or action and export again for the rest.
+        </InlineAlert>
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

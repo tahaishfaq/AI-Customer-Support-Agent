@@ -7,9 +7,9 @@ import {
 import { writeAuditEvent } from "@/lib/services/audit.service";
 import { clientIp } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
     const settings = await getPlatformSettings();
     return NextResponse.json({ settings }, { status: 200 });
@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function PUT(request) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
 
     let body = {};

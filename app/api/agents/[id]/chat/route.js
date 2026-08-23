@@ -1,26 +1,37 @@
-import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
 import { sendChatMessage } from "@/lib/services/chat.service";
+import { requireAuth } from "@/lib/require-auth";
 import {
   chatMessageSchema,
   zodErrorDetails,
 } from "@/lib/validations/chat";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { studioChatLimitOpts } from "@/lib/rate-limit-config";
+import { jsonError, jsonOk } from "@/lib/api/error-response";
+import { resolveRequestId } from "@/lib/observability/request-id";
+import { durationHeaders } from "@/lib/observability/duration";
+import { safeLogError } from "@/lib/observability/safe-log";
+
+/** Keep above OPENAI_TIMEOUT_MS (default 45s). */
+export const maxDuration = 60;
 
 export async function POST(request, { params }) {
+  const requestId = resolveRequestId(request);
+  const started = Date.now();
+
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
 
     const { id: agentId } = await params;
     const limited = rateLimit(
       `studio-chat:${authResult.user.id}:${agentId}:${clientIp(request)}`,
-      { limit: 40, windowMs: 60_000 }
+      studioChatLimitOpts()
     );
     if (!limited.ok) {
       return tooManyRequests(
         limited,
-        "Too many messages. Try again shortly."
+        "Too many messages. Try again shortly.",
+        request
       );
     }
 
@@ -28,36 +39,30 @@ export async function POST(request, { params }) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            details: { body: "Invalid JSON body" },
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(request, 400, "Validation failed", {
+        body: "Invalid JSON body",
+      });
     }
 
     const parsed = chatMessageSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            details: zodErrorDetails(parsed.error),
-          },
-        },
-        { status: 400 }
+      return jsonError(
+        request,
+        400,
+        "Validation failed",
+        zodErrorDetails(parsed.error)
       );
     }
 
     const result = await sendChatMessage(agentId, authResult.user.id, {
       message: parsed.data.message,
       conversationId: parsed.data.conversationId,
+      requestId,
+      signal: request.signal,
     });
 
-    return NextResponse.json(result, { status: 200 });
+    // No streaming yet → TTFT ≈ total wall time (header for F02 baselines).
+    return jsonOk(request, result, 200, durationHeaders(started));
   } catch (error) {
     if (
       error.status === 400 ||
@@ -66,20 +71,18 @@ export async function POST(request, { params }) {
       error.status === 500 ||
       error.status === 502
     ) {
-      return NextResponse.json(
-        {
-          error: {
-            message: error.message,
-            details: error.details || {},
-          },
-        },
-        { status: error.status }
+      return jsonError(
+        request,
+        error.status,
+        error.message,
+        error.details || {}
       );
     }
-    console.error("POST /api/agents/[id]/chat", error);
-    return NextResponse.json(
-      { error: { message: "Unable to process chat", details: {} } },
-      { status: 500 }
-    );
+    safeLogError("POST /api/agents/[id]/chat", {
+      requestId,
+      route: "studio-chat",
+      status: 500,
+    });
+    return jsonError(request, 500, "Unable to process chat");
   }
 }

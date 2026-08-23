@@ -1,19 +1,20 @@
-import { NextResponse } from "next/server";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import prisma from "@/lib/prisma";
 import { originFromRequest } from "@/lib/utils/request-origin";
+import { jsonError, jsonOk } from "@/lib/api/error-response";
+import { resolveRequestId } from "@/lib/observability/request-id";
+import { safeLogError } from "@/lib/observability/safe-log";
 
 export async function GET(request, { params }) {
+  const requestId = resolveRequestId(request);
+
   try {
     const { publicKey, conversationId } = await params;
     const agent = await getPublicAgentByKey(publicKey, {
       origin: originFromRequest(request),
     });
     if (!agent) {
-      return NextResponse.json(
-        { error: { message: "Agent not found", details: {} } },
-        { status: 404 }
-      );
+      return jsonError(request, 404, "Agent not found");
     }
 
     const conversation = await prisma.conversation.findUnique({
@@ -34,21 +35,19 @@ export async function GET(request, { params }) {
     });
 
     if (!conversation || conversation.agentId !== agent.id) {
-      return NextResponse.json(
-        { error: { message: "Conversation not found", details: {} } },
-        { status: 404 }
-      );
+      return jsonError(request, 404, "Conversation not found");
     }
 
-    return NextResponse.json({
+    return jsonOk(request, {
       id: conversation.id,
       messages: conversation.messages,
     });
-  } catch (error) {
-    console.error("GET public conversation", error);
-    return NextResponse.json(
-      { error: { message: "Unable to load conversation", details: {} } },
-      { status: 500 }
-    );
+  } catch {
+    safeLogError("GET public conversation", {
+      requestId,
+      route: "public-conversation",
+      status: 500,
+    });
+    return jsonError(request, 500, "Unable to load conversation");
   }
 }

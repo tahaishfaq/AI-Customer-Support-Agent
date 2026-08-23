@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAgent, updateAgent } from "@/lib/api/agents";
+import { RECOMMENDED_ROLE_TEMPLATE, ANSWER_STYLE_OPTIONS } from "@/lib/services/ai/prompt-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,19 +12,26 @@ import { Label } from "@/components/ui/label";
 const DEFAULTS = {
   name: "Hapy Support Assistant",
   description: "AI assistant for answering Hapy customer questions.",
-  systemPrompt:
-    "You are a helpful customer support agent for Hapy. Answer clearly using only the knowledge provided. If you are unsure, say so. Keep replies concise and professional.",
+  systemPrompt: RECOMMENDED_ROLE_TEMPLATE,
   welcomeMessage: "Hi! How can I help you today?",
+  answerStyle: "HYBRID",
 };
+
+function promptsMatch(a, b) {
+  return String(a || "").trim() === String(b || "").trim();
+}
 
 const fieldClass =
   "mt-1.5 h-11 rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
 
-const areaClass =
-  "mt-1.5 max-h-32 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+const descriptionClass =
+  "mt-1.5 min-h-11 max-h-32 resize-none overflow-y-auto rounded-xl border-[var(--color-border)] bg-white px-3 py-2.5 text-sm leading-5 text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
 
 const promptClass =
-  "mt-1.5 max-h-40 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+  "mt-1.5 min-h-[120px] max-h-40 resize-none overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+
+const selectClass =
+  "mt-1.5 h-11 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-text)] shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20 disabled:opacity-50";
 
 export function AgentForm({ mode = "create", initialAgent = null }) {
   const router = useRouter();
@@ -34,12 +42,33 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
   const [systemPrompt, setSystemPrompt] = useState(
     initialAgent?.systemPrompt ?? DEFAULTS.systemPrompt
   );
+  const [answerStyle, setAnswerStyle] = useState(
+    initialAgent?.answerStyle ?? DEFAULTS.answerStyle
+  );
+  const [useRecommendedTemplate, setUseRecommendedTemplate] = useState(() =>
+    promptsMatch(
+      initialAgent?.systemPrompt ?? DEFAULTS.systemPrompt,
+      RECOMMENDED_ROLE_TEMPLATE
+    )
+  );
   const [welcomeMessage, setWelcomeMessage] = useState(
     initialAgent?.welcomeMessage ?? DEFAULTS.welcomeMessage
   );
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  function handleRecommendedTemplateChange(checked) {
+    setUseRecommendedTemplate(checked);
+    if (checked) {
+      setSystemPrompt(RECOMMENDED_ROLE_TEMPLATE);
+    }
+  }
+
+  function handleSystemPromptChange(value) {
+    setSystemPrompt(value);
+    setUseRecommendedTemplate(promptsMatch(value, RECOMMENDED_ROLE_TEMPLATE));
+  }
 
   function validate() {
     const details = {};
@@ -62,6 +91,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
       name: name.trim(),
       description: description.trim(),
       systemPrompt: systemPrompt.trim(),
+      answerStyle,
       welcomeMessage: welcomeMessage.trim(),
     };
 
@@ -121,32 +151,81 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={loading}
-          rows={2}
-          className={areaClass}
+          rows={1}
+          className={descriptionClass}
         />
       </div>
 
-      <div>
-        <Label htmlFor="systemPrompt" className="text-[var(--color-text)]">
-          System Prompt
-        </Label>
-        <Textarea
-          id="systemPrompt"
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-          disabled={loading}
-          rows={5}
-          className={promptClass}
-          required
-        />
-        <p className="mt-1.5 text-xs text-[var(--color-muted)]">
-          Tell the model how it should behave and what product it represents.
-        </p>
-        {fieldErrors.systemPrompt ? (
-          <p className="mt-1.5 text-sm text-[var(--color-danger)]">
-            {fieldErrors.systemPrompt}
+      <div className="space-y-3">
+        <div className="flex items-start gap-2.5">
+          <input
+            id="useRecommendedTemplate"
+            type="checkbox"
+            checked={useRecommendedTemplate}
+            onChange={(e) => handleRecommendedTemplateChange(e.target.checked)}
+            disabled={loading}
+            className="mt-1 size-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus-visible:ring-[var(--color-primary)]/20"
+          />
+          <div>
+            <Label
+              htmlFor="useRecommendedTemplate"
+              className="cursor-pointer text-[var(--color-text)]"
+            >
+              Use recommended grounding template
+            </Label>
+            <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+              Pre-fills a safe role paragraph. Response rules (refuse off-knowledge,
+              safety) are always added automatically in chat.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="systemPrompt" className="text-[var(--color-text)]">
+            System Prompt
+          </Label>
+          <Textarea
+            id="systemPrompt"
+            value={systemPrompt}
+            onChange={(e) => handleSystemPromptChange(e.target.value)}
+            disabled={loading}
+            rows={4}
+            className={promptClass}
+            required
+          />
+          <p className="mt-1.5 text-xs text-[var(--color-muted)]">
+            Role and personality only — grounding and safety rules are appended at
+            reply time.
           </p>
-        ) : null}
+          {fieldErrors.systemPrompt ? (
+            <p className="mt-1.5 text-sm text-[var(--color-danger)]">
+              {fieldErrors.systemPrompt}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="answerStyle" className="text-[var(--color-text)]">
+          Answer style
+        </Label>
+        <select
+          id="answerStyle"
+          value={answerStyle}
+          onChange={(e) => setAnswerStyle(e.target.value)}
+          disabled={loading}
+          className={selectClass}
+        >
+          {ANSWER_STYLE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs text-[var(--color-muted)]">
+          Hybrid lets the agent choose short vs detailed per question. Edit anytime
+          from this form.
+        </p>
       </div>
 
       <div>

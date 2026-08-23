@@ -22,6 +22,7 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [signupsEnabled, setSignupsEnabled] = useState(true);
 
@@ -43,13 +44,14 @@ export function RegisterForm() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+    setFieldErrors({});
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setFieldErrors({ password: "At least 8 characters" });
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords must match");
+      setFieldErrors({ confirmPassword: "Passwords must match" });
       return;
     }
 
@@ -64,7 +66,11 @@ export function RegisterForm() {
       router.push(homePathForRole(user?.role));
       router.refresh();
     } catch (err) {
-      setError(formatApiError(err, "Unable to register"));
+      if (err.details && Object.keys(err.details).length) {
+        setFieldErrors(err.details);
+      } else {
+        setError(formatApiError(err, "Unable to register"));
+      }
     } finally {
       setLoading(false);
     }
@@ -79,9 +85,7 @@ export function RegisterForm() {
     return (
       <div className="space-y-4">
         <p className="rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#475569]">
-          New signups are closed. If you already have an account, log in.
-        </p>
-        <p className="text-center text-sm text-[#475569]">
+          Signups closed.{" "}
           <Link
             href="/login"
             className="font-medium text-[var(--color-primary)] underline underline-offset-2"
@@ -122,6 +126,9 @@ export function RegisterForm() {
             disabled={loading}
             className={fieldClass}
           />
+          {fieldErrors.name ? (
+            <p className="mt-1 text-sm text-[#dc2626]">{fieldErrors.name}</p>
+          ) : null}
         </div>
         <div>
           <label htmlFor="email" className={labelClass}>
@@ -138,6 +145,9 @@ export function RegisterForm() {
             disabled={loading}
             className={fieldClass}
           />
+          {fieldErrors.email ? (
+            <p className="mt-1 text-sm text-[#dc2626]">{fieldErrors.email}</p>
+          ) : null}
         </div>
         <div>
           <label htmlFor="password" className={labelClass}>
@@ -152,6 +162,9 @@ export function RegisterForm() {
             minLength={8}
             disabled={loading}
           />
+          {fieldErrors.password ? (
+            <p className="mt-1 text-sm text-[#dc2626]">{fieldErrors.password}</p>
+          ) : null}
         </div>
         <div>
           <label htmlFor="confirmPassword" className={labelClass}>
@@ -165,6 +178,11 @@ export function RegisterForm() {
             required
             disabled={loading}
           />
+          {fieldErrors.confirmPassword ? (
+            <p className="mt-1 text-sm text-[#dc2626]">
+              {fieldErrors.confirmPassword}
+            </p>
+          ) : null}
         </div>
 
         {error ? (
