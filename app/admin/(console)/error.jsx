@@ -9,9 +9,9 @@ export default function AdminError({ error, reset }) {
   }, [error]);
 
   return (
-    <main className="hapy-page flex flex-col items-start justify-center">
+    <main className="aide-page flex flex-col items-start justify-center">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-        Hapy admin
+        Aide admin
       </p>
       <h1 className="mt-2 font-[family-name:var(--font-display)] text-[length:var(--text-xl)] font-semibold text-[var(--color-text)]">
         Something went wrong

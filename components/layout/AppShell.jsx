@@ -1,58 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+
+/** Stable animation key — agent studio tab switches should not replay page-in. */
+function routeAnimKey(pathname) {
+  if (!pathname) return "";
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] === "agents" && parts[1] && parts[1] !== "new") {
+    return `/agents/${parts[1]}`;
+  }
+  return pathname;
+}
 
 export function AppShell({ children }) {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const onKey = (event) => {
-      if (event.key === "Escape") setMenuOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen]);
+  const animKey = routeAnimKey(pathname);
 
   return (
-    <div className="flex h-dvh max-h-dvh overflow-hidden bg-[var(--color-bg)]">
-      <aside
-        className="hidden h-full w-[var(--sidebar-width)] shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] shadow-[1px_0_0_rgb(15_23_42_/_0.03)] md:block"
+    <SidebarProvider className="h-dvh! min-h-0! overflow-hidden">
+      <a
+        href="#aide-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-md"
       >
-        <AppSidebar />
-      </aside>
-
-      {menuOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/30"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          />
-          <aside className="relative h-full w-[var(--sidebar-width)] border-r border-[var(--color-border)] bg-[var(--color-surface)]">
-            <AppSidebar onNavigate={() => setMenuOpen(false)} />
-          </aside>
-        </div>
-      ) : null}
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <AppTopbar onMenuClick={() => setMenuOpen(true)} />
+        Skip to main content
+      </a>
+      <AppSidebar />
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <AppTopbar />
         <div
-          key={pathname}
-          className="animate-page-in flex min-h-0 flex-1 flex-col overflow-hidden"
+          id="aide-main"
+          key={animKey}
+          tabIndex={-1}
+          className="animate-page-in flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
         >
           {children}
         </div>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

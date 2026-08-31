@@ -34,12 +34,14 @@ function main() {
   assert(/@keyframes message-in/.test(css), "message-in motion");
   assert(/@keyframes toast-in/.test(css), "toast-in motion");
   assert(/prefers-reduced-motion/.test(css), "reduced motion");
-  assert(/\.cn-toast/.test(css), "toast Hapy chrome");
+  assert(/\.cn-toast/.test(css), "toast Aide chrome");
 
   const appShell = read("components/layout/AppShell.jsx");
   assert(
-    /key=\{pathname\}/.test(appShell) && /animate-page-in/.test(appShell),
-    "AppShell page-in on route change"
+    /key=\{animKey\}/.test(appShell) &&
+      /animate-page-in/.test(appShell) &&
+      /routeAnimKey/.test(appShell),
+    "AppShell page-in on route change (studio tabs share one key)"
   );
   const adminShell = read("components/admin/AdminShell.jsx");
   assert(
@@ -55,7 +57,11 @@ function main() {
 
   assert(exists("components/ui/empty-state.jsx"), "EmptyState component");
   const empty = read("components/ui/empty-state.jsx");
-  assert(/one-job empty|single primary CTA|F04-C/i.test(empty), "EmptyState purpose");
+  assert(
+    /one-job empty|single primary CTA|F04-C|Empty surface/i.test(empty) &&
+      /action/.test(empty),
+    "EmptyState purpose (single action slot)"
+  );
 
   const agents = read("components/agents/AgentList.jsx");
   assert(
@@ -71,12 +77,19 @@ function main() {
   assert(/Run test/.test(studio), "studio Run test CTA");
 
   const adminUsers = read("components/admin/AdminUsersDirectory.jsx");
-  assert(/py-2\.5/.test(adminUsers), "admin denser rows");
+  // D0: denser Table rows + semantic tokens (bg-card / text-primary)
   assert(
-    /bg-\[var\(--color-surface\)\]/.test(adminUsers),
-    "admin uses surface token"
+    /TableRow|py-2\.5/.test(adminUsers),
+    "admin denser rows (table or py-2.5)"
   );
-  assert(/--color-primary/.test(adminUsers), "admin keeps Hapy primary");
+  assert(
+    /bg-card|bg-\[var\(--color-surface\)\]/.test(adminUsers),
+    "admin uses surface/card token"
+  );
+  assert(
+    /text-primary|bg-primary|--color-primary/.test(adminUsers),
+    "admin keeps Aide primary"
+  );
 
   console.log("ok  F04-C motion + type scale");
   console.log("ok  empty CTAs + admin density");

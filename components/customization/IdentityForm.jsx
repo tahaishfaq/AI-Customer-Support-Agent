@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
+import { AvatarImage } from "@/components/ui/avatar-image";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadAgentAvatar } from "@/lib/api/agents";
-import { AvatarImage } from "@/components/ui/avatar-image";
 import {
   FieldBlock,
   FormSection,
@@ -14,18 +16,9 @@ import {
   areaClass,
   fieldClass,
 } from "@/components/customization/CustomizationFields";
+import { monogram } from "@/components/conversations/format";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-
-function monogram(name) {
-  if (!name) return "A";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
 
 export function IdentityForm({ agentId, identity, onChange }) {
   const fileRef = useRef(null);
@@ -66,7 +59,7 @@ export function IdentityForm({ agentId, identity, onChange }) {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="relative flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm"
+              className="relative flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card shadow-sm"
             >
               {identity.avatarUrl ? (
                 <AvatarImage
@@ -75,46 +68,51 @@ export function IdentityForm({ agentId, identity, onChange }) {
                   className="size-full"
                 />
               ) : (
-                <span className="text-base font-semibold text-[var(--color-primary)]">
+                <span className="text-base font-semibold text-primary">
                   {monogram(identity.displayName)}
                 </span>
               )}
               {uploading ? (
-                <span className="absolute inset-0 flex items-center justify-center bg-white/70">
-                  <Loader2 className="size-4 animate-spin text-[var(--color-primary)]" />
+                <span className="absolute inset-0 flex items-center justify-center bg-card/80">
+                  <Spinner />
                 </span>
               ) : (
-                <span className="absolute right-1 bottom-1 rounded-md bg-white/95 p-0.5 shadow-sm">
-                  <ImagePlus className="size-3 text-[var(--color-muted)]" />
+                <span className="absolute right-1 bottom-1 rounded-md bg-card/95 p-0.5 shadow-sm">
+                  <ImagePlus className="size-3 text-muted-foreground" />
                 </span>
               )}
             </button>
             <div className="min-w-0 flex-1 space-y-2">
-              <MiniLabel>Display name</MiniLabel>
+              <MiniLabel htmlFor="identity-display-name">Display name</MiniLabel>
               <Input
+                id="identity-display-name"
                 value={identity.displayName}
                 onChange={(e) => patch({ displayName: e.target.value })}
                 placeholder="My bot agent"
                 className={fieldClass}
               />
-              <div className="flex flex-wrap gap-3 pt-0.5">
-                <button
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="text-[12px] font-medium text-[var(--color-primary)] hover:underline"
                 >
                   Upload image (max 2MB)
-                </button>
+                </Button>
                 {identity.avatarUrl ? (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto gap-1 px-0 text-muted-foreground hover:text-destructive"
                     onClick={() => patch({ avatarUrl: null })}
-                    className="inline-flex items-center gap-1 text-[12px] text-[var(--color-muted)] hover:text-[var(--color-danger)]"
                   >
                     <X className="size-3" />
                     Remove
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </div>
@@ -127,8 +125,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
             />
           </div>
           <div className="mt-4">
-            <MiniLabel>Description</MiniLabel>
+            <MiniLabel htmlFor="identity-description">Description</MiniLabel>
             <Textarea
+              id="identity-description"
               value={identity.description}
               onChange={(e) => patch({ description: e.target.value })}
               placeholder="Describe what your bot does"
@@ -146,8 +145,11 @@ export function IdentityForm({ agentId, identity, onChange }) {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <MiniLabel>Message placeholder</MiniLabel>
+              <MiniLabel htmlFor="identity-placeholder">
+                Message placeholder
+              </MiniLabel>
               <Input
+                id="identity-placeholder"
                 value={identity.messagePlaceholder}
                 onChange={(e) => patch({ messagePlaceholder: e.target.value })}
                 placeholder="Type your message..."
@@ -155,11 +157,12 @@ export function IdentityForm({ agentId, identity, onChange }) {
               />
             </div>
             <div>
-              <MiniLabel>Footer</MiniLabel>
+              <MiniLabel htmlFor="identity-footer">Footer</MiniLabel>
               <Input
+                id="identity-footer"
                 value={identity.footer}
                 onChange={(e) => patch({ footer: e.target.value })}
-                placeholder="by Hapy"
+                placeholder="by Aide"
                 className={fieldClass}
               />
             </div>
@@ -174,8 +177,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <MiniLabel>Email</MiniLabel>
+              <MiniLabel htmlFor="identity-email">Email</MiniLabel>
               <Input
+                id="identity-email"
                 type="email"
                 value={identity.contactEmail}
                 onChange={(e) => patch({ contactEmail: e.target.value })}
@@ -184,8 +188,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
               />
             </div>
             <div>
-              <MiniLabel>Phone</MiniLabel>
+              <MiniLabel htmlFor="identity-phone">Phone</MiniLabel>
               <Input
+                id="identity-phone"
                 value={identity.contactPhone}
                 onChange={(e) => patch({ contactPhone: e.target.value })}
                 placeholder="+1…"
@@ -193,8 +198,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
               />
             </div>
             <div>
-              <MiniLabel>Website</MiniLabel>
+              <MiniLabel htmlFor="identity-website">Website</MiniLabel>
               <Input
+                id="identity-website"
                 value={identity.contactWebsite}
                 onChange={(e) => patch({ contactWebsite: e.target.value })}
                 placeholder="https://"
@@ -209,8 +215,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
         <FieldBlock label="Policy links">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <MiniLabel>Terms of service</MiniLabel>
+              <MiniLabel htmlFor="identity-terms">Terms of service</MiniLabel>
               <Input
+                id="identity-terms"
                 value={identity.termsUrl}
                 onChange={(e) => patch({ termsUrl: e.target.value })}
                 placeholder="https://"
@@ -218,8 +225,9 @@ export function IdentityForm({ agentId, identity, onChange }) {
               />
             </div>
             <div>
-              <MiniLabel>Privacy policy</MiniLabel>
+              <MiniLabel htmlFor="identity-privacy">Privacy policy</MiniLabel>
               <Input
+                id="identity-privacy"
                 value={identity.privacyUrl}
                 onChange={(e) => patch({ privacyUrl: e.target.value })}
                 placeholder="https://"

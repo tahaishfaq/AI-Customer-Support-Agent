@@ -3,7 +3,7 @@ import { AgentForm } from "@/components/agents/AgentForm";
 
 export default function NewAgentPage() {
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <header>
         <Link
           href="/agents"
@@ -19,7 +19,7 @@ export default function NewAgentPage() {
         </p>
       </header>
 
-      <div className="mt-6 max-w-2xl">
+      <div className="mt-6 max-w-6xl">
         <AgentForm mode="create" />
       </div>
     </main>

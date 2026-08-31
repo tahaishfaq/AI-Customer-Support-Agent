@@ -1,4 +1,4 @@
-# Hapy — AI Customer Support & Customer Insights
+# Aide — AI Customer Support & Customer Insights
 
 Next.js fullstack MVP: build an agent, add knowledge, chat, customize webchat, embed on a site, and read analytics.
 
@@ -75,7 +75,7 @@ One platform admin. Google cannot sign in as admin. Non-admin hitting `/admin` �
 
 ## Embed
 
-Agent → **Customization** → **Deploy** — copy the snippet (`embed.js` + `data-hapy-key`). First load on a new origin locks that site and queues a website crawl.
+Agent → **Customization** → **Deploy** — copy the snippet (`embed.js` + `data-aide-key`). Legacy `data-hapy-key` still works. First load on a new origin locks that site and queues a website crawl.
 
 Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / weekly / etc.). When due, the next widget visit refreshes website knowledge automatically.
 
@@ -85,9 +85,33 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 |------|--------|
 | Auth | `/login`, `/register` |
 | Agents / knowledge / chat | `/agents`, `/agents/[id]/…` |
+| Human desk | `/inbox` |
 | Analytics | `/analytics` |
 | Public webchat | `/w/[publicKey]` |
 | Admin | `/admin` |
+
+## Main API (presentation)
+
+| Method | Path | Role |
+|--------|------|------|
+| `POST` | `/api/auth/register` | Sign up |
+| Session | Auth.js (NextAuth v5) | Login / logout |
+| CRUD | `/api/agents`, knowledge, chat | Owner console |
+| `POST` | `/api/public/agents/[publicKey]/chat` | Embed chat |
+| `GET` | `/api/public/agents/[publicKey]/ping` | Embed health |
+| `GET` | `/api/analytics/*` | Insights |
+| `GET` | `/api/health` | DB + app health |
+| Desk | `/api/inbox/*`, conversations | Human handoff |
+| Actions | `/api/agents/[id]/actions*` | Allowlisted tools |
+
+## Data science (what we do today)
+
+| Piece | Approach |
+|-------|----------|
+| Classification | LLM category labels after reply (F09) |
+| Sentiment | POSITIVE / NEUTRAL / NEGATIVE on conversation |
+| Insights | Aggregates on `/analytics` (topics, trends, KPIs) |
+| Knowledge retrieve | F08 lexical + fuzzy ranking (**not** vector RAG yet) |
 
 ## Go-live smoke
 
@@ -103,10 +127,16 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 
 | File | Role |
 |------|------|
-| [`docs/ROADMAP_NEXT.md`](docs/ROADMAP_NEXT.md) | What to do next (F00 → F11 · OOS later) |
-| [`docs/features/F00_DOD_DEMO_BUFFER.md`](docs/features/F00_DOD_DEMO_BUFFER.md) | DoD / demo buffer (do first) |
-| [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) | Simple summary — kyun add kiya, kya improve hua (F01–F09) |
-| [`docs/features/`](docs/features/) | Future plans F10–F12 |
+| [`docs/OPEN_SEQUENCE.md`](docs/OPEN_SEQUENCE.md) | Ordered remaining work |
+| [`docs/ROADMAP_NEXT.md`](docs/ROADMAP_NEXT.md) | Roadmap index + OOS |
+| [`docs/features/F00_DOD_DEMO_BUFFER.md`](docs/features/F00_DOD_DEMO_BUFFER.md) | DoD / demo buffer |
+| [`docs/features/F00_PROGRESS.md`](docs/features/F00_PROGRESS.md) | Buffer checklist ticks |
+| [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) | What shipped (F01–F12 + F11 UX) |
+| [`docs/features/F11_AGENT_ACTIONS.md`](docs/features/F11_AGENT_ACTIONS.md) | Agent actions + UX-1–4 ✅ |
+| [`docs/features/F13_TOOLS_HUB.md`](docs/features/F13_TOOLS_HUB.md) | Next build — Tools hub |
+| [`docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md) | In-chat consent plan |
+| [`docs/features/`](docs/features/) | Plans F10–F14 |
+| [`docs/ui/UI_STRATEGY.md`](docs/ui/UI_STRATEGY.md) | ShadCN polish guidance |
 | [`docs/POST_MVP_BACKLOG_PLAN.md`](docs/POST_MVP_BACKLOG_PLAN.md) | Backlog |
 | Internship `.docx` + audits | Under `docs/` |
 
@@ -135,13 +165,17 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 | `npm run test:f08` | F08 A–H knowledge retrieval |
 | `npm run test:f09` | F09 A–H prompts & guidance |
 | `npm run test:crawl-schedule` | Scheduled website re-crawl |
-| `npm run test:shipped` | Full F01–F09 + crawl schedule smoke |
+| `npm run test:f11` | F11 agent actions (A–H) |
+| `npm run test:f11r` | F11 redesign R1–R5 |
+| `npm run test:f11-ux2` · `ux3` · `ux4` | F11 Actions UX smokes |
+| `npm run test:f12` | F12 human desk |
+| `npm run test:shipped` | Full F01–F12 + crawl schedule smoke |
 | `npm run bench:f02b` | Latency baselines |
 | `npm run load:f02h` | Concurrent chat + analytics cold (needs server) |
 
 ## CI
 
-PRs: **Lint** always (red = cannot merge once branch protection is on). **Shipped smoke** (`npm run test:shipped` — F01–F09 + crawl schedule) always runs without secrets. **HTTP smoke** (`test:product`, `test:bugfix`, optional `test:admin`) runs only when GitHub secrets are set; missing secrets → explicit skip (still green). When secrets *are* set, a failing smoke **fails the job**.
+PRs: **Lint** always (red = cannot merge once branch protection is on). **Shipped smoke** (`npm run test:shipped` — F01–F12 + crawl schedule) always runs without secrets. **HTTP smoke** (`test:product`, `test:bugfix`, optional `test:admin`) runs only when GitHub secrets are set; missing secrets → explicit skip (still green). When secrets *are* set, a failing smoke **fails the job**.
 
 | Secret | Used for |
 |--------|----------|

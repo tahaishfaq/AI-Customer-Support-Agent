@@ -1,4 +1,4 @@
-// Hapy MVP — Neon PostgreSQL + Prisma
+// Aide MVP — Neon PostgreSQL + Prisma
 // Connection URLs live in prisma.config.ts (Prisma 7)
 
 generator client {
@@ -14,12 +14,20 @@ enum MessageRole {
   USER
   ASSISTANT
   HUMAN
+  /** Desk-only; never returned on public embed APIs or LLM history */
+  INTERNAL
 }
 
 enum ConversationStatus {
   OPEN
   WAITING_HUMAN
   RESOLVED
+}
+
+enum HandoffPriority {
+  NORMAL
+  HIGH
+  URGENT
 }
 
 enum Sentiment {
@@ -47,6 +55,65 @@ enum CrawlJobStatus {
   RUNNING
   DONE
   FAILED
+}
+
+enum ActionHttpMethod {
+  GET
+  POST
+}
+
+enum ActionCredentialType {
+  BEARER
+  API_KEY_HEADER
+}
+
+enum ActionRiskLevel {
+  READ
+  WRITE
+  DESTRUCTIVE
+}
+
+enum ActionIdentityMode {
+  NONE
+  OWNER_KEY
+  END_USER_TOKEN
+}
+
+enum ActionAccessClass {
+  PUBLIC_READ
+  GUEST_LOOKUP
+  ACCOUNT_READ
+  ACCOUNT_WRITE
+  DESTRUCTIVE
+}
+
+enum ToolRunStatus {
+  OK
+  ERROR
+  TIMEOUT
+  SSRF_BLOCKED
+  SCHEMA_INVALID
+  DISABLED
+  UNKNOWN_TOOL
+  MAX_STEPS
+}
+
+enum ActionConfirmationStatus {
+  PENDING
+  APPROVED
+  DENIED
+  EXPIRED
+}
+
+enum McpTransport {
+  HTTP
+  SSE
+}
+
+enum McpAuthType {
+  NONE
+  BEARER
+  HEADER
 }
 
 enum UserRole {
@@ -125,13 +192,16 @@ model VerificationToken {
 }
 
 model Workspace {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agents    Agent[]
+  id                String    @id @default(cuid())
+  userId            String
+  name              String
+  deskInboxSeenAt   DateTime?
+  deskCannedReplies Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agents            Agent[]
+  actionCredentials ActionCredential[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -150,6 +220,8 @@ model Agent {
   publicKey            String?             @unique
   enabled              Boolean             @default(true)
   embedEnabled         Boolean             @default(true)
+  actionsEnabled       Boolean             @default(true)
+  webSearchEnabled     Boolean             @default(false)
   siteKnowledgeOrigin  String?             @unique
   siteCrawledAt        DateTime?
   crawlRecrawlHours    Int                 @default(0)
@@ -160,6 +232,9 @@ model Agent {
   knowledgeDocs        KnowledgeDocument[]
   conversations        Conversation[]
   crawlJobs            SiteCrawlJob[]
+  actions              AgentAction[]
+  mcpServers           AgentMcpServer[]
+  toolRuns             ToolRun[]
 
   @@index([userId])
   @@index([workspaceId])
@@ -184,6 +259,159 @@ model KnowledgeDocument {
   @@index([crawlJobId])
 }
 
+model AgentAction {
+  id                   String            @id @default(cuid())
+  agentId              String
+  name                 String
+  description          String
+  method               ActionHttpMethod  @default(GET)
+  urlTemplate          String
+  frozenHost           String?
+  headersJson          Json?
+  inputSchemaJson      Json?
+  outputSchemaJson     Json?
+  enabled              Boolean           @default(true)
+  timeoutMs            Int               @default(8000)
+  credentialId         String?
+  riskLevel            ActionRiskLevel   @default(READ)
+  requiresConfirmation Boolean           @default(false)
+  requiresIdentity     Boolean           @default(false)
+  /// F14-D: NONE | OWNER_KEY | END_USER_TOKEN (END_USER_TOKEN syncs requiresIdentity)
+  identityMode         ActionIdentityMode @default(NONE)
+  /// F11-U: who may use this tool (guest vs signed-in vs destructive)
+  accessClass          ActionAccessClass  @default(PUBLIC_READ)
+  idempotent           Boolean           @default(true)
+  version              Int               @default(1)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  agent                Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  credential           ActionCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  toolRuns             ToolRun[]
+  confirmations        ActionConfirmation[]
+
+  @@unique([agentId, name])
+  @@index([agentId])
+  @@index([agentId, enabled])
+  @@index([credentialId])
+}
+
+model ActionCredential {
+  id           String               @id @default(cuid())
+  workspaceId  String
+  name         String
+  type         ActionCredentialType @default(BEARER)
+  headerName   String?
+  ciphertext   String
+  keyVersion   Int                  @default(1)
+  revokedAt    DateTime?
+  lastRotatedAt DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actions      AgentAction[]
+  mcpServers   AgentMcpServer[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model AgentMcpServer {
+  id           String        @id @default(cuid())
+  agentId      String
+  name         String
+  transport    McpTransport  @default(HTTP)
+  url          String
+  frozenHost   String?
+  authType     McpAuthType   @default(NONE)
+  headerName   String?
+  credentialId String?
+  enabled      Boolean       @default(true)
+  lastProbeAt  DateTime?
+  lastError    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  agent        Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  credential   ActionCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  tools        AgentMcpTool[]
+
+  @@unique([agentId, name])
+  @@index([agentId])
+  @@index([agentId, enabled])
+  @@index([credentialId])
+}
+
+model AgentMcpTool {
+  id                   String          @id @default(cuid())
+  serverId             String
+  name                 String
+  functionName         String
+  description          String          @default("")
+  inputSchemaJson      Json?
+  enabled              Boolean         @default(false)
+  riskLevel            ActionRiskLevel @default(READ)
+  requiresConfirmation Boolean         @default(false)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  server               AgentMcpServer  @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  toolRuns             ToolRun[]
+
+  @@unique([serverId, name])
+  @@unique([serverId, functionName])
+  @@index([serverId, enabled])
+}
+
+model ActionConfirmation {
+  id             String                   @id @default(cuid())
+  conversationId String
+  actionId       String
+  argsHash       String
+  status         ActionConfirmationStatus @default(PENDING)
+  expiresAt      DateTime
+  /// F14-B durable evidence handle (set on approve/deny)
+  evidenceId     String?                  @unique
+  userSubject    String?
+  userDisplay    String?
+  decidedAt      DateTime?
+  decidedIp      String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  conversation   Conversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  action         AgentAction              @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, status])
+  @@index([actionId])
+  @@index([expiresAt])
+  @@index([userSubject])
+  @@index([decidedAt])
+}
+
+model ToolRun {
+  id              String        @id @default(cuid())
+  agentId         String
+  actionId        String?
+  mcpToolId       String?
+  conversationId  String?
+  workspaceId     String?
+  customerSubject String?
+  actionVersion   Int?
+  status          ToolRunStatus
+  durationMs      Int?
+  httpStatus      Int?
+  errorCode       String?
+  errorCategory   String?
+  requestId       String?
+  createdAt       DateTime      @default(now())
+  agent           Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  action          AgentAction?  @relation(fields: [actionId], references: [id], onDelete: SetNull)
+  mcpTool         AgentMcpTool? @relation(fields: [mcpToolId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, createdAt])
+  @@index([actionId])
+  @@index([mcpToolId])
+  @@index([conversationId])
+  @@index([workspaceId, createdAt])
+}
+
 model SiteCrawlJob {
   id           String         @id @default(cuid())
   agentId      String
@@ -203,33 +431,47 @@ model SiteCrawlJob {
 }
 
 model Conversation {
-  id               String             @id @default(cuid())
-  agentId          String
-  category         Category?
-  sentiment        Sentiment?
-  status           ConversationStatus @default(OPEN)
+  id                  String             @id @default(cuid())
+  agentId             String
+  category            Category?
+  sentiment           Sentiment?
+  status              ConversationStatus @default(OPEN)
   handoffReason       String?
   handoffSummary      String?
   handoffAt           DateTime?
   handoffCount        Int                @default(0)
+  handoffPriority     HandoffPriority    @default(NORMAL)
   lastHandoffEndedAt  DateTime?
   humanTypingAt       DateTime?
   assignedUserId      String?
+  claimedAt           DateTime?
   aiPaused            Boolean            @default(false)
+  customerSubject     String?
+  identityIss         String?
+  identityExpiresAt   DateTime?
+  /** 1–5 after desk resolve; null if skipped or not offered yet */
+  csatScore           Int?
+  /** Set when rated or skipped (so we do not re-prompt until next handoff) */
+  csatAt              DateTime?
   startedAt           DateTime           @default(now())
   endedAt             DateTime?
-  createdAt        DateTime           @default(now())
-  agent            Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  assignedUser     User?              @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  messages         Message[]
+  createdAt           DateTime           @default(now())
+  agent               Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  assignedUser        User?              @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages            Message[]
+  actionConfirmations ActionConfirmation[]
 
   @@index([agentId])
+  @@index([agentId, startedAt])
   @@index([agentId, status, handoffAt])
   @@index([status])
   @@index([category])
   @@index([sentiment])
   @@index([startedAt])
   @@index([assignedUserId])
+  @@index([customerSubject])
+  @@index([handoffPriority])
+  @@index([csatAt])
 }
 
 model Message {
@@ -239,11 +481,14 @@ model Message {
   content        String
   responseTime   Int?
   feedback       String?
+  feedbackReason String?
+  feedbackAt     DateTime?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([createdAt])
+  @@index([feedback, feedbackAt])
 }
 
 model AuditEvent {

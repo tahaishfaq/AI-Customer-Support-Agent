@@ -14,6 +14,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const parsed = inboxQuerySchema.safeParse({
       status: searchParams.get("status") || undefined,
+      priority: searchParams.get("priority") || undefined,
       limit: searchParams.get("limit") || undefined,
       offset: searchParams.get("offset") || undefined,
     });

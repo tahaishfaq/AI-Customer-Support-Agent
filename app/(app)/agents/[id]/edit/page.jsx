@@ -41,7 +41,7 @@ export default function EditAgentPage() {
 
   if (loading) {
     return (
-      <main className="hapy-page">
+      <main className="aide-page">
         <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
         <Skeleton className="mt-6 h-80 w-full max-w-2xl rounded-xl bg-[var(--color-border)]" />
       </main>
@@ -50,7 +50,7 @@ export default function EditAgentPage() {
 
   if (error || !agent) {
     return (
-      <main className="hapy-page">
+      <main className="aide-page">
         <p className="text-sm text-[var(--color-danger)]">
           {error || "Agent not found"}
         </p>
@@ -65,7 +65,7 @@ export default function EditAgentPage() {
   }
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <header>
         <Link
           href={`/agents/${agent.id}`}
@@ -80,7 +80,7 @@ export default function EditAgentPage() {
           Update settings for {agent.name}
         </p>
       </header>
-      <div className="mt-6 max-w-2xl">
+      <div className="mt-6 max-w-3xl">
         <AgentForm mode="edit" initialAgent={agent} />
       </div>
     </main>

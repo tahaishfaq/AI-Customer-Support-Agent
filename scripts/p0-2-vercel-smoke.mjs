@@ -97,8 +97,8 @@ async function main() {
   console.log("BASE", BASE);
   const stamp = Date.now();
   const pass = "LiveSmoke1!";
-  const emailA = `p02-a-${stamp}@hapy.test`;
-  const emailB = `p02-b-${stamp}@hapy.test`;
+  const emailA = `p02-a-${stamp}@aide.test`;
+  const emailB = `p02-b-${stamp}@aide.test`;
   const origin = `https://p02-${stamp}.example.com`;
 
   const health = await fetch(`${BASE}/api/health`).then((r) => r.json());

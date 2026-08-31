@@ -41,7 +41,11 @@ function main() {
 
   assert(exists("components/ui/inline-alert.jsx"), "InlineAlert");
   const alert = read("components/ui/inline-alert.jsx");
-  assert(/role="alert"/.test(alert) && /onRetry/.test(alert), "alert + retry");
+  const alertPrimitive = read("components/ui/alert.jsx");
+  assert(
+    /onRetry/.test(alert) && /role="alert"/.test(alertPrimitive),
+    "alert + retry (InlineAlert → Alert role=alert)"
+  );
 
   const shared = read("components/analytics/analytics-shared.jsx");
   assert(/reloadKey/.test(shared) && /reload:/.test(shared), "analytics reload");
@@ -63,7 +67,7 @@ function main() {
   assert(exists("app/(app)/error.jsx"), "app error boundary");
   assert(exists("app/admin/(console)/error.jsx"), "admin error boundary");
   const appErr = read("app/(app)/error.jsx");
-  assert(/Try again/.test(appErr) && /--color-primary/.test(appErr), "app error Hapy");
+  assert(/Try again/.test(appErr) && /--color-primary/.test(appErr), "app error Aide");
 
   console.log("ok  F04-D Google click-to-load");
   console.log("ok  error + retry on polished surfaces");

@@ -47,24 +47,24 @@ export function AdminConversationsInbox({ selectedId, children }) {
 
   if (loading) {
     return (
-      <main className="hapy-page">
-        <Skeleton className="h-10 w-56 bg-[var(--color-border)]" />
-        <Skeleton className="mt-6 h-96 w-full bg-[var(--color-border)]" />
+      <main className="aide-page">
+        <Skeleton className="h-10 w-56 bg-muted" />
+        <Skeleton className="mt-6 h-96 w-full bg-muted" />
       </main>
     );
   }
 
   if (error || !agent) {
     return (
-      <main className="hapy-page">
-        <p className="text-sm text-[var(--color-danger)]">{error || "Not found"}</p>
+      <main className="aide-page">
+        <p className="text-sm text-destructive">{error || "Not found"}</p>
       </main>
     );
   }
 
   return (
-    <main className="hapy-page">
-      <p className="mb-3 text-[12px] text-[var(--color-muted)]">
+    <main className="aide-page">
+      <p className="mb-3 text-[12px] text-muted-foreground">
         <Link href={`/admin/users/${userId}`} className="hover:underline">
           {agent.user.name}
         </Link>

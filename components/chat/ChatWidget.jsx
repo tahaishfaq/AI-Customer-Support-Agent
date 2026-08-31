@@ -2,17 +2,8 @@
 
 import { ArrowLeft, History, MessageCircle, Minus, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { monogram } from "@/components/conversations/format";
 import { widgetStyleVars } from "@/lib/customization/theme";
-
-function monogram(name) {
-  if (!name) return "H";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
 
 function Avatar({ src, label, className, style }) {
   if (src) {
@@ -57,7 +48,7 @@ export function ChatWidget({
   const features = customization?.features || {};
 
   const displayName =
-    identity.displayName?.trim() || agent?.name || "Hapy";
+    identity.displayName?.trim() || agent?.name || "Aide";
   const showHistory =
     features.conversationHistory !== false &&
     typeof onHistoryToggle === "function";
@@ -79,7 +70,9 @@ export function ChatWidget({
         "flex min-h-0 flex-col overflow-hidden border-0 shadow-none outline-none ring-0",
         fullPage
           ? "h-full w-full rounded-none"
-          : "h-[min(520px,calc(100svh-6rem))] w-[min(380px,calc(100vw-1.5rem))]"
+          : fillHost
+            ? "h-[520px] w-[380px] max-h-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)]"
+            : "h-[min(520px,calc(100svh-6rem))] w-[min(380px,calc(100vw-1.5rem))]"
       )}
       style={{
         ...vars,
@@ -98,23 +91,30 @@ export function ChatWidget({
       }}
     >
       <header
-        className="flex shrink-0 items-center gap-2 border-0 px-3 py-2.5 text-white shadow-none"
+        className="flex shrink-0 items-center gap-2.5 border-0 px-3.5 py-3 text-white shadow-none"
         style={{ backgroundColor: "var(--wc-header-bg)" }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <Avatar
             src={identity.avatarUrl}
             label={displayName}
-            className="size-7 rounded-full text-[11px] font-semibold"
+            className="size-8 rounded-full text-[11px] font-semibold"
             style={
               identity.avatarUrl
                 ? undefined
                 : { backgroundColor: "#ffffff", color: primary }
             }
           />
-          <p className="min-w-0 flex-1 truncate text-sm font-medium">
-            {historyOpen ? "Chat history" : displayName}
-          </p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-tight">
+              {historyOpen ? "Chat history" : displayName}
+            </p>
+            {!historyOpen && agent?.name && identity.displayName?.trim() && identity.displayName.trim() !== agent.name ? (
+              <p className="truncate text-[11px] text-white/70 leading-tight">
+                {agent.name}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
@@ -126,15 +126,15 @@ export function ChatWidget({
                 e.stopPropagation();
                 onHistoryToggle();
               }}
-              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
               aria-label={historyOpen ? "Back to chat" : "Open chat history"}
               aria-pressed={historyOpen}
               title={historyOpen ? "Back to chat" : "History"}
             >
               {historyOpen ? (
-                <ArrowLeft className="size-3.5 shrink-0" />
+                <ArrowLeft className="size-4 shrink-0" />
               ) : (
-                <History className="size-3.5 shrink-0" />
+                <History className="size-4 shrink-0" />
               )}
             </button>
           ) : null}
@@ -147,11 +147,11 @@ export function ChatWidget({
                 e.stopPropagation();
                 onReset();
               }}
-              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
               aria-label="New chat"
               title="New chat"
             >
-              <RotateCcw className="size-3.5 shrink-0" />
+              <RotateCcw className="size-4 shrink-0" />
             </button>
           ) : null}
 
@@ -159,7 +159,7 @@ export function ChatWidget({
             <button
               type="button"
               onClick={onToggle}
-              className="rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
               aria-label="Minimize chat"
               title="Minimize"
             >
@@ -191,7 +191,7 @@ export function ChatWidget({
       {open ? panel : null}
 
       {proactive ? (
-        <div className="relative mb-0.5 flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
+        <div className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
           <div
             className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
             style={{ backgroundColor: primary }}
@@ -207,9 +207,9 @@ export function ChatWidget({
               monogram(displayName)
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-[120px] flex-1">
             <p className="text-[12px] leading-snug text-slate-800">{proactive}</p>
-            <p className="mt-0.5 text-[10px] text-slate-400">
+            <p className="mt-0.5 whitespace-nowrap text-[10px] text-slate-400">
               a few moments ago
             </p>
           </div>
@@ -223,22 +223,22 @@ export function ChatWidget({
       {customLauncher ? (
         <button
           type="button"
-          onClick={onToggle}
           className="rounded-full border-0 bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-none outline-none"
           aria-label={open ? "Close chat widget" : "Open chat widget"}
+          onClick={onToggle}
         >
           {open ? "Close chat" : "Chat with us"}
         </button>
       ) : (
         <button
           type="button"
-          onClick={onToggle}
           className="flex size-14 items-center justify-center overflow-hidden rounded-full border-0 text-white shadow-none outline-none"
           style={{
             backgroundColor: primary,
             boxShadow: "none",
           }}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
+          onClick={onToggle}
         >
           {open ? (
             <MessageCircle className="size-5" />

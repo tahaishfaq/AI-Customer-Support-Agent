@@ -10,7 +10,7 @@ export default function AdminWorkspacePage() {
   return (
     <Suspense
       fallback={
-        <div className="hapy-page pt-6">
+        <div className="aide-page pt-6">
           <Skeleton className="h-10 w-56 bg-[var(--color-border)]" />
         </div>
       }

@@ -1,5 +1,6 @@
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import {
+  conversationHasHumanRequest,
   isHumanTypingRecently,
   serializeDeskState,
 } from "@/lib/desk/conversation-desk";
@@ -26,6 +27,7 @@ export async function GET(request, { params }) {
       where: { id: conversationId },
       include: {
         messages: {
+          where: { role: { not: "INTERNAL" } },
           orderBy: { createdAt: "asc" },
           select: {
             id: true,
@@ -33,6 +35,7 @@ export async function GET(request, { params }) {
             content: true,
             responseTime: true,
             feedback: true,
+            feedbackReason: true,
             createdAt: true,
           },
         },
@@ -53,6 +56,9 @@ export async function GET(request, { params }) {
         DESK_HUMAN_TYPING_TTL_MS
       ),
       hasHumanReply: conversation.messages.some((m) => m.role === "HUMAN"),
+      showHandoffButton:
+        !desk.waitingForHuman &&
+        conversationHasHumanRequest(conversation.messages),
       messages: conversation.messages,
     });
   } catch {

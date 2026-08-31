@@ -16,7 +16,7 @@ export async function GET() {
   return NextResponse.json(
     {
       status: ok ? "ok" : "degraded",
-      service: "hapy-api",
+      service: "aide-api",
       database,
       timestamp,
     },

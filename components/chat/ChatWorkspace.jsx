@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { listAgents } from "@/lib/api/agents";
-import { sendChatMessage } from "@/lib/api/chat";
+import { sendChatMessage, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
+import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
+import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { AgentPicker } from "@/components/chat/AgentPicker";
 import { MessageList } from "@/components/chat/MessageList";
@@ -27,7 +30,7 @@ function placementFromDeploy(deploy) {
   return "bottom-right";
 }
 
-function welcomeBubble(agent) {
+function mapThreadMessages(messages) {
   if (!agent?.welcomeMessage) return [];
   return [
     {
@@ -199,6 +202,8 @@ export function ChatWorkspace() {
             content: result.message.content,
             responseTime: result.message.responseTime,
             createdAt: result.message.createdAt,
+            toolSteps: result.toolSteps || [],
+            pendingConfirmations: result.pendingConfirmations || [],
           },
         ];
       });
@@ -219,15 +224,70 @@ export function ChatWorkspace() {
     }
   }
 
+  async function handleConfirmDecision(confirmation, decision) {
+    const cid = confirmation.conversationId || conversationId;
+    if (!cid || !confirmation?.id) {
+      throw new Error("Missing conversation");
+    }
+    const updated = await resolveConversationConfirmation(
+      cid,
+      confirmation.id,
+      decision
+    );
+    setMessages((prev) =>
+      prev.map((m) => ({
+        ...m,
+      setSending(true);
+      setError("");
+      try {
+        const result = await resumeChatAfterConfirmation(agentId, {
+          conversationId: cid,
+          confirmationId: confirmation.id,
+        });
+        setConversationId(result.conversationId);
+        setMeta({
+          category: result.category,
+          sentiment: result.sentiment,
+        });
+        setMessages((prev) => mergeAssistantReply(prev, result));
+        setHistoryKey((k) => k + 1);
+        if (customization.features.notificationSound && result.message) {
+          playNotificationBeep();
+        }
+        if (result.degraded) {
+          setError("Generation failed — Try again");
+        }
+      } catch (err) {
+        setError(err.message || "Unable to continue after approval");
+        throw err;
+      } finally {
+        setSending(false);
+      }
+          c.id === confirmation.id
+            ? {
+                ...c,
+                status:
+                  updated.status ||
+                  (decision === "deny" ? "DENIED" : "APPROVED"),
+              }
+            : c
+        ),
+      }))
+    );
+    if (decision === "approve") {
+      await send("Yes — please proceed with the confirmed action.");
+    }
+  }
+
   if (loadingAgents) {
     return (
-      <div className="flex h-full flex-col bg-[var(--color-surface)]">
-        <div className="border-b border-[var(--color-border)] px-4 py-3">
-          <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+      <div className="flex h-full flex-col bg-background">
+        <div className="border-b border-border px-4 py-3">
+          <Skeleton className="h-8 w-48" />
         </div>
         <div className="flex flex-1 flex-col gap-3 p-5">
-          <Skeleton className="h-14 w-2/3 rounded-2xl bg-[var(--color-border)]" />
-          <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
+          <Skeleton className="h-14 w-2/3 rounded-2xl" />
+          <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
         </div>
       </div>
     );
@@ -271,8 +331,8 @@ export function ChatWorkspace() {
     <>
       {loadingThread ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[var(--wc-chat-bg,#ffffff)] px-3 py-3">
-          <Skeleton className="h-14 w-2/3 rounded-2xl bg-[var(--color-border)]" />
-          <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
+          <Skeleton className="h-14 w-2/3 rounded-2xl" />
+          <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
         </div>
       ) : (
         <MessageList
@@ -282,12 +342,17 @@ export function ChatWorkspace() {
           themed
           showFeedback={customization.features.messageFeedback}
           intro={widgetIntro(selectedAgent, customization)}
-          onFeedback={async (messageId, rating) => {
+          onConfirmDecision={handleConfirmDecision}
+          confirmBusy={sending}
+          onFeedback={async (messageId, rating, reason) => {
             if (!messageId) return;
             await fetch(`/api/messages/${messageId}/feedback`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ rating }),
+              body: JSON.stringify({
+                rating,
+                ...(reason ? { reason } : {}),
+              }),
             });
           }}
         />

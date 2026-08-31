@@ -74,7 +74,7 @@ const components = {
   hr: () => <hr className="my-4 border-[var(--color-border)]" />,
 };
 
-function parseFaqBlocks(raw) {
+export function parseFaqBlocks(raw) {
   const text = String(raw || "").trim();
   if (!text) return [];
   const re = /(?:^|\n)\s*Q:\s*([\s\S]*?)\n\s*A:\s*([\s\S]*?)(?=(?:\n\s*Q:)|$)/gi;

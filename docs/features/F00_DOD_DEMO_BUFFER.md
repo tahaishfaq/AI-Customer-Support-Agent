@@ -1,17 +1,19 @@
-# F00 — DoD / demo buffer (NOW — before F11)
+# F00 — DoD / demo buffer (NOW)
 
-**Status:** 🎯 **Do this first** — not a new product feature; close internship Definition of Done + demo.  
+**Status:** 🚧 **In progress** — local docs/script ready; **live DoD ticks + rehearsal = owner**  
+**Progress board:** [`F00_PROGRESS.md`](F00_PROGRESS.md)  
 **Maps to:** internship `.docx` §30 Definition of Done · §31 Final Deliverables · §32 Success Criteria.  
-**After this:** open **F11** (recommended) or F10/F12 per [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md).
+**Engineering closed alongside buffer:** F11 UX-1–4 ✅ · UI D0–D9 ✅  
+**After this:** mark buffer ✅ → continue [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) (#2 F11-U live tick). See [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md).
 
-> **Rule:** Prefer a **small polished demo** over starting F10/F11/F12 while DoD boxes are open.
+> **Rule:** Prefer a **small polished demo** over starting new tracks while DoD boxes are open.
 
 ---
 
 ## Why this track exists
 
 Internship says: *smaller polished product > large unfinished app*.  
-F01–F09 already shipped quality. Buffer = prove **live** that the MVP checklist is green and the **final presentation** is ready.
+F01–F12 quality shipped. Buffer = prove **live** that the MVP checklist is green and the **final presentation** is ready.
 
 ---
 
@@ -29,9 +31,11 @@ F01–F09 already shipped quality. Buffer = prove **live** that the MVP checklis
 
 ### Out of scope (do **not** start here)
 
-- F10 Semantic RAG · F11 Actions · F12 Desk  
+- F10 Semantic RAG · **new** F13/F14 implementation (plan OK; build after buffer)  
 - Billing / Stripe · Teams RBAC · WhatsApp/Slack · Fine-tune  
-- Big UI redesign · New product modules  
+- New product modules mid-demo week  
+
+(F11 Actions + F12 Desk are **already shipped** — demo may show them; do not reopen scope.)
 
 ### Identity guardrails
 
@@ -77,21 +81,21 @@ Tick on **production / Vercel preview**, not only localhost.
 
 ### 1. Working MVP
 
-- [ ] Deployed URL bookmarked  
-- [ ] Seed admin once against **prod** Neon (`npm run seed:admin`)  
-- [ ] Smoke: `TEST_BASE_URL=<live> npm run test:product` (if secrets allow)
+- [x] Deployed URL in README  
+- [ ] Seed admin once against **prod** Neon (`npm run seed:admin`) — **owner**  
+- [ ] Smoke: `TEST_BASE_URL=<live> npm run test:product` — **owner**  
 
 ### 2. Source code
 
-- [ ] `main` (or agreed branch) builds: `npm run build`  
-- [ ] `.env` / secrets **not** committed  
-- [ ] `npm run test:shipped` green locally  
+- [ ] `npm run build` green before talk — **owner**  
+- [x] `.env` / secrets **not** committed (`.gitignore`)  
+- [ ] `npm run test:shipped` green locally — **owner** (long)  
 
 ### 3. Database
 
-- [ ] Prisma schema in repo  
-- [ ] `npx prisma migrate deploy` documented in README  
-- [ ] Migrations applied on prod Neon  
+- [x] Prisma schema in repo  
+- [x] `npx prisma migrate deploy` documented in README  
+- [ ] Migrations applied on prod Neon — **owner**  
 
 ### 4. API (documented REST)
 
@@ -99,21 +103,21 @@ Keep short — not OpenAPI required unless lead asks:
 
 | Doc place | Content |
 |-----------|---------|
-| README “Product map” + Scripts | Main routes |
-| Optional `docs/` one-pager | Auth, agents, chat, public embed, analytics |
+| README “Main API” | Auth, agents, public chat, analytics, health, desk, actions |
+| Progress board | [`F00_PROGRESS.md`](F00_PROGRESS.md) |
 
 Minimum list to mention in presentation:
 
 - `POST /api/auth/register` · NextAuth session  
 - `CRUD /api/agents` · knowledge · chat  
 - `POST /api/public/agents/[key]/chat` · ping  
-- `GET /api/analytics/*`  
+- `GET /api/analytics/*` · `/api/health`  
 
 ### 5. Data science component (document approach)
 
-Write **one short section** (README or slide):
+✅ Documented in README “Data science”:
 
-| Piece | What Hapy does today |
+| Piece | What Aide does today |
 |-------|----------------------|
 | Classification | Category labels via LLM classify (after reply) |
 | Sentiment | POSITIVE / NEUTRAL / NEGATIVE (etc.) on conversation |
@@ -122,27 +126,30 @@ Write **one short section** (README or slide):
 
 ### 6. Documentation
 
-- [ ] README: local setup, env table, Neon pooler, seed admin, embed, CI secrets, go-live  
-- [ ] [`SHIPPED_FEATURES.md`](../SHIPPED_FEATURES.md) for “what we built” story  
-- [ ] [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md) for future  
+- [x] README: local setup, env, Neon pooler, seed admin, embed, CI, API, DS, go-live  
+- [x] [`SHIPPED_FEATURES.md`](../SHIPPED_FEATURES.md) for “what we built” story  
+- [x] [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md) for future  
+- [x] [`F00_PROGRESS.md`](F00_PROGRESS.md) tick board 
 
 ### 7. Final presentation outline (§31)
 
 | Slide | Content |
 |-------|---------|
 | Problem | Support tickets + no insights |
-| Solution | Hapy agent + knowledge + embed + analytics |
+| Solution | Aide agent + knowledge + embed + analytics |
 | Architecture | Next.js · Prisma/Neon · Auth.js · OpenAI · Cloudinary |
 | Tech choices | Why serverless, why origin lock, why no vectors yet |
 | AI | Chat + classify + prompt builder (F09) |
 | Data science | Category / sentiment / dashboard |
 | Challenges | Crawl lock, rate limits, retrieve without RAG |
 | Demo | Live walkthrough |
-| Future | F11 actions · F12 desk · F10 RAG · OOS later (billing…) |
+| Future | F12-U polish · F10 RAG if needed · OOS later (billing…) |
 
 ---
 
 ## Phase D — Demo script (5–8 min, fail-safe)
+
+> **UI note (Aug 2026 redesign):** Shell uses shadcn Sidebar + topbar; agent home has a setup checklist; Customization has Identity / Appearance / Deploy / Features / **Actions**; Human desk is **Inbox**; optional dark toggle in the topbar (light remains default).
 
 ### Prep before audience
 
@@ -156,18 +163,25 @@ Write **one short section** (README or slide):
 
 | Min | Action | Show |
 |-----|--------|------|
-| 0:00 | Login as user | Dashboard |
-| 0:30 | Open agent → Knowledge | FAQ list + crawl schedule mention |
-| 1:00 | Test chat: “refund policy” | Answer + **sources** |
-| 1:45 | Typo: “reunf” | Clarify or correct match |
-| 2:15 | Conversations | Thread saved |
-| 2:45 | Analytics | Category / sentiment / chart |
-| 3:30 | Customization → Deploy | Snippet; open widget `/w/…` |
-| 4:30 | Embed ask same FAQ | Public chat works |
-| 5:15 | Logout → admin login | `/admin` overview |
-| 6:00 | Users / agent inspect | Inspect-only story |
-| 6:30 | Future slide | F11 / F12 / F10 — not building now |
-| 7:00 | Q&A | |
+| 0:00 | Login (Card) as user | Home / Agents — calm Botpress-like shell |
+| 0:25 | Agents → **New agent** | Use-case chips (FAQ / self-service / handoff / sales) → Create |
+| 0:50 | Agent overview | Setup checklist + shortcuts (Knowledge, Test, Customize) |
+| 1:15 | Knowledge | Add / list FAQs; mention crawl schedule if website KB |
+| 1:45 | Test chat: “refund policy” | Answer + **sources** |
+| 2:20 | Typo: “reunf” | Clarify or correct match |
+| 2:45 | Conversations or Desk **Inbox** | Thread saved; optional waiting badge |
+| 3:15 | Analytics | Category / sentiment / charts (range chips) |
+| 3:50 | Customize → Deploy | Install webchat dialog / snippet; open `/w/…` |
+| 4:20 | Customize → **Packs** | Install **Parcel / courier (B26)** (universal story) |
+| 4:40 | Customize → **Actions** / Tools HTTP | Guest · Signed-in · Confirm badges |
+| 5:00 | Studio: “Track parcel PCL-100” | Confirm → Out for delivery (no PII) |
+| 5:20 | Optional: setUser + “my shipment” / refuse friend order | F11-U identity + CROSS_USER |
+| 5:40 | Customize → Deploy | Snippet `v=11` + setUser checklist; open `/w/…` |
+| 6:00 | Embed ask same FAQ | Public chat works; origin lock if asked |
+| 6:20 | Optional: theme toggle | Dark desk preview → back to light |
+| 6:40 | Logout → admin login | `/admin` overview |
+| 7:00 | Users / agent inspect | Inspect-only story |
+| 7:20 | Q&A | |
 
 ### Demo failure fallbacks
 
@@ -176,6 +190,7 @@ Write **one short section** (README or slide):
 | OpenAI down | Show degraded message (F01) + studio retry |
 | Analytics slow | Show Conversations + Test chat only |
 | Embed origin deny | Use studio Test tab as primary |
+| Google Sign-In (Incognito) | Email/password login — FedCM may abort; button still works |
 
 ---
 
@@ -230,9 +245,9 @@ Fix only **blockers** for demo — no redesign.
 - [ ] Presentation deck ready (Problem → Future)  
 - [ ] Demo script rehearsed twice without crash  
 - [ ] README + SHIPPED_FEATURES linked from talk track  
-- [ ] Lead agrees: “MVP done; next engineering = F11 (or F10/F12)”  
+- [ ] Lead agrees: “MVP done; next engineering = F12-U / F10 if needed (F11–F14 + F11-U shipped)”  
 
-Then update [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md): mark buffer ✅ and start F11 Phase A.
+Then update [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md): mark buffer ✅.
 
 ---
 
@@ -242,9 +257,10 @@ Then update [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md): mark buffer ✅ and start F
 2. Phone Chrome → responsive § Phase F.  
 3. `npm run test:shipped`.  
 4. Ask teammate to follow README from zero → agent chat.  
+5. Update ticks in [`F00_PROGRESS.md`](F00_PROGRESS.md).  
 
 ---
 
 ## Steal (not clone)
 
-Fin/Zendesk **demo story**: train → test → deploy → analyze — Hapy already has this path; buffer proves it live.
+Fin/Zendesk **demo story**: train → test → deploy → analyze — Aide already has this path; buffer proves it live.

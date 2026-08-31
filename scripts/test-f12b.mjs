@@ -54,9 +54,10 @@ function main() {
   const embed = read("components/embed/PublicWebchat.jsx");
   assert(
     embed.includes("Talk to a human") &&
+      embed.includes("showHandoffCta") &&
       embed.includes("waitingForHuman") &&
       embed.includes("/handoff"),
-    "embed must support handoff + waiting banner"
+    "embed must support gated handoff CTA + waiting banner"
   );
 
   assert(exists("app/(app)/inbox/page.jsx"), "inbox page");

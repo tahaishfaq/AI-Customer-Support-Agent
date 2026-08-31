@@ -1,7 +1,7 @@
-# Deep audit — Intercom Fin vs Hapy
+# Deep audit — Intercom Fin vs Aide
 
 **Sources (2026-08-20):** [Intercom.com](https://www.intercom.com/), [Fin AI Agent explained](https://www.intercom.com/help/en/articles/7120684-fin-ai-agent-explained), [Fin FAQs](https://www.intercom.com/help/en/articles/7837535-fin-ai-agent-faqs), [Finetuning retrieval for Fin](https://fin.ai/research/finetuning-retrieval-for-fin/), [Fin AI Engine](https://fin.ai/help/en/articles/13975771-the-fin-ai-engine).  
-**Hapy baseline:** studio chat + public embed; knowledge stuffing; classify to analytics; one admin inspect console.  
+**Aide baseline:** studio chat + public embed; knowledge stuffing; classify to analytics; one admin inspect console.  
 **Demo / video:** Intercom site CTAs *View demo* / *Start free trial* (gated product demos). Help Center articles + research posts document RAG pipeline in depth. YouTube/Intercom Academy exist as learning channels (not required for this audit).
 
 ---
@@ -22,7 +22,7 @@ Pricing signal (site): seat + outcome-style packaging (*Intercom with Fin* — s
 
 1. **App Layer** — train (knowledge, guidance, connectors), test (simulations, batch tests, preview), deploy (channels, audiences), analyze (dashboards, Suggestions). Flywheel.  
 2. **AI Layer** — **RAG**: understand/clarify → search → apply Guidance/policies → generate with hallucination controls; disambiguate when unsure.  
-3. **Model Layer** — specialized models: retrieval, reranker, summary, escalation detection, customer-response understanding (trained on support-domain interactions — Intercom’s investment, not customer fine-tune of private chats in the “Never” sense of Hapy policy).
+3. **Model Layer** — specialized models: retrieval, reranker, summary, escalation detection, customer-response understanding (trained on support-domain interactions — Intercom’s investment, not customer fine-tune of private chats in the “Never” sense of Aide policy).
 
 ### 2.2 RAG pipeline (research-grade detail)
 
@@ -33,7 +33,7 @@ From Fin research:
 3. **Generate** answer with context (user attributes, time, etc.).  
 4. Isolation: retrieval scoped to **workspace**; query vectors discarded after search (PII posture).
 
-This is the opposite of Hapy’s current **concatenate all TEXT/PDF/WEB into the system prompt**.
+This is the opposite of Aide’s current **concatenate all TEXT/PDF/WEB into the system prompt**.
 
 ### 2.3 Knowledge base
 
@@ -79,9 +79,9 @@ Fin for Service / Sales / Ecommerce — one agent switching optimization goals b
 
 ---
 
-## 3. Hapy today (same lenses)
+## 3. Aide today (same lenses)
 
-| Lens | Intercom Fin | Hapy now |
+| Lens | Intercom Fin | Aide now |
 |------|--------------|----------|
 | Knowledge | Semantic RAG + rerank + multi-source library | Stuffing TEXT/PDF/WEB |
 | Guidance | First-class policy docs | `systemPrompt` string only |
@@ -94,7 +94,7 @@ Fin for Service / Sales / Ecommerce — one agent switching optimization goals b
 | Learning | Suggestions from failures | Classify + optional message feedback |
 | Pricing model | Seat + outcomes | Free intern SaaS shape |
 
-Closest Hapy cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) → Deploy (embed) → Analyze (analytics)** — already the product story in demos.
+Closest Aide cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) → Deploy (embed) → Analyze (analytics)** — already the product story in demos.
 
 ---
 
@@ -108,7 +108,7 @@ Closest Hapy cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) 
 | Omnichannel | Huge | **P3-CHANNELS** |
 | Handoff | Large | **P3-DESK** |
 | Simulations / answer inspection | Medium | Studio polish / citations |
-| Topics Explorer | Partial win | Hapy already classifies topics — deepen (**W3-6** only if named) |
+| Topics Explorer | Partial win | Aide already classifies topics — deepen (**W3-6** only if named) |
 | Content Suggestions | Medium | Post-analytics content gaps — later |
 | Copilot for humans | Large | Desk era |
 | Custom LLMs | Out | **P3-LLM** + **Never** private training |
@@ -129,9 +129,9 @@ Closest Hapy cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) 
 1. **P3-RAG** — embeddings, workspace-scoped search (mirror Fin research isolation).  
 2. **P3-DESK** — escalate with transcript summary.  
 3. Procedures as **markdown playbooks** executed with allowlisted HTTP tools (Fin Procedures lite).  
-4. Keep **origin-locked crawl** as Hapy differentiator vs Fin’s open content library sprawl.
+4. Keep **origin-locked crawl** as Aide differentiator vs Fin’s open content library sprawl.
 
-### Explicit non-goals (internship + Hapy policy)
+### Explicit non-goals (internship + Aide policy)
 
 - Fine-tuning on customer conversations.  
 - Cloning Messenger outbound marketing suite.  
@@ -139,10 +139,10 @@ Closest Hapy cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) 
 
 ---
 
-## 6. What Hapy already beats Fin on (niche)
+## 6. What Aide already beats Fin on (niche)
 
-- **Origin lock + one-time site crawl** tied to embed key (Fin learns from many sources; Hapy binds widget to one live site).  
-- **Workspace hard isolation** for agents (Fin is workspace-aware; Hapy’s switch-workspace 404 is a sharp tenancy demo).  
+- **Origin lock + one-time site crawl** tied to embed key (Fin learns from many sources; Aide binds widget to one live site).  
+- **Workspace hard isolation** for agents (Fin is workspace-aware; Aide’s switch-workspace 404 is a sharp tenancy demo).  
 - **Platform admin** that 404s for users — separate trust plane without Intercom-scale org.
 
 ---
@@ -150,8 +150,8 @@ Closest Hapy cousin to Fin’s App Layer: **Train (knowledge) → Test (studio) 
 ## 7. Verdict
 
 Fin = **RAG + Guidance + Procedures + omnichannel flywheel** with specialized models.  
-Hapy = **App-layer skeleton of Fin** (train/test/deploy/analyze) with a **thin AI layer** (stuffing + one LLM).
+Aide = **App-layer skeleton of Fin** (train/test/deploy/analyze) with a **thin AI layer** (stuffing + one LLM).
 
 Architectural climb: **make the AI layer Fin-shaped (retrieve → ground → clarify → escalate)** while staying inside [`POST_MVP_BACKLOG_PLAN.md`](POST_MVP_BACKLOG_PLAN.md) bands.
 
-**Related:** [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
+**Related:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md) · [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md).

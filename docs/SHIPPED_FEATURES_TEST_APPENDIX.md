@@ -2,7 +2,7 @@
 
 **Goal:** Every critical path fails safely in the UI; ops can find failures in logs without dumping chat PII.  
 **Maps to:** requirements DoD “critical errors handled” · Week 3 Logging · Fusion Band 1 W3-4.  
-**Hapy identity:** never log full customer transcripts in production by default; admin audit stays separate.
+**Aide identity:** never log full customer transcripts in production by default; admin audit stays separate.
 
 > **Deliverables rule:** When a phase is marked ✅, fill **Delivered** (exact files / behavior) and **Manual test** (steps you can run yourself). Until then, keep only the short plan lines.
 
@@ -252,7 +252,7 @@ Zendesk/Botpress **ops reliability** — visible failure + recoverable state —
 
 **Goal:** Cut wasteful work on chat + analytics; keep Neon and OpenAI costs predictable.  
 **Maps to:** Week 3 Performance · Fusion W3-5.  
-**Hapy identity:** insights stay fresh; do not drop classify forever to “go faster.”
+**Aide identity:** insights stay fresh; do not drop classify forever to “go faster.”
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -340,7 +340,7 @@ Five parallel `count()` queries (users, workspaces, agents, conversations total 
 
 ### Baseline checklist
 
-Fill via `npm run bench:f02b` (dev server; admin needs `ADMIN_BOOTSTRAP_*`). Prefer **server** `x-hapy-duration-ms` when present; client includes network.
+Fill via `npm run bench:f02b` (dev server; admin needs `ADMIN_BOOTSTRAP_*`). Prefer **server** `x-aide-duration-ms` when present; client includes network.
 
 | Endpoint | client p50 | client p95 | server p95 | notes |
 |----------|------------|------------|------------|-------|
@@ -355,7 +355,7 @@ Re-run after Phase C/E and paste new rows under this table (do not delete prior 
 
 | Change | What exactly |
 |--------|----------------|
-| **Add** `lib/observability/duration.js` | `x-hapy-duration-ms` helper |
+| **Add** `lib/observability/duration.js` | `x-aide-duration-ms` helper |
 | **Update** product + admin analytics dashboard routes | Echo request id + duration ms |
 | **Update** `app/api/admin/overview/route.js` | Same headers (safe log on failure) |
 | **Update** studio chat route | Duration on success (TTFT≈total marker) |
@@ -367,7 +367,7 @@ Re-run after Phase C/E and paste new rows under this table (do not delete prior 
 
 1. `npm run test:f02b` (must pass).  
 2. Dev server on → `npm run bench:f02b` → paste printed markdown rows into the baseline table.  
-3. Browser Network: load `/analytics` and `/admin` → response headers include `x-hapy-duration-ms`.  
+3. Browser Network: load `/analytics` and `/admin` → response headers include `x-aide-duration-ms`.  
 4. Studio send one message → same header on chat response.
 
 ---
@@ -563,7 +563,7 @@ Fin/Zendesk **latency discipline** on retrieve+generate — measure then cut —
 
 **Goal:** Regressions fail PRs; live deploy has a short, repeatable smoke.  
 **Maps to:** Week 3 Automated tests + CI/CD · P0-3.  
-**Hapy identity:** tests respect workspace isolation and admin 404 for USER.
+**Aide identity:** tests respect workspace isolation and admin 404 for USER.
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -690,7 +690,7 @@ Fin/Zendesk **latency discipline** on retrieve+generate — measure then cut —
 
 | Change | What exactly |
 |--------|----------------|
-| **Update** `test-product.mjs` | `p0-product-${stamp}@hapy.test` (+ B user) |
+| **Update** `test-product.mjs` | `p0-product-${stamp}@aide.test` (+ B user) |
 | **Update** CI | Comment + sequential HTTP smokes in one job |
 
 ### Manual test
@@ -760,11 +760,11 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 ---
 
 
-# F04 — Hapy design identity (industry-level UI)
+# F04 — Aide design identity (industry-level UI)
 
-**Goal:** Product and admin feel like a serious support-agent product (Botpress-grade chrome) while staying **Hapy** (teal brand, insights-first, site-bound embed).  
+**Goal:** Product and admin feel like a serious support-agent product (Botpress-grade chrome) while staying **Aide** (teal brand, insights-first, site-bound embed).  
 **Maps to:** Week 3 UI/UX polish · Fusion differentiation checklist.  
-**Hapy identity:** brand-first auth/marketing; no purple-AI cliché; no Zendesk ticket maze; no Botpress canvas as home.
+**Aide identity:** brand-first auth/marketing; no purple-AI cliché; no Zendesk ticket maze; no Botpress canvas as home.
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -781,14 +781,14 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 | Keep | Meaning |
 |------|---------|
 | Teal CSS variables | Extend `app/globals.css` tokens (`--color-primary` ≈ `#0b5f58`) — do not swap to purple / cream-serif cliché |
-| Brand-first auth | Auth visual panel + login/register still read as Hapy with nav removed |
+| Brand-first auth | Auth visual panel + login/register still read as Aide with nav removed |
 | Insights-first | Analytics / dashboard remain first-class — not buried under a ticket maze |
 | Studio ≠ canvas | Agent studio tabs stay product chrome; **no** Botpress-style flow canvas as home |
 | Origin-locked embed | Preview/polish must not weaken site-bound widget behavior |
 
 ### Brand tests (pass before calling a surface “done”)
 
-1. Remove nav / sidebar — still recognizably Hapy (teal + typography + composition)?  
+1. Remove nav / sidebar — still recognizably Aide (teal + typography + composition)?  
 2. First viewport = **one composition** (not a widget dashboard dump).  
 3. Keep CSS variables / teal system already in `app/globals.css`.
 
@@ -801,7 +801,7 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 | Agent studio | `AgentStudioFrame` · `AgentHero` · overview / knowledge / test / customization / analytics pages | Tabbed agent chrome | Clearer tab hierarchy (Phase B); empty CTAs |
 | Analytics | `WorkspaceAnalytics` · `AnalyticsBoard` · charts | Range chips + charts | Defer heavy charts on first paint (Phase E); empty/error |
 | Embed preview | `CustomizationPreview` · `PublicWebchat` · `/w/[publicKey]` | Widget preview + live page | Real-site feel, not toy (Phase B) |
-| Admin shell | `AdminShell` · `AdminSidebar` · `AdminTopbar` · console pages | Dense inspect UI | Hapy tokens; denser tables OK (Phase C) |
+| Admin shell | `AdminShell` · `AdminSidebar` · `AdminTopbar` · console pages | Dense inspect UI | Aide tokens; denser tables OK (Phase C) |
 | Tokens / chrome | `app/globals.css` · `AppShell` · `AppSidebar` · `PageHeader` | Teal + Instrument/DM Sans | Token map doc (Phase F); motion 2–3 (Phase C) |
 
 ### Explicitly out of F04
@@ -867,7 +867,7 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 - Micro-motion: page-in, toast, chat scroll (2–3 intentional motions).
 - Typography: keep expressive stack already chosen — tighten scale.
 - Empty states: one CTA each (“New agent”, “Add knowledge”, “Run test”).
-- Admin: denser tables OK; still Hapy tokens, not grey enterprise clone.
+- Admin: denser tables OK; still Aide tokens, not grey enterprise clone.
 
 ### Motions (intentional, prefers-reduced-motion respected)
 
@@ -883,7 +883,7 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 |--------|----------------|
 | **Update** `app/globals.css` | `--text-*` / `--leading-*` scale; `message-in` / `toast-in`; reduced-motion |
 | **Update** `AppShell` · `AdminShell` | `key={pathname}` page-in |
-| **Update** `MessageBubble` · `sonner` | Message + toast motion / Hapy toast chrome |
+| **Update** `MessageBubble` · `sonner` | Message + toast motion / Aide toast chrome |
 | **Add** `components/ui/empty-state.jsx` | Shared one-CTA empty |
 | **Update** `AgentList` · dashboard · `KnowledgeList` | Empty CTAs: **New agent** / **Add knowledge** |
 | **Keep** `AgentTestStudio` `RunTestButtons` | Primary studio CTA remains **Run test** |
@@ -927,7 +927,7 @@ Fin **train → test → deploy** discipline — automated gates before humans �
 | **Update** Workspace / Board / Admin platform analytics | Wire `onRetry={reload}` |
 | **Update** dashboard · ConversationsShell | Retry reload |
 | **Update** `GoogleSignInButton` | Error phase → Try Google again (never “Loading Google…”) |
-| **Add** `app/(app)/error.jsx` · `app/admin/(console)/error.jsx` | Hapy-token error boundaries |
+| **Add** `app/(app)/error.jsx` · `app/admin/(console)/error.jsx` | Aide-token error boundaries |
 | **Update** auth `error.jsx` | Use CSS variables |
 | **Add** `scripts/test-f04d.mjs` · `npm run test:f04d` | Contract smoke |
 
@@ -1034,7 +1034,7 @@ Checklist (run once per release / after F04 visual ship):
 
 - [ ] `/login`, `/dashboard`, agent studio, `/analytics`, `/admin` at **375** and **1280** widths  
 - [ ] Embed preview + live `/w/{key}` visual check  
-- [ ] Brand test: screenshot without sidebar still reads “Hapy” (teal + display type)
+- [ ] Brand test: screenshot without sidebar still reads “Aide” (teal + display type)
 
 ### Delivered
 
@@ -1047,14 +1047,14 @@ Checklist (run once per release / after F04 visual ship):
 
 1. Resize to 375 / 1280 on login, dashboard, studio, analytics, admin.  
 2. Customization live preview + open `/w/{publicKey}` on an allowed origin.  
-3. Crop out sidebar — still recognizably Hapy.  
+3. Crop out sidebar — still recognizably Aide.  
 4. `npm run test:f04`
 
 ---
 
 ## Done when
 
-Demo slides + live UI pass responsive DoD; studio feels industry-grade without losing Hapy spine.
+Demo slides + live UI pass responsive DoD; studio feels industry-grade without losing Aide spine.
 
 ## Steal (not clone)
 
@@ -1068,7 +1068,7 @@ Botpress **Studio clarity** (tabs, webchat preview) + Fin **answer inspection sp
 
 **Goal:** Studio Test becomes a real **train → test → deploy** gate (Fin flywheel lite) with clearer pass/fail.  
 **Maps to:** Fusion Band 1 studio inspection · Week 3 quality without RAG.  
-**Hapy identity:** tests stay per-agent + workspace-scoped; no cross-tenant fixtures.
+**Aide identity:** tests stay per-agent + workspace-scoped; no cross-tenant fixtures.
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -1255,7 +1255,7 @@ Intercom Fin **test before deploy** + answer inspection — not their full simul
 
 **Goal:** One-admin plane stays hard to abuse; reserved email cannot become a Google USER trap; inspect stays audited.  
 **Maps to:** Admin A0–A6 follow-ups · live lockout issues · Fusion trust plane.  
-**Hapy identity:** exactly one ADMIN; inspect-only (no impersonate); USER `/admin` → 404.
+**Aide identity:** exactly one ADMIN; inspect-only (no impersonate); USER `/admin` → 404.
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -1458,7 +1458,7 @@ Enterprise **governed operator** posture (Zendesk admin seriousness) without mul
 
 **Goal:** Make the one-admin console faster and more useful for daily ops — without impersonation or new roles.  
 **Maps to:** P2 density · Fusion admin inspect spine.  
-**Hapy identity:** inspect-only; platform analytics + safety; no act-as-user.
+**Aide identity:** inspect-only; platform analytics + safety; no act-as-user.
 
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test** (steps you can run). Until then, keep the short plan lines only.
@@ -1645,7 +1645,7 @@ Helpdesk **ops console density** — not Zendesk full agent workspace.
 
 **Goal:** Better answers from existing TEXT/PDF/WEB **without** Pinecone/pgvector.  
 **Maps to:** Week 3 “Better knowledge retrieval” · Fusion W3-1 · Fin retrieve-lite.  
-**Hapy identity:** answer-from-knowledge; cite titles; refuse off-knowledge.
+**Aide identity:** answer-from-knowledge; cite titles; refuse off-knowledge.
 
 **Status:** **F08 A–H ✅** shipped (`npm run test:f08`). Next feature: **F09**.
 
@@ -1902,7 +1902,7 @@ Fin **retrieve then generate** shape — lexical top-k only until F10.
 
 **Goal:** Stable grounding, tone, and classify quality via **templates** — Fin Guidance lite without a new CMS.  
 **Maps to:** Week 3 Better AI prompts · Fusion W3-3 · Intercom Guidance (structure only).  
-**Hapy identity:** refuse off-knowledge; cite F08 titles; no private fine-tune; no model garden.
+**Aide identity:** refuse off-knowledge; cite F08 titles; no private fine-tune; no model garden.
 
 **Status:** **F09 A–H ✅** (`npm run test:f09`). Next feature per roadmap (buffer polish or **F10** when P3 opens).
 

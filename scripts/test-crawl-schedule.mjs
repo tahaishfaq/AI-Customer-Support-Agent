@@ -72,7 +72,14 @@ function testSourceWiring() {
 
   const knowledgeUi = read("components/knowledge/KnowledgeList.jsx");
   assert(/CrawlSchedulePanel/.test(knowledgeUi), "Knowledge UI schedule panel");
-  assert(/CRAWL_RECRAWL_OPTIONS/.test(knowledgeUi), "schedule select options");
+
+  const scheduleUi = read("components/knowledge/CrawlSchedulePanel.jsx");
+  assert(/CRAWL_RECRAWL_OPTIONS/.test(scheduleUi), "schedule select options");
+  assert(/Once only/.test(scheduleUi), "once-only option");
+  assert(/Scheduled refresh/.test(scheduleUi), "scheduled refresh option");
+
+  const deployUi = read("components/customization/DeployForm.jsx");
+  assert(/CrawlSchedulePanel/.test(deployUi), "Deploy tab schedule panel");
 
   console.log("ok  crawl schedule source wiring");
 }

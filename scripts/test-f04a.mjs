@@ -82,23 +82,29 @@ function main() {
   }
 
   const css = read("app/globals.css");
+  // D0 redesign: light primary #0d7377 (legacy was #0b5f58); dark may use #0f766e
   assert(
-    /--color-primary:\s*#0b5f58/i.test(css),
-    "globals must keep Hapy teal --color-primary #0b5f58"
+    /--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css),
+    "globals must keep Aide teal --color-primary (#0d7377 family)"
   );
   assert(
     /--font-display/i.test(css) && /--font-sans/i.test(css),
     "globals must keep display + sans font tokens"
   );
+  const lightPrimary =
+    css.match(/:root\s*\{[\s\S]*?--color-primary:\s*([^;]+)/)?.[1]?.trim() ||
+    "";
   assert(
-    !/#7c3aed/.test(css.match(/--color-primary:[^;]+/)?.[0] || ""),
+    !/#7c3aed/i.test(lightPrimary),
     "primary must not be purple"
   );
 
   const authPanel = read("components/auth/AuthVisualPanel.jsx");
   assert(
-    /Hapy/i.test(authPanel) && /--color-primary/.test(authPanel),
-    "AuthVisualPanel should brand with Hapy + primary token"
+    /Aide/i.test(authPanel) &&
+      (/--color-primary/.test(authPanel) ||
+        /#0d7377|#0b5f58/i.test(authPanel)),
+    "AuthVisualPanel should brand with Aide + primary teal"
   );
 
   console.log("ok  F04-A doc scope + surface files");

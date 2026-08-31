@@ -28,6 +28,7 @@ export async function POST(request, { params }) {
 
     const result = await setMessageFeedback(id, rating, {
       agentId: owned.conversation.agentId,
+      reason: body.reason,
     });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

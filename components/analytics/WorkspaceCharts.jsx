@@ -39,12 +39,18 @@ import {
 import { ChartEmpty } from "@/components/analytics/AnalyticsCharts";
 import { cn } from "@/lib/utils";
 
-const TEAL = "#0b5f58";
-const SKY = "#0284c7";
-const GREEN = "#16a34a";
-const SLATE = "#94a3b8";
-const RED = "#dc2626";
-const PALETTE = [TEAL, SKY, "#d97706", "#7c3aed", "#64748b"];
+const TEAL = "var(--chart-1)";
+const SKY = "var(--chart-2)";
+const GREEN = "var(--color-success)";
+const SLATE = "var(--muted-foreground)";
+const RED = "var(--color-danger)";
+const PALETTE = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
 
 const volumeConfig = {
   conversations: { label: "Chats", color: TEAL },
@@ -54,17 +60,17 @@ const volumeConfig = {
 function ChartViewPills({ value, onChange, options }) {
   return (
     <div className="mb-3 flex justify-end">
-      <div className="inline-flex rounded-full bg-[#f1f5f9] p-1">
+      <div className="inline-flex rounded-full bg-muted p-1">
         {options.map((option) => (
           <button
             key={option.id}
             type="button"
             onClick={() => onChange(option.id)}
             className={cn(
-              "rounded-full px-3 py-1 text-[11px] font-medium",
+              "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
               value === option.id
-                ? "bg-white text-[var(--color-text)] shadow-sm ring-1 ring-black/5"
-                : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {option.label}
@@ -116,8 +122,41 @@ const WORKLOAD_METRICS = [
   { id: "positives", label: "Positive" },
 ];
 
+const WORKLOAD_EMPTY = {
+  chats: "Need chats across days to compare agents.",
+  messages: "No messages in this range yet.",
+  positives:
+    "No positive-sentiment chats in this range — try Chats or Messages, or widen the date range.",
+};
+
+const WORKLOAD_CHART_HEIGHT = "h-[280px]";
+
 function hasSeries(rows, keys) {
   return rows.some((row) => keys.some((key) => Number(row[key]) > 0));
+}
+
+function WorkloadMetricToggle({ metric, onChange }) {
+  return (
+    <div className="mt-3 flex justify-center">
+      <div className="inline-flex rounded-full bg-muted p-1">
+        {WORKLOAD_METRICS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={cn(
+              "rounded-full px-3.5 py-1 text-[12px] font-medium",
+              metric === option.id
+                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ChartAreaInteractive({
@@ -129,8 +168,11 @@ export function ChartAreaInteractive({
   const xKey = range === "1d" ? "label" : "date";
 
   return (
-    <Card className="pt-0" data-hapy-chart="volume-over-time">
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+    <Card
+      className="overflow-hidden rounded-xl border-border/80 pt-0 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
+      data-hapy-chart="volume-over-time"
+    >
+      <CardHeader className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-r from-primary/[0.06] via-transparent to-transparent py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle>Volume over time</CardTitle>
           <CardDescription>{copy.description}</CardDescription>
@@ -406,6 +448,91 @@ export function PlatformGrowthChart({ points = [], className }) {
   );
 }
 
+/** Admin platform chat volume (area) — kept lazy so admin shell stays light. */
+export function PlatformVolumeChart({ points = [], className }) {
+  if (!hasSeries(points, ["conversations", "messages"])) {
+    return (
+      <ChartEmpty
+        message="No chat volume in this range."
+        className="h-[168px] min-h-[168px]"
+      />
+    );
+  }
+
+  return (
+    <ChartContainer
+      config={volumeConfig}
+      className={cn("aspect-auto h-[168px] w-full min-w-0", className)}
+    >
+      <AreaChart data={points} margin={{ left: 4, right: 8, top: 4, bottom: 0 }}>
+        <defs>
+          <linearGradient id="adminFillChats" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--color-conversations)" stopOpacity={0.7} />
+            <stop offset="95%" stopColor="var(--color-conversations)" stopOpacity={0.05} />
+          </linearGradient>
+          <linearGradient id="adminFillMsgs" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--color-messages)" stopOpacity={0.55} />
+            <stop offset="95%" stopColor="var(--color-messages)" stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="date"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={6}
+          minTickGap={28}
+          fontSize={10}
+          tickFormatter={(value) => {
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+          }}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={24}
+          allowDecimals={false}
+          fontSize={10}
+        />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              labelFormatter={(value) => {
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return String(value);
+                return date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
+              }}
+            />
+          }
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Area
+          dataKey="messages"
+          type="monotone"
+          fill="url(#adminFillMsgs)"
+          stroke="var(--color-messages)"
+          strokeWidth={1.5}
+        />
+        <Area
+          dataKey="conversations"
+          type="monotone"
+          fill="url(#adminFillChats)"
+          stroke="var(--color-conversations)"
+          strokeWidth={1.5}
+        />
+      </AreaChart>
+    </ChartContainer>
+  );
+}
+
 /** Three independent lines — not stacked area. */
 export function StackedSentimentChart({ points = [], className }) {
   if (!hasSeries(points, ["positive", "neutral", "negative"])) return <ChartEmpty />;
@@ -474,9 +601,9 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
   const height = top + 7 * cellH + 8;
 
   function fill(count) {
-    if (!count) return "#f1f5f9";
+    if (!count) return "color-mix(in srgb, var(--muted) 85%, transparent)";
     const t = count / max;
-    return `rgba(11, 95, 88, ${0.18 + t * 0.82})`;
+    return `color-mix(in srgb, var(--chart-1) ${Math.round(28 + t * 72)}%, transparent)`;
   }
 
   const hourLabel = (hour) =>
@@ -489,25 +616,25 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
   return (
     <div>
       {compact ? (
-        <p className="mb-1 truncate text-[11px] tabular-nums text-[var(--color-muted)]">
+        <p className="mb-1.5 truncate text-[11px] tabular-nums text-muted-foreground">
           {active
             ? `${heatmap.days[active.day]} ${hourLabel(active.hour)} — ${active.count}`
             : `Peak ${heatmap.peak?.label || "—"}`}
         </p>
       ) : (
         <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[12px] text-[var(--color-muted)]">
+          <p className="text-[12px] text-muted-foreground">
             Darker cells are busier. Peak:{" "}
-            <span className="font-medium text-[var(--color-text)]">{heatmap.peak?.label || "—"}</span>
+            <span className="font-medium text-foreground">{heatmap.peak?.label || "—"}</span>
           </p>
-          <p className="text-[12px] tabular-nums text-[var(--color-text-secondary)]">
+          <p className="text-[12px] tabular-nums text-muted-foreground">
             {active
               ? `${heatmap.days[active.day]} ${hourLabel(active.hour)} — ${active.count} chats`
               : "Hover a cell for the exact hour"}
           </p>
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg bg-muted/20 p-2 ring-1 ring-border/50">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className={cn("min-w-[520px] w-full", compact ? "h-[128px]" : "h-[188px]")}
@@ -522,7 +649,7 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
                 y={12}
                 textAnchor="middle"
                 fontSize="9"
-                className="fill-[var(--color-muted)]"
+                className="fill-muted-foreground"
               >
                 {hourLabel(hour)}
               </text>
@@ -535,7 +662,7 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
                 y={top + dayIndex * cellH + cellH / 2 + 3}
                 textAnchor="end"
                 fontSize="10"
-                className="fill-[var(--color-text-secondary)]"
+                className="fill-muted-foreground"
               >
                 {day}
               </text>
@@ -550,9 +677,9 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
                     y={top + dayIndex * cellH + 1}
                     width={cellW - 2}
                     height={cellH - 2}
-                    rx="2"
+                    rx="3"
                     fill={fill(count)}
-                    stroke={on ? "#0b5f58" : "transparent"}
+                    stroke={on ? "var(--chart-1)" : "transparent"}
                     strokeWidth="1.5"
                     onMouseEnter={() => setHover({ day: dayIndex, hour })}
                     onMouseLeave={() => setHover(null)}
@@ -566,6 +693,23 @@ export function ActivityHeatmap({ heatmap, compact = false }) {
             </g>
           ))}
         </svg>
+      </div>
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+        <span>Less</span>
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+          <span
+            key={t}
+            className="size-2.5 rounded-[3px] ring-1 ring-border/40"
+            style={{
+              background:
+                t === 0
+                  ? "color-mix(in srgb, var(--muted) 85%, transparent)"
+                  : `color-mix(in srgb, var(--chart-1) ${Math.round(28 + t * 72)}%, transparent)`,
+            }}
+            aria-hidden
+          />
+        ))}
+        <span>More</span>
       </div>
     </div>
   );
@@ -581,11 +725,38 @@ export function WorkloadChart({ workload }) {
     label: point.label,
     ...(point[metric] || (metric === "chats" ? point.values : {}) || {}),
   }));
-  const hasData = data.some((point) =>
+  const hasMetricData = data.some((point) =>
     series.some((item) => Number(point[item.id]) > 0)
   );
-  if (!series.length || !hasData) {
-    return <ChartEmpty message="Need chats across days to compare agents." />;
+  // Any chats/messages across metrics → keep the toggle visible (don't wipe UI on Positive).
+  const hasAnyWorkload = points.some((point) => {
+    const bags = [point.chats, point.messages, point.values, point.positives];
+    return bags.some(
+      (bag) =>
+        bag &&
+        series.some((item) => Number(bag[item.id]) > 0)
+    );
+  });
+
+  if (!series.length || !hasAnyWorkload) {
+    return (
+      <ChartEmpty
+        className={WORKLOAD_CHART_HEIGHT}
+        message="Need chats across days to compare agents."
+      />
+    );
+  }
+
+  if (!hasMetricData) {
+    return (
+      <div>
+        <ChartEmpty
+          className={WORKLOAD_CHART_HEIGHT}
+          message={WORKLOAD_EMPTY[metric] || WORKLOAD_EMPTY.chats}
+        />
+        <WorkloadMetricToggle metric={metric} onChange={setMetric} />
+      </div>
+    );
   }
 
   const config = Object.fromEntries(
@@ -630,17 +801,25 @@ export function WorkloadChart({ workload }) {
 
   return (
     <div>
-      <ChartContainer config={config} className="aspect-auto h-[280px] w-full">
+      <ChartContainer
+        config={config}
+        className={cn("aspect-auto w-full", WORKLOAD_CHART_HEIGHT)}
+      >
         <LineChart
           accessibilityLayer
           data={data}
           margin={{ left: 8, right: 96, top: 12, bottom: 8 }}
         >
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="0" />
+          <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="0" />
           <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
           <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} />
           {avgLine > 0 ? (
-            <ReferenceLine y={avgLine} stroke="#94a3b8" strokeDasharray="4 4" />
+            <ReferenceLine
+              y={avgLine}
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.55}
+              strokeDasharray="4 4"
+            />
           ) : null}
           <ChartTooltip content={<ChartTooltipContent />} />
           {series.map((item, i) => {
@@ -681,25 +860,7 @@ export function WorkloadChart({ workload }) {
           })}
         </LineChart>
       </ChartContainer>
-      <div className="mt-3 flex justify-center">
-        <div className="inline-flex rounded-full bg-[#f1f5f9] p-1">
-          {WORKLOAD_METRICS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => setMetric(option.id)}
-              className={cn(
-                "rounded-full px-3.5 py-1 text-[12px] font-medium",
-                metric === option.id
-                  ? "bg-white text-[var(--color-text)] shadow-sm ring-1 ring-black/5"
-                  : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <WorkloadMetricToggle metric={metric} onChange={setMetric} />
     </div>
   );
 }
@@ -757,12 +918,16 @@ export function AgentRadarChart({ agents = [] }) {
       >
         <PolarGrid
           gridType="circle"
-          stroke="#e2e8f0"
+          stroke="var(--chart-grid)"
           radialLines
         />
         <PolarAngleAxis
           dataKey="metric"
-          tick={{ fill: "#475569", fontSize: 12, fontWeight: 500 }}
+          tick={{
+            fill: "var(--muted-foreground)",
+            fontSize: 12,
+            fontWeight: 500,
+          }}
         />
         <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
@@ -820,7 +985,7 @@ export function TopicMixChart({ topics = [] }) {
             innerRadius={50}
             outerRadius={78}
             strokeWidth={4}
-            stroke="var(--color-surface)"
+            stroke="var(--card)"
             paddingAngle={2}
           >
             {data.map((slice) => (
@@ -833,15 +998,15 @@ export function TopicMixChart({ topics = [] }) {
         {data.map((slice) => (
           <li key={slice.key}>
             <div className="flex items-baseline justify-between gap-2 text-[12px]">
-              <span className="flex min-w-0 items-center gap-2 font-medium text-[var(--color-text)]">
+              <span className="flex min-w-0 items-center gap-2 font-medium text-foreground">
                 <span className="size-2.5 shrink-0 rounded-full" style={{ background: slice.fill }} />
                 <span className="truncate">{slice.label}</span>
               </span>
-              <span className="shrink-0 tabular-nums text-[var(--color-muted)]">
+              <span className="shrink-0 tabular-nums text-muted-foreground">
                 {slice.count} · {slice.percent}%
               </span>
             </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9]">
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full"
                 style={{ width: `${Math.max(slice.percent, 3)}%`, background: slice.fill }}
@@ -850,7 +1015,7 @@ export function TopicMixChart({ topics = [] }) {
           </li>
         ))}
         {lead ? (
-          <li className="pt-0.5 text-[11px] text-[var(--color-muted)]">
+          <li className="pt-0.5 text-[11px] text-muted-foreground">
             {lead.label} leads at {lead.percent}%.
           </li>
         ) : null}
@@ -918,14 +1083,14 @@ export function SentimentShareChart({ sentiment = [] }) {
   return (
     <div className="flex min-h-[220px] flex-col justify-center gap-5">
       <div className="text-center">
-        <p className="text-[36px] font-semibold tabular-nums leading-none tracking-tight text-[var(--color-text)]">
+        <p className="text-[36px] font-semibold tabular-nums leading-none tracking-tight text-foreground">
           {dominant.percent}%
         </p>
-        <p className="mt-1.5 text-[13px] text-[var(--color-muted)]">
+        <p className="mt-1.5 text-[13px] text-muted-foreground">
           of chats are {dominant.label.toLowerCase()}
         </p>
       </div>
-      <div className="flex h-3.5 overflow-hidden rounded-full bg-[#eef2f6]">
+      <div className="flex h-3.5 overflow-hidden rounded-full bg-muted">
         {present.map((row) => (
           <div
             key={row.key}
@@ -939,17 +1104,17 @@ export function SentimentShareChart({ sentiment = [] }) {
         {rows.map((row) => (
           <li
             key={row.key}
-            className="rounded-xl bg-[#f8fafc] px-2.5 py-3 text-center"
+            className="rounded-xl bg-muted/60 px-2.5 py-3 text-center"
           >
             <span
               className="mx-auto mb-1.5 block size-2 rounded-full"
               style={{ background: row.fill }}
             />
-            <p className="text-[15px] font-semibold tabular-nums text-[var(--color-text)]">
+            <p className="text-[15px] font-semibold tabular-nums text-foreground">
               {row.percent}%
             </p>
-            <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">{row.label}</p>
-            <p className="text-[10px] tabular-nums text-[var(--color-muted)]">
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{row.label}</p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
               {row.count} chat{row.count === 1 ? "" : "s"}
             </p>
           </li>
@@ -994,7 +1159,7 @@ export function SentimentDonutChart({ sentiment = [] }) {
             innerRadius={48}
             outerRadius={74}
             strokeWidth={4}
-            stroke="var(--color-surface)"
+            stroke="var(--card)"
           >
             {data.map((slice) => (
               <Cell key={slice.sentiment} fill={slice.fill} />
@@ -1006,15 +1171,15 @@ export function SentimentDonutChart({ sentiment = [] }) {
         {data.map((slice) => (
           <li key={slice.sentiment}>
             <div className="flex items-baseline justify-between gap-2 text-[12px]">
-              <span className="flex items-center gap-2 font-medium text-[var(--color-text)]">
+              <span className="flex items-center gap-2 font-medium text-foreground">
                 <span className="size-2.5 rounded-full" style={{ background: slice.fill }} />
                 {slice.label}
               </span>
-              <span className="tabular-nums text-[var(--color-muted)]">
+              <span className="tabular-nums text-muted-foreground">
                 {slice.count} · {slice.percent}%
               </span>
             </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#f1f5f9]">
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full"
                 style={{ width: `${Math.max(slice.percent, 2)}%`, background: slice.fill }}

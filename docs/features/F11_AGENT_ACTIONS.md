@@ -1,9 +1,21 @@
 # F11 — Agent actions / tools (recommended next after F00)
 
-**Status:** 🎯 **Next numbered feature** after [`F00_DOD_DEMO_BUFFER.md`](F00_DOD_DEMO_BUFFER.md). Do **not** start until buffer DoD is green (or lead skips buffer).  
+**Status:** ✅ **Shipped** (Phases A–H) — allowlisted HTTP tools in chat, no flow canvas.  
 **Goal:** Bot can **call allowlisted HTTP APIs** (order status, CRM ping) — Zendesk/Botpress “agent acts” story — **without** a flow canvas.  
 **Maps to:** Fusion P3-ACTIONS · Botpress tool loop lite · product “wow” without vectors.  
-**Prerequisite:** F08 retrieve + F09 prompts shipped. Actions **add tools**; they do not replace knowledge grounding.
+**Prerequisite:** F08 retrieve + F09 prompts shipped. Actions **add tools**; they do not replace knowledge grounding.  
+**Verify:** `npm run test:f11`
+
+> **Universal authz (F11-U):** [`F11_UNIVERSAL_AUTHZ_PLAN.md`](F11_UNIVERSAL_AUTHZ_PLAN.md)
+
+> **Shipped redesign (R0–R5):** identity, secrets, DNS-pin SSRF, confirmation — in code. Redis (**R6**) deferred → [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md).  
+> **Verify:** `npm run test:f11` · `npm run test:f11r` · `test:f11-ux2`–`ux4`
+
+> **Universal embed authz (planning + partial impl):** [`F11_UNIVERSAL_AUTHZ_PLAN.md`](F11_UNIVERSAL_AUTHZ_PLAN.md) — guest vs logged-in, confirm-before-every-live-call, cross-user refuse, owner config playbook, phases U0–U8.
+
+> **50 businesses catalog:** [`F11_UNIVERSAL_BUSINESSES.md`](F11_UNIVERSAL_BUSINESSES.md) · **5000 business edge cases:** [`F11_BUSINESS_EDGE_CASES.md`](F11_BUSINESS_EDGE_CASES.md)
+
+> **Edge case registry (1000 platform):** [`F11_EDGE_CASE_REGISTRY.md`](F11_EDGE_CASE_REGISTRY.md) — E0001–E1000 · regenerate via `node scripts/generate-f11-edge-cases.mjs`.
 
 > **Full architecture** (flows, KB vs live, security, fallbacks, edge cases): [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md)
 
@@ -58,7 +70,7 @@ Studio mein owner **Actions** define karta hai: URL, method, sirf **allowlisted*
 
 | User | Role |
 |------|------|
-| **Owner** | Hapy login — agent banata hai, **Actions** tab mein API define + key set |
+| **Owner** | Aide login — agent banata hai, **Actions** tab mein API define + key set |
 | **Customer** | Website widget — sirf chat likhta hai, key/API nahi dekhta |
 
 **Customer experience:** Normal chat jaisa. Peeche server shop API call karta hai — customer ko pata bhi nahi chalta.
@@ -106,7 +118,7 @@ Logs / LLM / browser: key **never**.
 |-----------|----------|
 | SQL injection risk | Fixed endpoint |
 | Cross-workspace leak | Allowlist host |
-| Hapy DB ≠ shop orders | Shop controls their backend |
+| Aide DB ≠ shop orders | Shop controls their backend |
 
 Shop ko chhoti API banani hogi (ya demo mock). Bot sirf woh URL hit karega.
 
@@ -125,7 +137,7 @@ Shop ko chhoti API banani hogi (ya demo mock). Bot sirf woh URL hit karega.
 | Level | Kya | Kaun |
 |-------|-----|------|
 | **1. Business allow** | Kaun si APIs bot use kar sakta hai | Owner (Actions tab enable) |
-| **2. Technical allow** | Sirf allowlisted URL + SSRF block | Hapy server (auto) |
+| **2. Technical allow** | Sirf allowlisted URL + SSRF block | Aide server (auto) |
 | **3. Customer allow** | Popup “Allow API?” | **MVP: nahi** — widget = bot help |
 
 **Baad mein (sensitive):** Bot pooch sakta hai *“Order check karun? Order number batao”* — yeh info dena hai, browser permission nahi.
@@ -138,7 +150,7 @@ Shop ko chhoti API banani hogi (ya demo mock). Bot sirf woh URL hit karega.
 Customer (widget): "Mera order 123 ka status?"
 
          ↓
-    [Hapy server]
+    [Aide server]
          ↓
     FAQ bhi dekhta hai (F08 knowledge)
          ↓
@@ -160,7 +172,7 @@ Customer (widget): "Mera order 123 ka status?"
 
 **Customer ne sirf message likha.** Baaki sab peeche server par — jaise aaj chat bhi hoti hai.
 
-**Browser security:** Customer ki machine se shop API **direct nahi** chalti. Sirf Hapy server call karta hai (API key wahan). Customer ko key/URL nahi pata.
+**Browser security:** Customer ki machine se shop API **direct nahi** chalti. Sirf Aide server call karta hai (API key wahan). Customer ko key/URL nahi pata.
 
 ---
 
@@ -263,7 +275,16 @@ Yeh **conversation** hai — browser permission popup nahi.
 
 ---
 
-## Phase A — Scope & identity
+## Phase A — Scope & identity ✅
+
+**Delivered (Aug 2026):**
+- Prisma: `AgentAction`, `ToolRun`, `ActionHttpMethod` (GET|POST), `ToolRunStatus`
+- Migration: `prisma/migrations/20260824210000_f11_agent_actions/`
+- Identity helpers: `lib/actions/action-config.js` (owner-only manage, invoke rules, env secret refs, timeouts, max steps)
+- Customization → **Actions** tab shell (`ActionsForm`) — allowlist / env-key rules visible; CRUD in Phase B
+- Smoke: `npm run test:f11a`
+
+**Manual test:** `npx prisma migrate deploy` → `npx prisma generate` → `npm run test:f11a`. Open agent → Customization → **Actions** tab.
 
 ### In
 
@@ -304,7 +325,39 @@ Yeh **conversation** hai — browser permission popup nahi.
 
 ---
 
-## Phase B — Design & functionality
+## Phase B — Design & functionality ✅
+
+**Delivered (Aug 2026):**
+- Zod: `lib/validations/actions.js` (create / update / test)
+- Service: `lib/services/action.service.js` (list/create/update/delete/test + `ToolRun` audit)
+- SSRF: `lib/actions/ssrf.js` · HTTP executor: `lib/actions/http-executor.js` (env secret resolve, demo in-process)
+- APIs: `GET/POST /api/agents/[id]/actions`, `PATCH/DELETE .../actions/[actionId]`, `POST .../test`
+- Demo shop: `GET /api/demo/orders/[id]` (`ORD-100` → Shipped)
+- Customization → **Actions**: add / edit / enable / delete / **Test** with sample args
+- Client helper: `lib/api/actions.js`
+- Smoke: `npm run test:f11b`
+
+**Manual test:**
+1. Customization → Actions → **Add action** (demo URL prefilled)
+2. Create → **Test** with `{"orderId":"ORD-100"}` → body shows Shipped
+3. Toggle disable → Test should fail “disabled”
+4. Try URL `https://169.254.169.254/` via save+test → SSRF blocked
+
+### Chat tool loop ✅ (Aug 2026)
+
+**Delivered:**
+- OpenAI tools: `lib/actions/tool-definitions.js` (schema → function tools + arg validate)
+- Loop: `lib/actions/tool-loop.js` (`chatCompletionWithTools`, max 3 steps, 25s deadline, `ToolRun` audit)
+- LLM turn: `chatCompletionTurn` in `llm.provider.js` (tool_calls)
+- `chat.service` loads enabled actions → appends tools prompt → runs loop (studio + embed)
+- Studio bubble: **Called:** `get_order_status → 200` timeline
+- Smoke: `npm run test:f11c`
+
+**Manual test:**
+1. Customization → Actions → add enabled demo `get_order_status` (localhost demo URL)
+2. Studio **Test** chat: “What is the status of order ORD-100?”
+3. Reply mentions Shipped (or similar); under bubble see **Called: get_order_status → 200**
+4. Ask a pure FAQ with no order id → no tool line (knowledge only)
 
 ### Data model (sketch)
 
@@ -362,92 +415,121 @@ User message
 
 ---
 
-## Phase C — Improvements
+## Phase C — Improvements ✅
 
-- Template library (copy): “GET JSON by id”, “POST webhook”
-- Redact secrets in UI (show `••••`)
-- CoT-lite timeline of tool steps under studio bubble
-- Rate-limit outbound calls per agent / workspace
-- Disable all actions with one kill switch on agent
+**Delivered (Aug 2026):**
+- Template library in Customization → Actions: GET JSON by id, POST webhook, Demo order status
+- Header secret redaction in owner UI (`••••`); save preserves prior env refs
+- Outbound rate limit per agent (`RATE_LIMIT_ACTION_OUTBOUND`, default 30/min)
+- Agent kill switch: `Agent.actionsEnabled` (migration `20260824220000_f11_actions_kill_switch`)
+- Smoke: `npm run test:f11d`
+
+**Manual test:**
+1. Actions → pick **GET JSON by id** template → edit URL → Create
+2. Edit action with `{{env:SHOP_API_KEY}}` header → reopen → see `••••` (not the env name expanded)
+3. Toggle **Allow live tools** off → Studio chat order question should not call tools; Test button disabled / fails
+4. Toggle back on → Test ORD-100 still works
 
 ---
 
-## Phase D — Error handling
+## Phase D — Error handling ✅
+
+**Delivered (Aug 2026):**
+- Retry policy: one automatic retry on timeout / 5xx / network error; **no** retry on 4xx / SSRF / schema
+- Model-safe tool results: `lib/actions/tool-errors.js` — short apology guidance; 5xx omits raw body
+- Safe logs: `tool.run` with actionName, status, durationMs, requestId (no response body)
+- Unknown / disabled / schema / max-steps still fail closed into the model then final reply
+- Smoke: `npm run test:f11e`
 
 | Case | Behavior |
 |------|----------|
 | Unknown tool name | Reject; model gets error string; final apology |
 | Schema invalid | Reject before HTTP |
-| HTTP timeout / 5xx | One retry optional; then fail closed |
-| HTTP 4xx | No retry; feed status to model |
+| HTTP timeout / 5xx | One retry; then fail closed |
+| HTTP 4xx | No retry; feed status (+ short detail) to model |
 | SSRF (private IP, link-local, metadata) | Block; audit `SSRF_BLOCKED` |
 | Max steps hit | Stop loop; ask user to clarify |
-| Action disabled | Treat as unknown |
+| Action disabled | Treat as unknown / disabled |
 | Prompt builder fail | Same as F09 — 500 / safe path |
 
 Safe logs: action name, status, duration, requestId — **not** full response body with PII by default.
 
----
-
-## Phase E — Production bottlenecks
-
-- Per-tool timeout (default 8s); global loop deadline (~25s under chat `maxDuration`)
-- Cap concurrent outbound per agent (e.g. 2)
-- Do not run tools on classify path
-- Defer heavy POST tools if needed (sync GET first)
+**Manual test:** Point a test action at a URL that 404s → Test shows ERROR, no double-hit delay long. Point at a flaky 503 (or mock) → one retry then fail. Chat with bad order id → bot apologizes without inventing status.
 
 ---
 
-## Phase F — Scaling
+## Phase E — Production bottlenecks ✅
 
-- Short GET sync in request; long jobs → queue later (out of F11 MVP)
-- Workspace daily outbound cap
-- Cache idempotent GET by args hash (optional, short TTL)
+**Delivered (Aug 2026):**
+- Per-tool timeout default **8s** (clamp ≤15s); tool loop deadline **25s** (already in action-config)
+- Concurrent outbound cap: **2 per agent** (`lib/actions/outbound-semaphore.js`) — chat + studio Test
+- Classify path: `classifyCompletion` / `classify.js` stay **tool-free** (asserted in smoke)
+- Same LLM turn: **GET tools run before POST** (`orderToolCallsGetFirst`)
+- Smoke: `npm run test:f11f`
 
----
-
-## Phase G — Infrastructure
-
-| Decision | Recommendation |
-|----------|----------------|
-| Secrets | **Phase 1:** env vars (`env:KEY_NAME` in header template). **Phase 2:** encrypted DB column |
-| Secret storage | **Never** plain text DB; **never** bcrypt hash (need decrypt for calls) |
-| Egress | Allowlist hostnames per action URL |
-| Provider | Keep one LLM with tools support (current OpenAI path) |
-| Audit | Store `ToolRun` rows: agentId, actionId, status, durationMs, requestId |
-| Demo without shop | Mock route `GET /api/demo/orders/[id]` returning fixed JSON |
-
-Migration: `AgentAction` + `ToolRun` tables.
+**Manual test:** Two overlapping Studio Tests on the same agent stay responsive; a burst of parallel chats should not open unbounded outbound HTTP. Pure FAQ chat still classifies without tool calls.
 
 ---
 
-## Phase H — Production testing
+## Phase F — Scaling ✅
 
-- [ ] Happy path: GET tool returns status in final answer  
-- [ ] SSRF to `169.254.169.254` blocked  
-- [ ] Max steps enforced  
-- [ ] Disabled action not callable  
-- [ ] Workspace isolation: Agent B cannot use Agent A action  
-- [ ] Studio test button works without full chat  
-- [ ] Embed chat can use tools (same server loop)  
-- [ ] Audit / ToolRun visible to owner (and admin inspect)  
-- [ ] `npm run test:f11` (to add) green  
+**Delivered (Aug 2026):**
+- **GET stays sync** in the chat request; long async / queue jobs remain **out of F11 MVP**
+- Workspace daily outbound cap: `RATE_LIMIT_ACTION_DAILY` (default **500** / ~24h per workspace, per instance)
+- Idempotent **GET cache** by args hash — TTL `ACTION_GET_CACHE_TTL_MS` (default **30s**); POST never cached; errors never cached
+- Cache hits audited as `CACHE_HIT` (no outbound HTTP)
+- Smoke: `npm run test:f11g`
+
+**Manual test:** Test the same demo order twice quickly — second Test can show `CACHE_HIT`. After many outbound calls in one workspace, further calls return daily limit guidance.
+
+---
+
+## Phase G — Infrastructure ✅
+
+**Delivered (Aug 2026):** decisions locked in code — not a separate build sprint.
+
+| Decision | Shipped |
+|----------|---------|
+| Secrets | Env refs `{{env:KEY}}` only (Phase 1). Encrypted DB secrets later. |
+| Secret storage | Never plain text in DB; bcrypt banned for API keys |
+| Egress | Per-action URL + SSRF block (`lib/actions/ssrf.js`) |
+| Provider | OpenAI tools via `chatCompletionTurn` / tool loop |
+| Audit | `ToolRun` rows + owner **Recent tool runs** UI |
+| Demo without shop | `GET /api/demo/orders/[id]` |
+
+Migration: `AgentAction` + `ToolRun` (+ `Agent.actionsEnabled` kill switch).
+
+---
+
+## Phase H — Production testing ✅
+
+**Delivered (Aug 2026):** checklist covered by smoke `npm run test:f11h` + earlier phase tests.
+
+- [x] Happy path: GET tool → status in final answer (tool loop + demo API)
+- [x] SSRF to `169.254.169.254` blocked
+- [x] Max steps enforced (`MAX_TOOL_STEPS = 3`)
+- [x] Disabled action not callable
+- [x] Workspace isolation: Agent B cannot use Agent A action (`canInvokeAgentAction`)
+- [x] Studio test button works without full chat
+- [x] Embed chat can use tools (same `chat.service` loop)
+- [x] Audit / ToolRun visible to owner (Actions → Recent tool runs)
+- [x] `npm run test:f11` green
 
 ### Done when
 
-Demo: “Check order **ORD-100**” → allowlisted API → real status in reply, with tool step visible in studio — **no canvas**.
+Demo: “Check order **ORD-100**” → allowlisted API → real status in reply, with tool step visible in studio — **no canvas**. ✅
 
 ---
 
 ## Implementation order (when coding starts)
 
-1. Prisma models + migration  
-2. CRUD API + validation (zod)  
-3. SSRF helper + HTTP executor  
-4. Wire chat.service tool loop  
-5. Studio Actions tab + test  
-6. Audit UI + smoke scripts  
-7. Phase H checklist  
+1. Prisma models + migration ✅  
+2. CRUD API + validation (zod) ✅  
+3. SSRF helper + HTTP executor ✅  
+4. Wire chat.service tool loop ✅  
+5. Studio Actions tab + test ✅  
+6. Audit UI + smoke scripts ✅  
+7. Phase H checklist ✅  
 
 ---
 

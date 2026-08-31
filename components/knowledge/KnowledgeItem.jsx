@@ -29,7 +29,7 @@ export function KnowledgeItem({ document, onDeleted }) {
 
   return (
     <>
-      <article className="flex items-center gap-3 border-b border-[var(--color-border)] px-4 py-2.5 last:border-b-0">
+      <article className="flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-b-0">
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
@@ -39,10 +39,10 @@ export function KnowledgeItem({ document, onDeleted }) {
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-lg",
               isPdf
-                ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
+                ? "bg-sky-500/10 text-sky-700"
                 : isWeb
-                  ? "bg-teal-50 text-[var(--color-primary)]"
-                  : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                  ? "bg-primary/10 text-primary"
+                  : "bg-primary/10 text-primary"
             )}
           >
             {isPdf ? (
@@ -55,23 +55,23 @@ export function KnowledgeItem({ document, onDeleted }) {
           </span>
           <span className="min-w-0">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-medium text-[var(--color-text)]">
+              <span className="truncate text-sm font-medium text-foreground">
                 {document.name}
               </span>
               <span
                 className={cn(
                   "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                   isPdf
-                    ? "bg-[var(--color-info)]/10 text-[var(--color-info)]"
+                    ? "bg-sky-500/10 text-sky-700"
                     : isWeb
-                      ? "bg-teal-50 text-[var(--color-primary)]"
-                      : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-primary/10 text-primary"
                 )}
               >
                 {isWeb ? "Website" : document.type}
               </span>
             </span>
-            <span className="mt-0.5 block text-[11px] text-[var(--color-muted)]">
+            <span className="mt-0.5 block text-[11px] text-muted-foreground">
               {isWeb && document.origin
                 ? `${document.origin.replace(/^https?:\/\//, "")} · ${formatDate(document.createdAt)}`
                 : formatDate(document.createdAt)}
@@ -83,7 +83,7 @@ export function KnowledgeItem({ document, onDeleted }) {
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => setPreviewOpen(true)}
           >
             <Eye className="size-3" />
@@ -94,7 +94,7 @@ export function KnowledgeItem({ document, onDeleted }) {
               href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <ExternalLink className="size-3" />
               Open PDF
@@ -102,7 +102,7 @@ export function KnowledgeItem({ document, onDeleted }) {
           ) : null}
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-destructive hover:bg-destructive/5"
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="size-3" />

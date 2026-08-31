@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronUp, Plus, Settings2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, ChevronsUpDown, Plus, Settings2 } from "lucide-react";
 import {
   activateWorkspace,
   createWorkspace,
@@ -18,17 +18,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useSidebar } from "@/components/ui/sidebar";
 
 function mark(name) {
-  const letter = (name || "W").trim().charAt(0).toUpperCase() || "W";
-  return letter;
+  return (name || "W").trim().charAt(0).toUpperCase() || "W";
 }
 
 export function WorkspaceSwitcher() {
-  const rootRef = useRef(null);
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,6 +49,7 @@ export function WorkspaceSwitcher() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [formError, setFormError] = useState("");
 
   const active = workspaces.find((w) => w.id === activeId) || workspaces[0];
@@ -62,14 +73,8 @@ export function WorkspaceSwitcher() {
   }, []);
 
   useEffect(() => {
-    function onDocClick(event) {
-      if (!rootRef.current?.contains(event.target)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+    if (collapsed) setOpen(false);
+  }, [collapsed]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -124,12 +129,6 @@ export function WorkspaceSwitcher() {
   async function handleDelete() {
     if (!active?.id) return;
     const hasAgents = (active.agentCount || 0) > 0;
-    const ok = window.confirm(
-      hasAgents
-        ? `Delete “${active.name}” and its ${active.agentCount} agent(s)? This cannot be undone.`
-        : `Delete “${active.name}”?`
-    );
-    if (!ok) return;
     setBusy(true);
     setFormError("");
     try {
@@ -138,112 +137,118 @@ export function WorkspaceSwitcher() {
     } catch (err) {
       setFormError(err.message || "Unable to delete workspace");
       setBusy(false);
+      throw err;
     }
   }
 
   return (
-    <div ref={rootRef} className="relative min-w-0 flex-1">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full min-w-0 items-center gap-2.5 rounded-md text-left outline-none hover:bg-[var(--color-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
-        aria-expanded={open}
-        aria-haspopup="listbox"
+    <>
+      <DropdownMenu
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setQuery("");
+        }}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] font-[family-name:var(--font-display)] text-[13px] font-semibold text-white">
-          {mark(active?.name)}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-[family-name:var(--font-display)] text-sm font-semibold leading-tight text-[var(--color-text)]">
-            {loading ? "Workspace" : active?.name || "Workspace"}
+        <DropdownMenuTrigger
+          className="flex h-10 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-md px-1 text-left outline-none transition-[gap,padding,width,height] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
+          aria-label={`Workspace: ${active?.name || "Workspace"}`}
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary font-heading text-[13px] font-semibold text-primary-foreground">
+            {mark(active?.name)}
           </span>
-          <span className="block truncate text-[11px] leading-tight text-[var(--color-muted)]">
-            Personal
+          <span className="min-w-0 flex-1 overflow-hidden opacity-100 transition-[opacity,flex-basis,width] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:opacity-0">
+            <span
+              className="block truncate font-heading text-sm font-semibold leading-tight text-sidebar-foreground"
+              suppressHydrationWarning
+            >
+              {loading ? "Workspace" : active?.name || "Workspace"}
+            </span>
+            <span className="block truncate text-[11px] leading-tight text-muted-foreground">
+              Personal
+            </span>
           </span>
-        </span>
-        <ChevronUp
-          className={cn(
-            "size-3.5 shrink-0 text-[var(--color-muted)] transition-transform",
-            open ? "rotate-0" : "rotate-180"
-          )}
-        />
-      </button>
+          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground opacity-100 transition-opacity duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0" />
+        </DropdownMenuTrigger>
 
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg">
-          <div className="border-b border-[var(--color-border)] p-2">
+        <DropdownMenuContent
+          side={collapsed ? "right" : "bottom"}
+          align="start"
+          sideOffset={collapsed ? 8 : 4}
+          className="w-64 min-w-64"
+        >
+          <div className="p-1.5">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search workspaces…"
               className="h-8"
+              onKeyDown={(e) => e.stopPropagation()}
             />
           </div>
-          <div className="max-h-56 overflow-y-auto p-1">
+
+          <DropdownMenuGroup>
             {error ? (
-              <p className="px-2 py-3 text-center text-[12px] text-[var(--color-danger)]">
+              <p className="px-2 py-3 text-center text-xs text-destructive">
                 {error}
               </p>
             ) : null}
             {filtered.map((workspace) => {
               const isActive = workspace.id === activeId;
               return (
-                <button
+                <DropdownMenuItem
                   key={workspace.id}
-                  type="button"
                   disabled={busy}
+                  className="cursor-pointer gap-2"
                   onClick={() => switchTo(workspace.id)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-[var(--color-text)] hover:bg-[var(--color-bg)]",
-                    isActive && "bg-[var(--color-primary)]/8"
-                  )}
                 >
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)]/10 text-[10px] font-semibold text-[var(--color-primary)]">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-semibold text-primary">
                     {mark(workspace.name)}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
-                  {isActive ? (
-                    <Check className="size-3.5 shrink-0 text-[var(--color-primary)]" />
-                  ) : null}
-                </button>
+                  <span className="min-w-0 flex-1 truncate">
+                    {workspace.name}
+                  </span>
+                  {isActive ? <Check className="text-primary" /> : null}
+                </DropdownMenuItem>
               );
             })}
             {filtered.length === 0 && !error ? (
-              <p className="px-2 py-3 text-center text-[12px] text-[var(--color-muted)]">
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
                 No workspaces match
               </p>
             ) : null}
-          </div>
-          <div className="space-y-px border-t border-[var(--color-border)] p-1">
-            <button
-              type="button"
+          </DropdownMenuGroup>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() => {
                 setOpen(false);
                 setNameDraft("");
                 setFormError("");
                 setCreateOpen(true);
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium text-[var(--color-primary)] hover:bg-[var(--color-bg)]"
             >
-              <Plus className="size-3.5" />
+              <Plus />
               Create a workspace
-            </button>
-            <button
-              type="button"
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() => {
                 setOpen(false);
                 setNameDraft(active?.name || "");
                 setFormError("");
                 setSettingsOpen(true);
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]"
             >
-              <Settings2 className="size-3.5" />
+              <Settings2 />
               Workspace settings
-            </button>
-          </div>
-        </div>
-      ) : null}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
@@ -254,7 +259,7 @@ export function WorkspaceSwitcher() {
                 Agents, knowledge, and analytics stay inside this workspace.
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 flex flex-col gap-2">
               <Label htmlFor="workspace-name">Name</Label>
               <Input
                 id="workspace-name"
@@ -265,7 +270,7 @@ export function WorkspaceSwitcher() {
                 placeholder="Acme Support"
               />
               {formError ? (
-                <p className="text-[12px] text-[var(--color-danger)]">{formError}</p>
+                <p className="text-xs text-destructive">{formError}</p>
               ) : null}
             </div>
             <DialogFooter className="mt-4">
@@ -293,7 +298,7 @@ export function WorkspaceSwitcher() {
                 Rename this workspace or delete it. Deleting removes its agents.
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 flex flex-col gap-2">
               <Label htmlFor="workspace-rename">Name</Label>
               <Input
                 id="workspace-rename"
@@ -303,7 +308,7 @@ export function WorkspaceSwitcher() {
                 required
               />
               {formError ? (
-                <p className="text-[12px] text-[var(--color-danger)]">{formError}</p>
+                <p className="text-xs text-destructive">{formError}</p>
               ) : null}
             </div>
             <DialogFooter className="mt-4">
@@ -311,7 +316,7 @@ export function WorkspaceSwitcher() {
                 type="button"
                 variant="outline"
                 disabled={busy || workspaces.length <= 1}
-                onClick={handleDelete}
+                onClick={() => setDeleteConfirmOpen(true)}
               >
                 Delete
               </Button>
@@ -322,6 +327,21 @@ export function WorkspaceSwitcher() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete workspace?"
+        description={
+          (active?.agentCount || 0) > 0
+            ? `Delete “${active?.name}” and its ${active.agentCount} agent(s)? This cannot be undone.`
+            : `Delete “${active?.name}”? This cannot be undone.`
+        }
+        confirmLabel="Delete workspace"
+        loading={busy}
+        error={formError}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 }

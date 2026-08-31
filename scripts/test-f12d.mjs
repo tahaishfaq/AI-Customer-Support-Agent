@@ -77,8 +77,8 @@ function main() {
     "embed handoff eligibility + limits"
   );
   assert(
-    embed.includes("clearActiveEmbedSession"),
-    "embed fresh chat on page reload"
+    embed.includes("loadEmbedHistory"),
+    "embed restores current chat after refresh"
   );
 
   const schema = read("prisma/schema.prisma");

@@ -34,6 +34,8 @@ export default async function PublicWidgetPage({ params, searchParams }) {
     parentOrigin = queryParent;
   }
 
+  const embedMode = typeof query.embed === "string" ? query.embed : "";
+
   const agent = await getPublicAgentByKey(publicKey, {
     origin: trustedOrigin,
   });
@@ -43,6 +45,7 @@ export default async function PublicWidgetPage({ params, searchParams }) {
     <PublicWebchat
       agent={toPublicAgentView(agent)}
       parentOrigin={parentOrigin}
+      embedMode={embedMode}
     />
   );
 }

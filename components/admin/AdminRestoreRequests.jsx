@@ -87,7 +87,7 @@ export function AdminRestoreRequests() {
   }
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title="Access requests"
         description="Restore a suspended user, or reject the request. They stay suspended until you restore them."
@@ -117,8 +117,8 @@ export function AdminRestoreRequests() {
             onClick={() => setStatus(item.id)}
             className={
               status === item.id
-                ? "rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-[12px] font-medium text-white"
-                : "rounded-md bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] ring-1 ring-[var(--color-border)]"
+                ? "rounded-md bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground"
+                : "rounded-md bg-card px-3 py-1.5 text-[12px] font-medium text-muted-foreground ring-1 ring-border hover:text-foreground"
             }
           >
             {item.label}
@@ -132,11 +132,11 @@ export function AdminRestoreRequests() {
         </InlineAlert>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
         {loading ? (
           <div className="space-y-2 p-4">
-            <Skeleton className="h-16 bg-[var(--color-border)]" />
-            <Skeleton className="h-16 bg-[var(--color-border)]" />
+            <Skeleton className="h-16 bg-muted" />
+            <Skeleton className="h-16 bg-muted" />
           </div>
         ) : rows.length === 0 ? (
           <EmptyState
@@ -145,26 +145,26 @@ export function AdminRestoreRequests() {
             description="When a suspended user asks for access again, it shows up here."
           />
         ) : (
-          <ul className="divide-y divide-[var(--color-border)]">
+          <ul className="divide-y divide-border">
             {rows.map((row) => (
               <li key={row.id} className="px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <Link
                       href={`/admin/users/${row.user?.id}`}
-                      className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
+                      className="text-[13px] font-medium text-primary hover:underline"
                     >
                       {row.user?.name || "User"}
                     </Link>
-                    <p className="text-[12px] text-[var(--color-muted)]">
+                    <p className="text-[12px] text-muted-foreground">
                       {row.user?.email}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap text-[13px] text-[var(--color-text)]">
+                    <p className="mt-2 whitespace-pre-wrap text-[13px] text-foreground">
                       {row.message}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                    <p className="text-[11px] text-[var(--color-muted)]">
+                    <p className="text-[11px] text-muted-foreground">
                       {statusLabel(row.status)} · {formatWhen(row.createdAt)}
                     </p>
                     {row.status === "PENDING" ? (

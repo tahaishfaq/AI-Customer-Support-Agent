@@ -19,7 +19,7 @@ Simple + production design: flows, who allows what, API keys, no DB calls, human
 
 | Kaun | Kaun hai | Kya karta hai |
 |------|----------|---------------|
-| **Owner** | Shop / agent banane wala (Hapy login) | Actions define, API key set, FAQ add |
+| **Owner** | Shop / agent banane wala (Aide login) | Actions define, API key set, FAQ add |
 | **Customer** | Website widget wala end user | Sirf normal chat — “Order 123 status?” |
 
 Customer ko **“Allow API”** button **nahi** dabana (MVP). Allow **owner ne pehle** action setup karte waqt kar di.
@@ -52,7 +52,7 @@ Optional later (not F11 MVP): “Save this answer as FAQ” button — **explici
 | Cheez | Kaun deta hai |
 |-------|---------------|
 | Action name, URL, method | **Owner** (Studio → Actions tab) |
-| **API key / Bearer token** | **Owner** — apni **shop ki** key, Hapy ki nahi |
+| **API key / Bearer token** | **Owner** — apni **shop ki** key, Aide ki nahi |
 | FAQ text | **Owner** |
 | Chat message | **Customer** (key kabhi nahi) |
 
@@ -81,7 +81,7 @@ Save → UI par sirf •••••• (full key dubara show nahi)
 
 **Rules:**
 - Key **kabhi** browser / customer / LLM prompt / logs mein nahi
-- Sirf **Hapy server** HTTP header mein inject karta hai
+- Sirf **Aide server** HTTP header mein inject karta hai
 - Owner key rotate kare to action update ya env change
 
 ### MVP secret strategy (implementation)
@@ -98,8 +98,8 @@ Save → UI par sirf •••••• (full key dubara show nahi)
 | Option | MVP? | Why |
 |--------|------|-----|
 | HTTP GET/POST (allowlisted URL) | ✅ | Controlled, auditable, SSRF checks |
-| Direct SQL / Prisma to shop DB | ❌ | SQL injection, cross-tenant leak, Hapy DB ≠ shop orders |
-| Direct SQL to Hapy Neon for “orders” | ❌ | Shop orders Hapy DB mein nahi hote |
+| Direct SQL / Prisma to shop DB | ❌ | SQL injection, cross-tenant leak, Aide DB ≠ shop orders |
+| Direct SQL to Aide Neon for “orders” | ❌ | Shop orders Aide DB mein nahi hote |
 
 **Correct pattern:**
 ```
@@ -116,7 +116,7 @@ Save → UI par sirf •••••• (full key dubara show nahi)
 | Level | Kya | Kaun |
 |-------|-----|------|
 | **1. Business allow** | Kaun si APIs bot use kar sakta hai | Owner (Actions tab enable) |
-| **2. Technical allow** | Sirf allowlisted URL + SSRF block | Hapy server (auto) |
+| **2. Technical allow** | Sirf allowlisted URL + SSRF block | Aide server (auto) |
 | **3. Customer allow** | Popup “Allow API?” | **MVP: nahi** — widget = bot help samjho |
 
 **Optional later (sensitive):** Bot pooch sakta hai *“Order check karun? Order number batao”* — yeh info dena hai, browser permission nahi.
@@ -143,7 +143,7 @@ Customer Ali (widget):
 
 Ali ne **kabhi “Allow live system” nahi dabaya.** Owner ne pehle permission de di thi.
 
-**Browser security:** Customer ki machine se shop API **direct nahi** chalti — sirf Hapy server call karta hai.
+**Browser security:** Customer ki machine se shop API **direct nahi** chalti — sirf Aide server call karta hai.
 
 ---
 
@@ -264,11 +264,11 @@ Knowledge aur tools **saath** chal sakte hain — tools FAQ replace nahi karte.
 ## Big question: Human kaise connect hota hai?
 
 **Phone / WhatsApp bridge nahi.**  
-Same Hapy product ke andar:
+Same Aide product ke andar:
 
 1. Customer **embed widget** (ya public chat) par baat karta hai  
 2. Handoff trigger → conversation status = `WAITING_HUMAN`  
-3. **Workspace owner** (jisne agent banaya) Hapy app mein **Inbox** kholta hai  
+3. **Workspace owner** (jisne agent banaya) Aide app mein **Inbox** kholta hai  
 4. Owner **same conversation thread** mein type karta hai (`HUMAN` role)  
 5. Customer ko **usi chat bubble** mein human message dikhti hai — seamless UI  
 
@@ -284,7 +284,7 @@ Sirf **workspace owner** (ek banda). Multi-agent team = later (Teams OOS).
 ```
 ┌──────────────┐                      ┌─────────────────────┐
 │ Customer     │  same Conversation   │ Workspace owner     │
-│ (embed /w/…) │◀──── messages ──────▶│ (/inbox in Hapy app)│
+│ (embed /w/…) │◀──── messages ──────▶│ (/inbox in Aide app)│
 └──────┬───────┘                      └──────────▲──────────┘
        │                                         │
        │ 1. Chat with AI (status OPEN)           │
@@ -453,13 +453,13 @@ Human may tell user to wait; tools resume after resolve.
 # Part 6 — FAQ (common confusion)
 
 **Q: Customer browser se API call hoti hai?**  
-A: Nahi. Sirf Hapy server.
+A: Nahi. Sirf Aide server.
 
 **Q: Tool result FAQ mein save ho jayega?**  
 A: Nahi by default. Optional “Save as FAQ” later.
 
 **Q: Human WhatsApp par jayega?**  
-A: Nahi MVP. Same Hapy widget thread.
+A: Nahi MVP. Same Aide widget thread.
 
 **Q: Admin customer ko reply karega?**  
 A: Nahi. Sirf workspace owner Inbox se.

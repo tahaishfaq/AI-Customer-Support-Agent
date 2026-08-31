@@ -14,6 +14,7 @@ import {
   RangeChips,
   useAnalyticsDashboard,
 } from "@/components/analytics/analytics-shared";
+import { AnalyticsExportMenu } from "@/components/analytics/AnalyticsExportMenu";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
 import {
   ActivityHeatmap,
@@ -43,14 +44,22 @@ export function WorkspaceAnalytics({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[12px] text-[var(--color-muted)]">
+          <p className="text-xs text-muted-foreground">
             Combined insight across every agent in this workspace.
           </p>
-          <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             Range applies to KPIs, charts, and the agent table below.
           </p>
         </div>
-        <RangeChips range={range} onChange={setRange} />
+        <div className="flex flex-wrap items-center gap-2">
+          <RangeChips range={range} onChange={setRange} variant="select" />
+          <AnalyticsExportMenu
+            data={data}
+            range={range}
+            scope="workspace"
+            disabled={loading}
+          />
+        </div>
       </div>
 
       <AnalyticsError error={error} onRetry={reload} />
@@ -146,10 +155,10 @@ export function WorkspaceAnalytics({
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
         <div className="flex flex-col gap-1 border-b border-[var(--color-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--color-text)]">
+            <h2 className="text-sm font-semibold text-foreground">
               Per-agent breakdown
             </h2>
-            <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
               Same window as the charts. Website is where the widget is live.
             </p>
           </div>
@@ -164,11 +173,11 @@ export function WorkspaceAnalytics({
         </div>
 
         {loading ? (
-          <p className="px-5 py-8 text-sm text-[var(--color-muted)]">
+          <p className="px-5 py-8 text-sm text-muted-foreground">
             Loading agent stats…
           </p>
         ) : agents.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-[var(--color-muted)]">
+          <div className="px-5 py-8 text-sm text-muted-foreground">
             {hideManageAgents ? (
               "No agents in this workspace yet."
             ) : (
@@ -185,10 +194,80 @@ export function WorkspaceAnalytics({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="divide-y divide-[var(--color-border)] md:hidden">
+              {agents.map((agent) => (
+                <article key={agent.id} className="px-4 py-3.5 sm:px-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {agent.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                        {agent.siteKnowledgeOrigin
+                          ? embedSiteHost(agent.siteKnowledgeOrigin)
+                          : "Not embedded"}
+                      </p>
+                    </div>
+                    {agentHref ? (
+                      <Link
+                        href={agentHref(agent.id)}
+                        className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                      >
+                        Inspect
+                        <ArrowUpRight className="size-3.5" aria-hidden />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/agents/${agent.id}/analytics`}
+                        className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                      >
+                        Analytics
+                        <ArrowUpRight className="size-3.5" aria-hidden />
+                      </Link>
+                    )}
+                  </div>
+                  <dl className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+                    <div>
+                      <dt className="text-muted-foreground">Chats</dt>
+                      <dd className="tabular-nums font-medium text-foreground">
+                        {agent.conversations} · {agent.percent}%
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Messages</dt>
+                      <dd className="tabular-nums text-foreground">
+                        {agent.messages}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Avg reply</dt>
+                      <dd className="tabular-nums text-foreground">
+                        {formatResponseTime(agent.averageResponseTimeMs)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Positive</dt>
+                      <dd className="tabular-nums text-foreground">
+                        {agent.conversations
+                          ? formatPercent(agent.positiveSentimentPercent)
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-muted-foreground">Top topic</dt>
+                      <dd className="text-foreground">
+                        {formatTopic(agent.mostCommonTopic)}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[860px] text-left text-[13px]">
               <thead>
-                <tr className="border-b border-[var(--color-border)] text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+                <tr className="border-b border-[var(--color-border)] text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Agent</th>
                   <th className="px-3 py-2.5 font-medium">Website</th>
                   <th className="px-3 py-2.5 font-medium">Chats</th>
@@ -208,7 +287,7 @@ export function WorkspaceAnalytics({
                     key={agent.id}
                     className="border-b border-[var(--color-border)] last:border-0"
                   >
-                    <td className="px-5 py-3 font-medium text-[var(--color-text)]">
+                    <td className="px-5 py-3 font-medium text-foreground">
                       {agent.name}
                     </td>
                     <td className="px-3 py-3 text-[var(--color-text-secondary)]">
@@ -222,16 +301,16 @@ export function WorkspaceAnalytics({
                           {embedSiteHost(agent.siteKnowledgeOrigin)}
                         </a>
                       ) : (
-                        <span className="text-[var(--color-muted)]">Not embedded</span>
+                        <span className="text-muted-foreground">Not embedded</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 tabular-nums text-[var(--color-text)]">
+                    <td className="px-3 py-3 tabular-nums text-foreground">
                       {agent.conversations}
                     </td>
                     <td className="px-3 py-3 tabular-nums text-[var(--color-text-secondary)]">
                       {agent.percent}%
                     </td>
-                    <td className="px-3 py-3 tabular-nums text-[var(--color-text)]">
+                    <td className="px-3 py-3 tabular-nums text-foreground">
                       {agent.messages}
                     </td>
                     <td className="px-3 py-3 tabular-nums text-[var(--color-text-secondary)]">
@@ -268,7 +347,8 @@ export function WorkspaceAnalytics({
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </section>
     </div>

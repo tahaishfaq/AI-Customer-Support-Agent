@@ -39,7 +39,7 @@ export const ResponseHistogram = lazyChart(
   "ResponseHistogram",
   "h-[220px] w-full"
 );
-export const WorkloadChart = lazyChart("WorkloadChart", "h-[220px] w-full");
+export const WorkloadChart = lazyChart("WorkloadChart", "h-[280px] w-full");
 export const AgentRadarChart = lazyChart("AgentRadarChart", "h-[220px] w-full");
 export const VolumeTrendChart = lazyChart("VolumeTrendChart", "h-[220px] w-full");
 export const SentimentOverTimeChart = lazyChart(
@@ -52,5 +52,9 @@ export const SentimentShareChart = lazyChart(
 );
 export const PlatformGrowthChart = lazyChart(
   "PlatformGrowthChart",
+  "h-[168px] w-full"
+);
+export const PlatformVolumeChart = lazyChart(
+  "PlatformVolumeChart",
   "h-[168px] w-full"
 );

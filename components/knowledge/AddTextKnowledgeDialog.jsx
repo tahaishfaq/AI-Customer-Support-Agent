@@ -23,9 +23,9 @@ const EMPTY_PAIR = { question: "", answer: "" };
 function blankFaq() {
   return [
     {
-      question: "What services does Hapy provide?",
+      question: "What services does Aide provide?",
       answer:
-        "Hapy provides custom software development, web applications, AI solutions and SaaS products.",
+        "Aide provides custom software development, web applications, AI solutions and SaaS products.",
     },
   ];
 }
@@ -35,6 +35,7 @@ export function AddTextKnowledgeDialog({
   open,
   onOpenChange,
   onCreated,
+  onDraft,
 }) {
   const [mode, setMode] = useState("faq");
   const [name, setName] = useState("Services FAQ");
@@ -86,13 +87,23 @@ export function AddTextKnowledgeDialog({
 
     setLoading(true);
     try {
-      const doc = await createTextKnowledge(agentId, {
-        name: name.trim(),
-        content,
-      });
+      if (agentId) {
+        const doc = await createTextKnowledge(agentId, {
+          name: name.trim(),
+          content,
+        });
+        onCreated?.(doc);
+      } else if (onDraft) {
+        onDraft({
+          name: name.trim(),
+          content,
+        });
+      } else {
+        setError("Unable to add knowledge");
+        return;
+      }
       onOpenChange?.(false);
       reset();
-      onCreated?.(doc);
     } catch (err) {
       if (err.details) setFieldErrors(err.details);
       setError(err.message || "Unable to add knowledge");
@@ -202,7 +213,7 @@ export function AddTextKnowledgeDialog({
                         }
                         disabled={loading}
                         className="mt-1.5"
-                        placeholder="What services does Hapy provide?"
+                        placeholder="What services does Aide provide?"
                       />
                     </div>
                     <div>
@@ -216,7 +227,7 @@ export function AddTextKnowledgeDialog({
                         disabled={loading}
                         rows={4}
                         className="mt-1.5 min-h-24 resize-none"
-                        placeholder="Hapy provides custom software development, web applications, AI solutions and SaaS products."
+                        placeholder="Aide provides custom software development, web applications, AI solutions and SaaS products."
                       />
                     </div>
                   </div>
@@ -239,7 +250,7 @@ export function AddTextKnowledgeDialog({
                   onChange={(e) => setNotes(e.target.value)}
                   disabled={loading}
                   className="mt-1.5 h-full max-h-none min-h-[220px] flex-1 resize-none"
-                  placeholder="# About Hapy Co&#10;&#10;- MVP Development&#10;- AI Integration"
+                  placeholder="# About Aide Co&#10;&#10;- MVP Development&#10;- AI Integration"
                 />
               </div>
             )}
@@ -264,7 +275,11 @@ export function AddTextKnowledgeDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving…" : "Add knowledge"}
+              {loading
+                ? "Saving…"
+                : agentId
+                  ? "Add knowledge"
+                  : "Add to agent"}
             </Button>
           </DialogFooter>
         </form>

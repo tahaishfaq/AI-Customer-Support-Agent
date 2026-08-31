@@ -18,7 +18,7 @@ export function isNavActive(pathname, href) {
 }
 
 export function getBreadcrumbs(pathname, { agentName } = {}) {
-  const workspace = { href: "/dashboard", label: "Hapy" };
+  const workspace = { href: "/dashboard", label: "Aide" };
   const agentLabel = agentName || "Agent";
 
   if (!pathname || pathname === "/dashboard") {

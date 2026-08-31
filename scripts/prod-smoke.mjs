@@ -1,5 +1,5 @@
 /**
- * Production smoke test against a live Hapy deployment.
+ * Production smoke test against a live Aide deployment.
  * Usage: node scripts/prod-smoke.mjs [baseUrl]
  */
 const BASE = (process.argv[2] || "https://ai-customer-support-agent-ashen.vercel.app").replace(
@@ -151,11 +151,11 @@ async function main() {
 
   const created = await req("POST", "/api/agents", {
     json: {
-      name: "Hapy Co Support",
+      name: "Aide Co Support",
       description: "Prod smoke agent",
       systemPrompt:
-        "You are Hapy Co support. Answer only from knowledge. Never invent facts.",
-      welcomeMessage: "Hi! Welcome to Hapy Co.",
+        "You are Aide Co support. Answer only from knowledge. Never invent facts.",
+      welcomeMessage: "Hi! Welcome to Aide Co.",
     },
     expect: [201],
   });
@@ -169,9 +169,9 @@ async function main() {
 
     await req("POST", `/api/agents/${agentId}/knowledge`, {
       json: {
-        name: "Hapy Co Company FAQ",
+        name: "Aide Co Company FAQ",
         content:
-          "Hapy Co builds custom software. MVP Development starts at $8,000. Strategy Call with Hamid M. Chishty.",
+          "Aide Co builds custom software. MVP Development starts at $8,000. Strategy Call with Hamid M. Chishty.",
       },
       expect: [201],
     });

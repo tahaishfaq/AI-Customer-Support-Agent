@@ -45,7 +45,7 @@ Until then, F08 lexical + fuzzy + F09 prompts is the supported path.
 
 ## Why *semantic* RAG instead of “simple RAG”?
 
-People say “RAG” for many things. Hapy already has a **simple retrieve-then-generate** path — that is **F08**.
+People say “RAG” for many things. Aide already has a **simple retrieve-then-generate** path — that is **F08**.
 
 | | **Simple RAG (what we have = F08)** | **Semantic RAG (F10)** |
 |---|-------------------------------------|-------------------------|
@@ -54,7 +54,7 @@ People say “RAG” for many things. Hapy already has a **simple retrieve-then-
 | **Cost / latency** | Cheap; no extra embed call per ingest/query | Embed on upload + embed per query; rate limits; storage |
 | **Wins at** | Exact keywords, typos (`reunf`→refund), small–medium KB | Paraphrase, synonym, long multi-doc corpora |
 | **Fails at** | “How do I get my money back?” when doc only says “refund policy” and tokens barely overlap | Needs ops: backfill, rebuild on doc update, fallback when embed API is down |
-| **Hapy identity** | Answer-from-knowledge + cite titles — already | Same grounding (F09); better **which** chunks enter the prompt |
+| **Aide identity** | Answer-from-knowledge + cite titles — already | Same grounding (F09); better **which** chunks enter the prompt |
 
 ### “Simple RAG” is *not* “no RAG”
 
@@ -181,7 +181,7 @@ Use this when P3 reopens and an agent hits the F08 size threshold (~40 docs or ~
 | **Neon pgvector** | Same Postgres as Prisma — fewer moving parts | Migration + SQL for similarity search |
 | **Pinecone / Qdrant** | Managed vector SaaS | Extra bill + sync job; simpler at huge scale |
 
-**Recommendation for Hapy:** start with **Neon pgvector** so workspace/agent isolation stays in one DB.
+**Recommendation for Aide:** start with **Neon pgvector** so workspace/agent isolation stays in one DB.
 
 ### Step 2 — Database tables
 

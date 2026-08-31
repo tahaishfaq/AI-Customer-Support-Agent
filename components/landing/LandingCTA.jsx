@@ -50,7 +50,7 @@ export function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
         <div className="text-center sm:text-left">
           <p className="font-[family-name:var(--font-display)] text-sm font-semibold text-[var(--color-primary)]">
-            Hapy
+            Aide
           </p>
           <p className="mt-1 text-[13px] text-[var(--color-muted)]">
             AI Customer Support & Insights

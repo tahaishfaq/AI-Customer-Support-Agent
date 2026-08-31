@@ -1,24 +1,33 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export const metadata = {
-  title: "Sign in — Hapy",
+  title: "Sign in — Aide",
 };
 
 export default function LoginPage() {
   return (
-    <div className="flex h-full flex-col">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[#0f172a] sm:text-4xl">
-        Welcome back
-      </h1>
-      <p className="mt-2 text-[15px] text-[#475569]">
-        Sign in to your AI support workspace
-      </p>
-      <div className="mt-10">
+    <Card className="border-border/60 shadow-sm ring-foreground/5">
+      <CardHeader className="border-b border-border/60">
+        <CardTitle className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight sm:text-3xl">
+          Welcome back
+        </CardTitle>
+        <CardDescription className="text-[15px]">
+          Sign in to your AI support workspace
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6">
         <Suspense>
           <LoginForm />
         </Suspense>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

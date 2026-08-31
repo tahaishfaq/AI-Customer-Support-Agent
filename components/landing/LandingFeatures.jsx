@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: Shield,
     title: "Workspace you own",
-    body: "One Hapy account for agents, knowledge, chat, and insights — simple enough to ship fast.",
+    body: "One Aide account for agents, knowledge, chat, and insights — simple enough to ship fast.",
   },
 ];
 
@@ -31,7 +31,7 @@ export function LandingFeatures() {
       <div className="relative mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <p className="text-[12px] font-semibold tracking-[0.14em] text-[var(--color-primary)] uppercase">
-            Why Hapy
+            Why Aide
           </p>
           <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[var(--color-text)] sm:text-4xl">
             Support that learns from every conversation.

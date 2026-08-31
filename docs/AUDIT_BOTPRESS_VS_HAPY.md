@@ -1,7 +1,7 @@
-# Deep audit — Botpress vs Hapy
+# Deep audit — Botpress vs Aide
 
 **Sources (2026-08-20):** [Botpress.com](https://botpress.com/), [Botpress Engine / LLMz](https://botpress.com/features/engine), [How Botpress interfaces with LLMs](https://botpress.com/blog/botpress-interfaces-llms), [Autonomous Node docs](https://www.botpress.com/docs/studio/concepts/nodes/autonomous-node).  
-**Hapy baseline:** Agent Studio tabs (Overview/Knowledge/Test/Customization), embed.js webchat, no flow canvas.  
+**Aide baseline:** Agent Studio tabs (Overview/Knowledge/Test/Customization), embed.js webchat, no flow canvas.  
 **Demo / video:** Site footer **Videos**; homepage interactive tour (Build → Resolve → Escalate → Improve). Studio is best understood via product login / docs, not a single ungated full-length public demo.
 
 ---
@@ -13,7 +13,7 @@ Botpress positions as **AI-native customer service / agent platform** (and incre
 Tagline energy: *Your AI answers. Ours acts.*  
 Pricing narrative: **no per-seat**; usage-oriented (contrast Intercom seat+outcome).
 
-Hapy historically aimed at **Botpress Studio feel** (shell, tabs, webchat) while **explicitly skipping** canvas, Desk, Always Alive, billing clone.
+Aide historically aimed at **Botpress Studio feel** (shell, tabs, webchat) while **explicitly skipping** canvas, Desk, Always Alive, billing clone.
 
 ---
 
@@ -78,7 +78,7 @@ User message
   → ZAI feedback stored for next runs
 ```
 
-Compare Hapy:
+Compare Aide:
 
 ```
 User message
@@ -91,9 +91,9 @@ User message
 
 ---
 
-## 3. Hapy today (same lenses)
+## 3. Aide today (same lenses)
 
-| Lens | Botpress | Hapy now |
+| Lens | Botpress | Aide now |
 |------|----------|----------|
 | Builder UX | Visual Studio + Autonomous Nodes | Form + tabs Studio (Botpress-*feel*, not canvas) |
 | Runtime | LLMz + sandbox TS | Next.js API + OpenAI SDK |
@@ -131,7 +131,7 @@ Internship rule: *do not expand horizontally*; canvas stays **P3-FLOWS**.
 
 ### Smart path (recommended)
 
-1. Keep Hapy as **prompt + knowledge + embed** product (identity).  
+1. Keep Aide as **prompt + knowledge + embed** product (identity).  
 2. Steal Botpress **outcomes**, not UI:  
    - Better retrieval (**W3-1 → P3-RAG**)  
    - Allowlisted **tools** (HTTP/webhooks) invoked in a **single server-side agent loop** (mini LLMz — TypeScript in *your* Node process, not a visual canvas)  
@@ -146,7 +146,7 @@ Only under explicit reopen of **P3-FLOWS**, after RAG + tools exist — otherwis
 
 ---
 
-## 6. Alignment with shipped Hapy MVP
+## 6. Alignment with shipped Aide MVP
 
 Studio shell, chat, tabs, embed, and analytics are **done**.  
 Remaining Botpress gaps are named **OOS** in [`POST_MVP_BACKLOG_PLAN.md`](POST_MVP_BACKLOG_PLAN.md): canvas, multi-channel, human desk, billing.
@@ -158,8 +158,8 @@ Update mental model: **UI catch-up complete; engine catch-up is the new gap.**
 ## 7. Verdict
 
 Botpress = **builder platform + custom agent runtime (LLMz)** optimized for **actionful** support.  
-Hapy = **opinionated support agent SaaS** with Botpress-like **chrome**, OpenAI-like **brain**, and unique **embed origin + insights + admin**.
+Aide = **opinionated support agent SaaS** with Botpress-like **chrome**, OpenAI-like **brain**, and unique **embed origin + insights + admin**.
 
 To reach Botpress *level* on hard tickets: add **tool-using agent loop + RAG**, not a flow canvas first.
 
-**Related:** [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
+**Related:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md) · [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md).

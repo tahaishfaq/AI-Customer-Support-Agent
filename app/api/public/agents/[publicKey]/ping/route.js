@@ -1,5 +1,7 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
+import { mergeCustomization } from "@/lib/customization/defaults";
+import { normalizeWidgetPosition } from "@/lib/customization/position";
 import {
   claimEmbedOrigin,
   getPublicAgentByKey,
@@ -97,7 +99,16 @@ export async function POST(request, { params }) {
       });
     }
 
-    return jsonOk(request, { ok: true, ...result }, 200, corsHeaders);
+    const widgetPosition = normalizeWidgetPosition(
+      mergeCustomization(agent.customization).deploy?.widgetPosition
+    );
+
+    return jsonOk(
+      request,
+      { ok: true, ...result, widgetPosition },
+      200,
+      corsHeaders
+    );
   } catch {
     safeLogError("POST /api/public/agents/[publicKey]/ping", {
       requestId,

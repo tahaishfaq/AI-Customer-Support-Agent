@@ -5,30 +5,70 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Brand tokens — Botpress-inspired calm teal product feel */
-  --color-primary: #0b5f58;
-  --color-primary-hover: #0f766e;
+  /*
+   * D0 design system — light-first Botpress calm + Aide teal.
+   * Semantic tokens use direct hex (no circular --primary ↔ --color-primary).
+   * Legacy --color-* aliases map to the same values for older screens.
+   */
+  --background: #f8fafc;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --primary: #0d7377;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #52525b;
+  --accent: #f0fdfa;
+  --accent-foreground: #0d7377;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #0d7377;
+  --chart-1: #0d7377;
+  --chart-2: #0284c7;
+  --chart-3: #d97706;
+  --chart-4: #7c3aed;
+  --chart-5: #dc2626;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #0d7377;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0fdfa;
+  --sidebar-accent-foreground: #0d7377;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #0d7377;
+
+  --ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Legacy aliases (do not point semantic tokens back at these) */
+  --color-primary: #0d7377;
+  --color-primary-hover: #0f8a84;
   --color-primary-foreground: #ffffff;
-  --color-bg: #f3f6f7;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 1px rgb(15 23 42 / 0.03);
-  --shadow-bar: 0 1px 0 rgb(15 23 42 / 0.04);
-  --color-muted: #64748b;
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
+  --color-border: #e4e4e7;
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 1px rgb(24 24 27 / 0.03);
+  --shadow-bar: 0 1px 0 rgb(24 24 27 / 0.04);
+  /* Legacy --color-muted = muted TEXT (not muted surface) */
+  --color-muted: #52525b;
+  --color-text: #18181b;
+  --color-text-secondary: #52525b;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger: #dc2626;
   --color-info: #0284c7;
-  --color-chart-1: #0f766e;
+  --color-chart-1: #0d7377;
   --color-chart-2: #0284c7;
   --color-chart-3: #d97706;
   --color-chart-4: #7c3aed;
   --color-chart-5: #dc2626;
+
   --font-sans: var(--font-instrument-sans), system-ui, sans-serif;
   --font-display: var(--font-dm-sans), system-ui, sans-serif;
-  /* Tight product scale (F04-C) — keep expressive fonts, smaller steps */
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
   --text-base: 0.9375rem;
@@ -38,46 +78,72 @@
   --leading-tight: 1.25;
   --leading-snug: 1.375;
   --leading-normal: 1.5;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --sidebar-width: 260px;
   --app-topbar-height: 52px;
+  --radius-sm: calc(var(--radius) * 0.66);
+  --radius-md: calc(var(--radius) * 0.83);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.33);
+  --chart-grid: #e2e8f0;
+}
 
-  /* shadcn theme — mapped to brand */
-  --background: var(--color-bg);
-  --foreground: var(--color-text);
-  --card: var(--color-surface);
-  --card-foreground: var(--color-text);
-  --popover: var(--color-surface);
-  --popover-foreground: var(--color-text);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-foreground);
-  --secondary: #f1f5f9;
-  --secondary-foreground: var(--color-text);
-  --muted: #f1f5f9;
-  --muted-foreground: var(--color-muted);
-  --accent: #f0fdfa;
-  --accent-foreground: var(--color-primary);
-  --destructive: var(--color-danger);
-  --border: var(--color-border);
-  --input: var(--color-border);
-  --ring: var(--color-primary);
-  --chart-1: var(--color-chart-1);
-  --chart-2: var(--color-chart-2);
-  --chart-3: var(--color-chart-3);
-  --chart-4: var(--color-chart-4);
-  --chart-5: var(--color-chart-5);
-  --radius-sm: calc(var(--radius) * 0.75);
-  --radius-md: calc(var(--radius) * 1);
-  --radius-lg: calc(var(--radius) * 1.25);
-  --radius-xl: calc(var(--radius) * 1.5);
-  --sidebar: var(--color-surface);
-  --sidebar-foreground: var(--color-text);
-  --sidebar-primary: var(--color-primary);
-  --sidebar-primary-foreground: var(--color-primary-foreground);
-  --sidebar-accent: #f0fdfa;
-  --sidebar-accent-foreground: var(--color-primary);
-  --sidebar-border: var(--color-border);
-  --sidebar-ring: var(--color-primary);
+/* Dark theme — white primary button text; brighter muted labels; chart-safe teals */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --popover: #18181b;
+  --popover-foreground: #fafafa;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #d4d4d8;
+  --accent: #134e4a;
+  --accent-foreground: #99f6e4;
+  --destructive: #f87171;
+  --border: #3f3f46;
+  --input: #3f3f46;
+  --ring: #2dd4bf;
+  --chart-1: #2dd4bf;
+  --chart-2: #38bdf8;
+  --chart-3: #fbbf24;
+  --chart-4: #c4b5fd;
+  --chart-5: #fb7185;
+  --sidebar: #121214;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #042f2e;
+  --sidebar-accent: #134e4a;
+  --sidebar-accent-foreground: #99f6e4;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #2dd4bf;
+
+  --color-primary: #0f766e;
+  --color-primary-hover: #0d9488;
+  --color-primary-foreground: #ffffff;
+  --color-bg: #09090b;
+  --color-surface: #18181b;
+  --color-border: #3f3f46;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-bar: 0 1px 0 rgb(0 0 0 / 0.4);
+  --color-muted: #d4d4d8;
+  --color-text: #fafafa;
+  --color-text-secondary: #d4d4d8;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #38bdf8;
+  --color-chart-1: #2dd4bf;
+  --color-chart-2: #38bdf8;
+  --color-chart-3: #fbbf24;
+  --color-chart-4: #c4b5fd;
+  --color-chart-5: #fb7185;
+  --chart-grid: #71717a;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -128,6 +194,10 @@
     scrollbar-color: #cbd5e1 transparent;
   }
 
+  .dark * {
+    scrollbar-color: #3f3f46 transparent;
+  }
+
   html,
   body {
     min-height: 100dvh;
@@ -175,37 +245,43 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-primary) 18%, white);
-    color: var(--color-text);
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    color: var(--foreground);
   }
 }
 
-.hapy-card {
+.aide-card {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   border-radius: 0.75rem;
   box-shadow: var(--shadow-card);
 }
 
-.hapy-page {
+.aide-page {
   width: 100%;
   min-height: 0;
   flex: 1 1 0%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding: 1.5rem 1.5rem 2rem;
+  padding: 1rem 1rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .aide-page {
+    padding: 1.5rem 1.5rem 2rem;
+  }
 }
 
 @media (min-width: 1024px) {
-  .hapy-page {
+  .aide-page {
     padding-left: 2rem;
     padding-right: 2rem;
   }
 }
 
 @media (min-width: 1280px) {
-  .hapy-page {
+  .aide-page {
     padding-left: 2.5rem;
     padding-right: 2.5rem;
   }
@@ -255,13 +331,40 @@
   }
 }
 
+/* D9 — intentional motion (checklist / save / sidebar feel) */
+@keyframes checklist-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes save-flash {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .animate-page-in {
-  animation: page-in 0.35s ease-out both;
+  animation: page-in 0.22s ease-out both;
 }
 
 .animate-fade-up {
   animation: fade-up 0.45s ease-out both;
 }
+
+/* Prefer SoftFade / SoftStagger from components/motion/soft-motion.jsx in React UI.
+   These CSS classes remain for static / non-React surfaces. */
 
 .animate-fade-up-delay-1 {
   animation: fade-up 0.45s ease-out 0.06s both;
@@ -279,7 +382,15 @@
   animation: message-in 0.28s ease-out both;
 }
 
-/* Toast — Hapy teal, not generic grey (F04-C motion #2) */
+.animate-checklist-pop {
+  animation: checklist-pop 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.animate-save-flash {
+  animation: save-flash 0.45s ease-out both;
+}
+
+/* Toast — Aide teal, not generic grey (F04-C motion #2) */
 .cn-toast {
   animation: toast-in 0.28s ease-out both;
   border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border)) !important;
@@ -295,14 +406,29 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .animate-page-in,
   .animate-fade-up,
   .animate-fade-up-delay-1,
   .animate-fade-up-delay-2,
   .animate-fade-up-delay-3,
   .animate-message-in,
+  .animate-checklist-pop,
+  .animate-save-flash,
   .cn-toast {
     animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

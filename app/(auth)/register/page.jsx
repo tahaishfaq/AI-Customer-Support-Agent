@@ -1,21 +1,33 @@
+import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export const metadata = {
-  title: "Create account — Hapy",
+  title: "Create account — Aide",
 };
 
 export default function RegisterPage() {
   return (
-    <div className="flex h-full flex-col">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[#0f172a] sm:text-4xl">
-        Create an account
-      </h1>
-      <p className="mt-2 text-[15px] text-[#475569]">
-        Build your AI agent today
-      </p>
-      <div className="mt-10">
-        <RegisterForm />
-      </div>
-    </div>
+    <Card className="border-border/60 shadow-sm ring-foreground/5">
+      <CardHeader className="border-b border-border/60">
+        <CardTitle className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight sm:text-3xl">
+          Create an account
+        </CardTitle>
+        <CardDescription className="text-[15px]">
+          Build your AI agent today
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <Suspense>
+          <RegisterForm />
+        </Suspense>
+      </CardContent>
+    </Card>
   );
 }

@@ -100,7 +100,7 @@ async function timed(path, options = {}) {
   const t0 = Date.now();
   const res = await fetch(`${BASE}${path}`, options);
   const clientMs = Date.now() - t0;
-  const serverMs = Number(res.headers.get("x-hapy-duration-ms"));
+  const serverMs = Number(res.headers.get("x-aide-duration-ms"));
   const body = await json(res);
   return { res, body, clientMs, serverMs: Number.isFinite(serverMs) ? serverMs : null };
 }

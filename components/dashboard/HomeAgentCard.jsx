@@ -1,81 +1,94 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, FlaskConical } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, FlaskConical } from "lucide-react";
 import { AgentStatusBadge } from "@/components/agents/AgentCard";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-function monogram(name) {
-  if (!name) return "A";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
-
-export function HomeAgentCard({ agent, conversationCount = 0, messageCount = 0 }) {
+export function HomeAgentCard({
+  agent,
+  conversationCount = 0,
+  messageCount = 0,
+}) {
   return (
-    <article
-      className={cn(
-        "flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]",
-        "transition-colors hover:border-[var(--color-primary)]/35"
-      )}
+    <Card
+      size="sm"
+      className="h-full transition-colors hover:bg-muted/30 hover:ring-foreground/15"
     >
-      <Link href={`/agents/${agent.id}`} className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-sm font-semibold text-[var(--color-primary)]">
-          {monogram(agent.name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)]">
+      <CardHeader>
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <CardTitle className="min-w-0 truncate font-heading text-base">
+            <Link href={`/agents/${agent.id}`} className="hover:text-primary">
               {agent.name}
-            </h3>
-            <AgentStatusBadge agent={agent} className="bg-[var(--color-bg)]" />
+            </Link>
+          </CardTitle>
+          <AgentStatusBadge agent={agent} className="shrink-0" />
+        </div>
+        <CardDescription className="line-clamp-2 text-[13px]">
+          {agent.description || "No description yet"}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+          <div>
+            <p className="text-[11px] text-muted-foreground">Conversations</p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums">
+              {conversationCount}
+            </p>
           </div>
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-            {agent.description || "No description yet"}
-          </p>
+          <div>
+            <p className="text-[11px] text-muted-foreground">Messages</p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums">
+              {messageCount}
+            </p>
+          </div>
         </div>
-      </Link>
+      </CardContent>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-4">
-        <div>
-          <p className="text-[11px] text-[var(--color-muted)]">Conversations</p>
-          <p className="mt-0.5 text-lg font-semibold text-[var(--color-text)]">
-            {conversationCount}
-          </p>
-        </div>
-        <div>
-          <p className="text-[11px] text-[var(--color-muted)]">Messages</p>
-          <p className="mt-0.5 text-lg font-semibold text-[var(--color-text)]">
-            {messageCount}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex gap-2">
+      <CardFooter className="gap-2 bg-transparent">
+        <Link
+          href={`/agents/${agent.id}`}
+          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
+        >
+          Open
+          <ArrowRight data-icon="inline-end" />
+        </Link>
         <Link
           href={`/agents/${agent.id}/test`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
-          <FlaskConical className="size-3.5" />
+          <FlaskConical data-icon="inline-start" />
           Test
         </Link>
-        <Link
-          href={`/agents/${agent.id}/knowledge`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-        >
-          <BookOpen className="size-3.5" />
-          Knowledge
-        </Link>
-        <Link
-          href={`/agents/${agent.id}/analytics`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-        >
-          <BarChart3 className="size-3.5" />
-          Analytics
-        </Link>
-      </div>
-    </article>
+        <div className="ml-auto flex items-center gap-1">
+          <Link
+            href={`/agents/${agent.id}/knowledge`}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon-sm" })
+            )}
+            aria-label="Knowledge"
+          >
+            <BookOpen />
+          </Link>
+          <Link
+            href={`/agents/${agent.id}/analytics`}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon-sm" })
+            )}
+            aria-label="Analytics"
+          >
+            <BarChart3 />
+          </Link>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

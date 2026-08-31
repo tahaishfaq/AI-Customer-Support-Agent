@@ -94,7 +94,7 @@ export function ChatComposer({
         "shrink-0 border-t",
         themed
           ? "border-[var(--wc-border)] bg-[var(--wc-shell)]"
-          : "border-[var(--color-border)] bg-white",
+          : "border-[var(--color-border)] bg-[var(--color-surface)]",
         compact || themed ? "px-3 py-2" : "px-4 py-3 sm:px-8"
       )}
     >
@@ -105,7 +105,7 @@ export function ChatComposer({
             "flex min-h-9 min-w-0 flex-1 items-end gap-0.5 rounded-2xl",
             themed
               ? "border bg-[var(--wc-input-bg)] pl-3 pr-1 focus-within:ring-2 focus-within:ring-[var(--wc-primary)]/25"
-              : "border border-[var(--color-border)] bg-white pl-3 pr-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20"
+              : "border border-[var(--color-border)] bg-[var(--color-bg)] pl-3 pr-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20"
           )}
           style={
             themed
@@ -129,7 +129,7 @@ export function ChatComposer({
               "disabled:cursor-not-allowed disabled:opacity-50",
               themed
                 ? "text-[var(--wc-shell-fg)] placeholder:text-[var(--wc-muted)]"
-                : "placeholder:text-[var(--color-muted)]"
+                : "text-[var(--color-text)] placeholder:text-[var(--color-muted)]"
             )}
             style={{ minHeight: minH, maxHeight: maxH }}
           />

@@ -32,6 +32,7 @@ export async function POST(request, { params }) {
 
     const result = await setMessageFeedback(messageId, rating, {
       agentId: agent.id,
+      reason: body.reason,
     });
     return jsonOk(request, result, 200);
   } catch (error) {

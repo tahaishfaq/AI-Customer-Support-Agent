@@ -172,7 +172,7 @@ const SUMMARY_COLUMNS = [
 ];
 
 const fieldClass =
-  "h-10 rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20";
+  "h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 export function AdminAuditLog() {
   const router = useRouter();
@@ -249,7 +249,7 @@ export function AdminAuditLog() {
       const payload = await exportAdminAudit({ action, q, from, to });
       const events = payload.events || [];
       const flat = events.map(flattenEvent);
-      const base = `hapy-audit-${stamp()}`;
+      const base = `aide-audit-${stamp()}`;
 
       if (format === "json") {
         downloadFile(
@@ -296,7 +296,7 @@ export function AdminAuditLog() {
   const pageItems = pageWindow(page, totalPages);
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title="Audit"
         description="Immutable log of inspect, suspend, export, and delete. Filter by time, then download."
@@ -304,7 +304,7 @@ export function AdminAuditLog() {
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={exporting}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-white px-2.5 text-[0.8rem] font-medium text-[var(--color-text)] outline-none hover:bg-[var(--color-bg)] disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[0.8rem] font-medium text-foreground outline-none hover:bg-muted disabled:opacity-50"
             >
               <Download className="size-3.5" />
               {exporting ? "Exporting…" : "Export"}
@@ -320,7 +320,7 @@ export function AdminAuditLog() {
                 >
                   <span>
                     <span className="block">{option.label}</span>
-                    <span className="text-[11px] text-[var(--color-muted)]">
+                    <span className="text-[11px] text-muted-foreground">
                       {option.hint}
                     </span>
                   </span>
@@ -342,7 +342,7 @@ export function AdminAuditLog() {
       <div className="mt-6 flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="relative block max-w-md flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-muted)]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -351,7 +351,7 @@ export function AdminAuditLog() {
             />
           </label>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-[11px] font-medium text-[var(--color-muted)]">
+            <label className="text-[11px] font-medium text-muted-foreground">
               From
               <input
                 type="datetime-local"
@@ -360,7 +360,7 @@ export function AdminAuditLog() {
                 className={`${fieldClass} mt-1 block`}
               />
             </label>
-            <label className="text-[11px] font-medium text-[var(--color-muted)]">
+            <label className="text-[11px] font-medium text-muted-foreground">
               To
               <input
                 type="datetime-local"
@@ -373,7 +373,7 @@ export function AdminAuditLog() {
               <button
                 type="button"
                 onClick={() => replaceParams({ from: "", to: "", page: "" })}
-                className="mb-1 text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                className="mb-1 text-[12px] font-medium text-primary hover:underline"
               >
                 Clear dates
               </button>
@@ -383,7 +383,7 @@ export function AdminAuditLog() {
         <div
           role="group"
           aria-label="Action"
-          className="inline-flex flex-wrap rounded-lg border border-[var(--color-border)] bg-white p-0.5"
+          className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5"
         >
           {ACTION_FILTERS.map((item) => (
             <button
@@ -393,8 +393,8 @@ export function AdminAuditLog() {
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-[12px] font-medium",
                 action === item.id
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               )}
             >
               {item.label}
@@ -405,32 +405,32 @@ export function AdminAuditLog() {
 
       {loading ? (
         <div className="mt-6 space-y-2">
-          <Skeleton className="h-14 w-full bg-[var(--color-border)]" />
-          <Skeleton className="h-14 w-full bg-[var(--color-border)]" />
-          <Skeleton className="h-14 w-full bg-[var(--color-border)]" />
+          <Skeleton className="h-14 w-full bg-muted" />
+          <Skeleton className="h-14 w-full bg-muted" />
+          <Skeleton className="h-14 w-full bg-muted" />
         </div>
       ) : error ? (
-        <p className="mt-6 text-sm text-[var(--color-danger)]">{error}</p>
+        <p className="mt-6 text-sm text-destructive">{error}</p>
       ) : data.events.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-dashed border-[var(--color-border)] bg-white px-5 py-12 text-center text-sm text-[var(--color-muted)]">
+        <p className="mt-6 rounded-xl border border-dashed border-border bg-card px-5 py-12 text-center text-sm text-muted-foreground">
           No audit events match these filters.
         </p>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+        <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card">
           <ul>
             {data.events.map((event) => {
               const href = targetHref(event);
               return (
                 <li
                   key={event.id}
-                  className="border-b border-[var(--color-border)] px-4 py-3.5 last:border-b-0"
+                  className="border-b border-border px-4 py-3.5 last:border-b-0"
                 >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-[13px] font-medium text-[var(--color-text)]">
+                      <p className="text-[13px] font-medium text-foreground">
                         {actionLabel(event.action)}
                       </p>
-                      <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
+                      <p className="mt-0.5 text-[12px] text-muted-foreground">
                         {event.admin?.email || "Admin"}
                         {event.targetType ? ` · ${event.targetType}` : ""}
                         {event.ip ? ` · ${event.ip}` : ""}
@@ -439,18 +439,18 @@ export function AdminAuditLog() {
                         href ? (
                           <Link
                             href={href}
-                            className="mt-1 inline-block font-mono text-[11px] text-[var(--color-primary)] hover:underline"
+                            className="mt-1 inline-block font-mono text-[11px] text-primary hover:underline"
                           >
                             {event.targetId}
                           </Link>
                         ) : (
-                          <p className="mt-1 font-mono text-[11px] text-[var(--color-text-secondary)]">
+                          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
                             {event.targetId}
                           </p>
                         )
                       ) : null}
                     </div>
-                    <p className="shrink-0 text-[11px] text-[var(--color-muted)]">
+                    <p className="shrink-0 text-[11px] text-muted-foreground">
                       {formatWhen(event.createdAt)}
                     </p>
                   </div>
@@ -458,8 +458,8 @@ export function AdminAuditLog() {
               );
             })}
           </ul>
-          <div className="flex flex-col gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[12px] text-[var(--color-muted)]">
+          <div className="flex flex-col gap-2 border-t border-border bg-muted/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[12px] text-muted-foreground">
               Showing {rangeStart}–{rangeEnd} of {data.total}
             </p>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -469,7 +469,7 @@ export function AdminAuditLog() {
                 onClick={() =>
                   replaceParams({ page: page > 2 ? String(page - 1) : "" })
                 }
-                className="h-8 rounded-lg bg-white px-3 text-[12px] font-medium ring-1 ring-[var(--color-border)] disabled:opacity-40"
+                className="h-8 rounded-lg bg-card px-3 text-[12px] font-medium ring-1 ring-border disabled:opacity-40"
               >
                 Previous
               </button>
@@ -477,7 +477,7 @@ export function AdminAuditLog() {
                 item === "…" ? (
                   <span
                     key={`gap-${index}`}
-                    className="px-1 text-[12px] text-[var(--color-muted)]"
+                    className="px-1 text-[12px] text-muted-foreground"
                   >
                     …
                   </span>
@@ -491,8 +491,8 @@ export function AdminAuditLog() {
                     className={cn(
                       "h-8 min-w-8 rounded-lg px-2 text-[12px] font-medium ring-1",
                       item === page
-                        ? "bg-[var(--color-primary)] text-white ring-[var(--color-primary)]"
-                        : "bg-white text-[var(--color-text)] ring-[var(--color-border)]"
+                        ? "bg-primary text-primary-foreground ring-primary"
+                        : "bg-card text-foreground ring-border"
                     )}
                   >
                     {item}
@@ -503,7 +503,7 @@ export function AdminAuditLog() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => replaceParams({ page: String(page + 1) })}
-                className="h-8 rounded-lg bg-white px-3 text-[12px] font-medium ring-1 ring-[var(--color-border)] disabled:opacity-40"
+                className="h-8 rounded-lg bg-card px-3 text-[12px] font-medium ring-1 ring-border disabled:opacity-40"
               >
                 Next
               </button>

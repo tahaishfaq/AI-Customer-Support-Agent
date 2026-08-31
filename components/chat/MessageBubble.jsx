@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { ChatAttachmentPreview } from "@/components/chat/ChatAttachmentPreview";
+import { ActionConfirmCard } from "@/components/chat/ActionConfirmCard";
 import { AvatarImage } from "@/components/ui/avatar-image";
 import { parseChatAttachment } from "@/lib/utils/chat-attachments";
 import { cn } from "@/lib/utils";
@@ -114,6 +115,7 @@ export function MessageBubble({
   content,
   responseTime,
   pending,
+  streaming = false,
   createdAt,
   showMeta = false,
   themed = false,
@@ -121,15 +123,36 @@ export function MessageBubble({
   identity = null,
   messageId,
   initialFeedback = null,
+  initialFeedbackReason = null,
   onFeedback,
   usedKnowledge = null,
+  toolSteps = null,
+  pendingConfirmations = null,
+  onConfirmDecision = null,
+  confirmBusy = false,
 }) {
   const isUser = role === "USER";
   const isHuman = role === "HUMAN";
+  const isInternal = role === "INTERNAL";
   const [feedback, setFeedback] = useState(initialFeedback);
+  const [reason, setReason] = useState(initialFeedbackReason || "");
+  const [askReason, setAskReason] = useState(false);
+  const isUp = feedback === "up" || feedback === "UP";
+  const isDown = feedback === "down" || feedback === "DOWN";
+  const REASON_MAX = 200;
   const showAgentAvatar = themed && !isUser && identity;
   const knowledgeTitles = Array.isArray(usedKnowledge)
     ? usedKnowledge.map((d) => d?.name).filter(Boolean)
+    : [];
+  const toolLabels = Array.isArray(toolSteps)
+    ? toolSteps
+        .map((s) => {
+          if (!s?.name) return null;
+          const ok = s.status === "OK";
+          const code = s.httpStatus != null ? String(s.httpStatus) : s.status;
+          return ok ? `${s.name} → ${code}` : `${s.name} → ${s.status || "error"}`;
+        })
+        .filter(Boolean)
     : [];
   const parsedFile = parseChatAttachment(content);
   const caption = parsedFile.display
@@ -146,9 +169,25 @@ export function MessageBubble({
     <div
       className={cn(
         "animate-message-in flex w-full flex-col gap-1",
-        isUser ? "items-end" : "items-start"
+        isInternal ? "items-stretch" : isUser ? "items-end" : "items-start"
       )}
     >
+      {isInternal ? (
+        <div className="mx-auto w-full max-w-[92%] rounded-lg border border-dashed border-amber-500/35 bg-amber-500/8 px-3 py-2.5 text-sm leading-relaxed text-foreground">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/90">
+            Internal note · not visible to customer
+          </p>
+          <p className="whitespace-pre-wrap text-[13px] text-muted-foreground">
+            {bodyText || content}
+          </p>
+          {showMeta && !pending ? (
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              {formatClock(createdAt)}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+      <>
       <div
         className={cn(
           "flex w-full gap-2",
@@ -178,13 +217,13 @@ export function MessageBubble({
                 : "rounded-br-md bg-[var(--color-primary)] text-white"
               : themed
                 ? "rounded-bl-md bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
-                : "rounded-bl-md border border-[var(--color-border)] bg-white text-[var(--color-text)]"
+                : "rounded-bl-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
           )}
           style={{
             borderRadius: themed ? "var(--wc-radius)" : undefined,
           }}
         >
-          {pending ? (
+          {pending && !streaming ? (
             <span
               className="inline-flex items-center gap-1 py-1"
               aria-label="Assistant is typing"
@@ -219,14 +258,24 @@ export function MessageBubble({
               ) : null}
               {bodyText ? (
                 isUser && !bodyText.includes("](") && !bodyText.includes("![") ? (
-                  <p className="whitespace-pre-wrap">{bodyText}</p>
+                  <p className="whitespace-pre-wrap">
+                    {bodyText}
+                    {streaming ? (
+                      <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
+                    ) : null}
+                  </p>
                 ) : (
                   <div className="markdown-body">
                     <ReactMarkdown components={markdownComponents}>
                       {bodyText}
                     </ReactMarkdown>
+                    {streaming ? (
+                      <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
+                    ) : null}
                   </div>
                 )
+              ) : streaming ? (
+                <span className="inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
               ) : null}
             </div>
           )}
@@ -284,7 +333,41 @@ export function MessageBubble({
         </p>
       ) : null}
 
-      {!isUser && !pending && showFeedback ? (
+      {!isUser && !pending && toolLabels.length > 0 ? (
+        <p
+          className={cn(
+            "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1",
+            themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+          )}
+        >
+          <span className="font-medium text-[var(--color-primary)]">
+            Called:
+          </span>{" "}
+          {toolLabels.join(" · ")}
+        </p>
+      ) : null}
+
+      {!isUser &&
+      !pending &&
+      Array.isArray(pendingConfirmations) &&
+      pendingConfirmations.length > 0
+        ? pendingConfirmations.map((c) => (
+            <div
+              key={c.id}
+              className={cn(showAgentAvatar ? "ml-8" : "ml-1", "w-full")}
+            >
+              <ActionConfirmCard
+                confirmation={c}
+                themed={themed}
+                busy={confirmBusy}
+                onDecision={onConfirmDecision}
+              />
+            </div>
+          ))
+        : null}
+
+      {!isUser && !pending && showFeedback && role === "ASSISTANT" ? (
         <div
           className={cn(
             "flex gap-1",
@@ -296,12 +379,13 @@ export function MessageBubble({
             type="button"
             onClick={() => {
               setFeedback("up");
+              setAskReason(false);
+              setReason("");
               onFeedback?.(messageId, "UP");
             }}
             className={cn(
               "rounded p-1 hover:bg-black/5",
-              (feedback === "up" || feedback === "UP") &&
-                "text-[var(--wc-primary,var(--color-primary))]"
+              isUp && "text-[var(--wc-primary,var(--color-primary))]"
             )}
             aria-label="Helpful"
             title="Helpful"
@@ -312,12 +396,12 @@ export function MessageBubble({
             type="button"
             onClick={() => {
               setFeedback("down");
+              setAskReason(true);
               onFeedback?.(messageId, "DOWN");
             }}
             className={cn(
               "rounded p-1 hover:bg-black/5",
-              (feedback === "down" || feedback === "DOWN") &&
-                "text-[var(--wc-primary,var(--color-primary))]"
+              isDown && "text-[var(--wc-primary,var(--color-primary))]"
             )}
             aria-label="Not helpful"
             title="Not helpful"
@@ -326,6 +410,62 @@ export function MessageBubble({
           </button>
         </div>
       ) : null}
+
+      {askReason && role === "ASSISTANT" && !pending ? (
+        <div
+          className={cn(
+            "w-full max-w-[min(100%,20rem)] space-y-1.5",
+            showAgentAvatar ? "ml-8" : "ml-1"
+          )}
+        >
+          <p
+            className={cn(
+              "text-[11px]",
+              themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+            )}
+          >
+            What was unhelpful? Optional.
+          </p>
+          <textarea
+            value={reason}
+            maxLength={REASON_MAX}
+            rows={2}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Missing info, wrong answer…"
+            className={cn(
+              "w-full resize-none rounded-lg px-2.5 py-1.5 text-[12px] outline-none",
+              themed
+                ? "border border-[var(--wc-border,rgba(0,0,0,0.08))] bg-[var(--wc-chat-bg,#fff)] text-[var(--wc-shell-fg)]"
+                : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
+            )}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAskReason(false)}
+              className={cn(
+                "text-[11px]",
+                themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+              )}
+            >
+              Skip
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = reason.trim().slice(0, REASON_MAX);
+                onFeedback?.(messageId, "DOWN", trimmed || undefined);
+                setAskReason(false);
+              }}
+              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-[var(--wc-primary,var(--color-primary))]"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      ) : null}
+      </>
+      )}
     </div>
   );
 }

@@ -1,51 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Plus } from "lucide-react";
 import { resolveCustomization } from "@/lib/customization/defaults";
+import {
+  normalizeWidgetPosition,
+  positionToChatAlign,
+  positionToFlexAlign,
+} from "@/lib/customization/position";
 import {
   playNotificationBeep,
   unlockNotificationAudio,
   widgetIntro,
 } from "@/lib/customization/theme";
 import {
-  clearActiveEmbedSession,
+  loadEmbedHistory,
+  migrateGuestHistoryToUser,
   saveEmbedHistory,
+  touchActiveConversation,
   upsertHistoryConversation,
 } from "@/lib/embed-history";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { CsatPrompt } from "@/components/chat/CsatPrompt";
 import { MessageList } from "@/components/chat/MessageList";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatRelative } from "@/components/conversations/format";
+import { resolvePublicConfirmation } from "@/lib/api/confirmations";
+import { welcomeBubble } from "@/lib/chat/welcome-bubble";
+import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
+import { resumePublicChatAfterConfirmation } from "@/lib/api/chat";
+import { useEmbedDesk } from "@/hooks/use-embed-desk";
 
-import { DESK_EMBED_POLL_MS, DESK_EMBED_WAIT_POLL_MS, DESK_WAIT_TIMEOUT_MS } from "@/lib/desk/desk-config";
 import { DESK_WAIT_TIMEOUT_MESSAGE } from "@/lib/desk/conversation-desk";
-
-const POLL_MS = DESK_EMBED_POLL_MS;
-const WAIT_POLL_MS = DESK_EMBED_WAIT_POLL_MS;
-
-function welcomeBubble(agent) {
-  if (!agent?.welcomeMessage) return [];
-  return [
-    {
-      id: `welcome-${agent.publicKey}`,
-      role: "ASSISTANT",
-      content: agent.welcomeMessage,
-      responseTime: null,
-      local: true,
-    },
-  ];
-}
 
 function previewFromMessages(messages) {
   const last = [...(messages || [])].reverse().find((m) => m.content);
   return (last?.content || "Conversation").replace(/!\[[^\]]*\]\([^)]+\)/g, "Image").slice(0, 120);
-}
-
-function messagesIncludeHumanReply(messages) {
-  return (messages || []).some((m) => m.role === "HUMAN");
 }
 
 function DeskWaitingBanner({ humanTyping, waitTimedOut }) {
@@ -72,19 +64,27 @@ function DeskWaitingBanner({ humanTyping, waitTimedOut }) {
   );
 }
 
-export function PublicWebchat({ agent, parentOrigin = "" }) {
+export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const customization = useMemo(() => resolveCustomization(agent), [agent]);
   const features = customization.features || {};
   const identity = customization.identity || {};
   const deploy = customization.deploy || {};
+  const widgetPosition = normalizeWidgetPosition(deploy.widgetPosition);
   const framed = Boolean(parentOrigin);
-  const fullPage = framed
-    ? false
-    : deploy.chatInterface === "embedded";
-  const bubbleMode = framed && !fullPage;
+  const isEmbeddedLayout = deploy.chatInterface === "embedded";
+  const isContainerEmbed = embedMode === "container";
+  const isFloatingEmbed = framed && !isContainerEmbed;
+  const fullPage = isEmbeddedLayout && !isFloatingEmbed;
+  const bubbleMode =
+    isFloatingEmbed ||
+    (!framed && !isEmbeddedLayout) ||
+    (isContainerEmbed && !isEmbeddedLayout);
   const historyEnabled = features.conversationHistory !== false;
-  const resetMode = features.historyReset || "never";
+  const resetMode = features.historyReset || "1d";
   const hostRef = useRef(null);
+  const sessionRestoredRef = useRef(false);
+  const conversationIdRef = useRef(null);
+  const messagesRef = useRef([]);
 
   const [widgetOpen, setWidgetOpen] = useState(fullPage);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -93,84 +93,182 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   const [pastChats, setPastChats] = useState([]);
   const [sending, setSending] = useState(false);
   const [handoffLoading, setHandoffLoading] = useState(false);
-  const [waitingForHuman, setWaitingForHuman] = useState(false);
-  const [handoffAt, setHandoffAt] = useState(null);
-  const [humanTyping, setHumanTyping] = useState(false);
-  const [deskHumanReply, setDeskHumanReply] = useState(false);
-  const [waitTimedOut, setWaitTimedOut] = useState(false);
-  const [handoffEligible, setHandoffEligible] = useState(true);
-  const [handoffRemaining, setHandoffRemaining] = useState(3);
-  const [handoffBlockMessage, setHandoffBlockMessage] = useState("");
+  const [csatBusy, setCsatBusy] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedText, setLastFailedText] = useState("");
+  /** F14-C — host setUser session (subject / accessToken / displayName). */
+  const [hostUser, setHostUser] = useState(null);
 
-  const humanReplied = useMemo(
-    () => deskHumanReply || messagesIncludeHumanReply(messages),
-    [deskHumanReply, messages]
+  const {
+    waitingForHuman,
+    setWaitingForHuman,
+    handoffAt,
+    setHandoffAt,
+    humanTyping,
+    setDeskHumanReply,
+    waitTimedOut,
+    handoffEligible,
+    showHandoffCta,
+    setShowHandoffCta,
+    handoffRemaining,
+    handoffBlockMessage,
+    csatPending,
+    setCsatPending,
+    csatThanks,
+    setCsatThanks,
+    applyDeskState,
+    refreshConversation,
+    resetDeskState,
+    humanReplied,
+    showWaitingBanner,
+  } = useEmbedDesk({ agent, conversationId, messages, setMessages });
+  const hostUserRef = useRef(null);
+  hostUserRef.current = hostUser;
+  conversationIdRef.current = conversationId;
+  messagesRef.current = messages;
+
+  useEffect(() => {
+    if (!bubbleMode) return;
+    const flex = positionToFlexAlign(widgetPosition);
+    const html = document.documentElement;
+    const body = document.body;
+    body.style.alignItems = flex.alignItems;
+    body.style.justifyContent = flex.justifyContent;
+    // Size to content so iframe measurements stay accurate (avoids h-full stretch bugs).
+    html.style.height = "auto";
+    html.style.minHeight = "0";
+    html.style.width = "auto";
+    body.style.height = "auto";
+    body.style.minHeight = "0";
+    body.style.width = "auto";
+    return () => {
+      html.style.height = "";
+      html.style.minHeight = "";
+      html.style.width = "";
+      body.style.height = "";
+      body.style.minHeight = "";
+      body.style.width = "";
+    };
+  }, [bubbleMode, widgetPosition]);
+
+  function notifyAuthRefreshRequired(code = "IDENTITY_EXPIRED") {
+    if (!parentOrigin) return;
+    try {
+      window.parent.postMessage(
+        {
+          source: "hapy-widget",
+          type: "authRefreshRequired",
+          code,
+        },
+        parentOrigin
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  const restoreActiveSession = useCallback(
+    async (userSubject = null, { preserveInMemory = false } = {}) => {
+      const subject =
+        typeof userSubject === "string" && userSubject.trim()
+          ? userSubject.trim()
+          : null;
+      const stored = loadEmbedHistory(agent.publicKey, resetMode, subject);
+      if (historyEnabled) setPastChats(stored.conversations || []);
+
+      if (!stored.activeId) {
+        if (preserveInMemory && conversationIdRef.current) return;
+        setConversationId(null);
+        setMessages(welcomeBubble(agent));
+        return;
+      }
+
+      setConversationId(stored.activeId);
+      try {
+        const res = await fetch(
+          `/api/public/agents/${agent.publicKey}/conversations/${stored.activeId}`
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        applyDeskState(data);
+        if (data.handoffAt) setHandoffAt(data.handoffAt);
+        if (Array.isArray(data.messages) && data.messages.length) {
+          setMessages(data.messages);
+        }
+        const touched = touchActiveConversation(
+          agent.publicKey,
+          resetMode,
+          subject,
+          stored.activeId,
+          data.messages
+        );
+        if (historyEnabled) setPastChats(touched.conversations);
+      } catch {
+        // keep welcome until next send
+      }
+    },
+    [agent, historyEnabled, resetMode, applyDeskState]
   );
 
-  const showWaitingBanner = waitingForHuman && !humanReplied;
-
-  const applyDeskState = useCallback((data) => {
-    if (!data) return;
-    const waiting = Boolean(data.waitingForHuman || data.status === "WAITING_HUMAN");
-    setWaitingForHuman(waiting);
-    if (data.handoffAt) setHandoffAt(data.handoffAt);
-    if (typeof data.handoffEligible === "boolean") {
-      setHandoffEligible(data.handoffEligible);
-    }
-    if (typeof data.handoffRemaining === "number") {
-      setHandoffRemaining(data.handoffRemaining);
-    }
-    if (data.handoffBlockMessage) {
-      setHandoffBlockMessage(data.handoffBlockMessage);
-    } else if (data.handoffEligible) {
-      setHandoffBlockMessage("");
-    }
-    const replied =
-      typeof data.hasHumanReply === "boolean"
-        ? data.hasHumanReply
-        : messagesIncludeHumanReply(data.messages);
-    if (replied) {
-      setDeskHumanReply(true);
-      setHumanTyping(false);
-      setWaitTimedOut(false);
-    }
-    if (!waiting) {
-      setHumanTyping(false);
-      setWaitTimedOut(false);
-    }
-    if (typeof data.humanTyping === "boolean" && !replied && waiting) {
-      setHumanTyping(data.humanTyping);
-    }
-  }, []);
-
-  const refreshConversation = useCallback(async () => {
-    if (!conversationId || !agent.publicKey) return null;
-    try {
-      const res = await fetch(
-        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return null;
-      applyDeskState(data);
-      if (data.handoffAt) setHandoffAt(data.handoffAt);
-      if (Array.isArray(data.messages)) {
-        setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
+  const bindOrRestoreUserSession = useCallback(
+    async (userSubject) => {
+      const subject =
+        typeof userSubject === "string" && userSubject.trim()
+          ? userSubject.trim()
+          : null;
+      if (!subject) {
+        await restoreActiveSession(null);
+        return;
       }
-      return data;
-    } catch {
-      return null;
-    }
-  }, [agent, conversationId, applyDeskState]);
+
+      migrateGuestHistoryToUser(agent.publicKey, resetMode, subject);
+      const stored = loadEmbedHistory(agent.publicKey, resetMode, subject);
+      const activeConversationId = conversationIdRef.current;
+
+      if (!stored.activeId && activeConversationId) {
+        const touched = touchActiveConversation(
+          agent.publicKey,
+          resetMode,
+          subject,
+          activeConversationId,
+          messagesRef.current
+        );
+        if (historyEnabled) setPastChats(touched.conversations);
+        return;
+      }
+
+      await restoreActiveSession(subject, {
+        preserveInMemory: Boolean(activeConversationId && !stored.activeId),
+      });
+    },
+    [agent.publicKey, resetMode, historyEnabled, restoreActiveSession]
+  );
 
   useEffect(() => {
     unlockNotificationAudio();
-    if (!historyEnabled) return;
-    // Fresh chat on every page load; past threads stay in history for manual reopen.
-    const conversations = clearActiveEmbedSession(agent.publicKey, resetMode);
-    setPastChats(conversations || []);
-  }, [agent.publicKey, historyEnabled, resetMode]);
+    const timer = window.setTimeout(() => {
+      if (sessionRestoredRef.current) return;
+      if (hostUserRef.current?.subject) return;
+      sessionRestoredRef.current = true;
+      restoreActiveSession(null);
+    }, parentOrigin ? 600 : 300);
+    return () => window.clearTimeout(timer);
+  }, [agent.publicKey, parentOrigin, restoreActiveSession]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    const subject = hostUserRef.current?.subject || null;
+    const { conversations } = touchActiveConversation(
+      agent.publicKey,
+      resetMode,
+      subject,
+      conversationId,
+      messages
+    );
+    if (historyEnabled) setPastChats(conversations);
+    // Save activeId as soon as we have one; preview text is refreshed on send/restore.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- messages read once per id change
+  }, [conversationId, hostUser?.subject, agent.publicKey, resetMode, historyEnabled]);
 
   useEffect(() => {
     // Origin lock is claimed by embed.js on the parent page (trusted Origin header).
@@ -200,35 +298,48 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     };
   }, [agent.publicKey, parentOrigin]);
 
+  // F14-C — receive host setUser / announce ready for handshake
   useEffect(() => {
-    if (!conversationId || !waitingForHuman) return undefined;
-    const pollMs = humanReplied ? POLL_MS : WAIT_POLL_MS;
-    const id = setInterval(refreshConversation, pollMs);
-    return () => clearInterval(id);
-  }, [conversationId, waitingForHuman, humanReplied, refreshConversation]);
+    function onHostMessage(event) {
+      if (parentOrigin && event.origin !== parentOrigin) return;
+      if (!event.data || event.data.source !== "hapy-host") return;
+      if (event.data.type === "setUser") {
+        const raw = event.data.user;
+        const handshake = Boolean(event.data.handshake);
 
-  // Refresh eligibility while desk cooldown is active so the button unlocks after 30m.
-  useEffect(() => {
-    if (!conversationId || waitingForHuman || handoffEligible) return undefined;
-    const id = setInterval(refreshConversation, 30_000);
-    return () => clearInterval(id);
-  }, [conversationId, waitingForHuman, handoffEligible, refreshConversation]);
+        if (!raw) {
+          setHostUser(null);
+          // Initial ready handshake may send null before the host hydrates auth — do not wipe chat.
+          if (!handshake) {
+            sessionRestoredRef.current = true;
+            restoreActiveSession(null);
+          }
+          return;
+        }
 
-  useEffect(() => {
-    if (!waitingForHuman || humanReplied || !handoffAt) {
-      setWaitTimedOut(false);
-      return undefined;
+        sessionRestoredRef.current = true;
+        const subject = raw.subject || raw.sub || null;
+        setHostUser({
+          subject,
+          accessToken: raw.accessToken || raw.token || null,
+          displayName: raw.displayName || raw.name || null,
+        });
+        bindOrRestoreUserSession(subject);
+      }
     }
-
-    const check = () => {
-      const elapsed = Date.now() - new Date(handoffAt).getTime();
-      setWaitTimedOut(elapsed >= DESK_WAIT_TIMEOUT_MS);
-    };
-
-    check();
-    const id = setInterval(check, 1000);
-    return () => clearInterval(id);
-  }, [waitingForHuman, humanReplied, handoffAt]);
+    window.addEventListener("message", onHostMessage);
+    if (parentOrigin) {
+      try {
+        window.parent.postMessage(
+          { source: "hapy-widget", type: "ready" },
+          parentOrigin
+        );
+      } catch {
+        // ignore
+      }
+    }
+    return () => window.removeEventListener("message", onHostMessage);
+  }, [parentOrigin, bindOrRestoreUserSession]);
 
   const proactive =
     !widgetOpen &&
@@ -237,10 +348,16 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
 
   const postFrame = useCallback(() => {
     if (!bubbleMode || window.parent === window) return;
-    const el = hostRef.current;
-    const rect = el?.getBoundingClientRect();
-    const width = rect ? Math.ceil(rect.width) + 8 : 72;
-    const height = rect ? Math.ceil(rect.height) + 8 : 72;
+    const host = hostRef.current;
+    const el = host?.firstElementChild ?? host;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    let width = Math.max(Math.ceil(rect.width) + 4, 56);
+    let height = Math.max(Math.ceil(rect.height) + 4, 56);
+    if (proactive && !widgetOpen) {
+      width = Math.max(width, 220);
+      height = Math.max(height, 120);
+    }
     window.parent.postMessage(
       {
         source: "hapy-widget",
@@ -255,6 +372,13 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     );
   }, [bubbleMode, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
 
+  useLayoutEffect(() => {
+    if (!bubbleMode) return undefined;
+    postFrame();
+    const id = requestAnimationFrame(() => postFrame());
+    return () => cancelAnimationFrame(id);
+  }, [bubbleMode, widgetOpen, historyOpen, proactive, postFrame]);
+
   useEffect(() => {
     postFrame();
     const el = hostRef.current;
@@ -266,23 +390,26 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
 
   const persist = useCallback(
     (nextId, nextMessages) => {
-      if (!historyEnabled || !nextId) return;
+      if (!nextId) return;
+      const subject = hostUserRef.current?.subject || null;
       const row = {
         id: nextId,
         preview: previewFromMessages(nextMessages),
         updatedAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
       };
       setPastChats((prev) => {
         const conversations = upsertHistoryConversation(prev, row);
         saveEmbedHistory(
           agent.publicKey,
           { conversations, activeId: nextId },
-          resetMode
+          resetMode,
+          subject
         );
         return conversations;
       });
     },
-    [agent.publicKey, historyEnabled, resetMode]
+    [agent.publicKey, resetMode]
   );
 
   async function send(text) {
@@ -297,20 +424,42 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     setMessages(nextUser);
 
     try {
+      const user = hostUserRef.current;
+      const userSession =
+        user && (user.subject || user.accessToken)
+          ? {
+              ...(user.subject ? { subject: user.subject } : {}),
+              ...(user.accessToken ? { accessToken: user.accessToken } : {}),
+              ...(user.displayName ? { displayName: user.displayName } : {}),
+            }
+          : undefined;
       const res = await fetch(`/api/public/agents/${agent.publicKey}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
           conversationId: conversationId || undefined,
+          ...(userSession ? { userSession } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const code = data?.error?.details?.code || data?.error?.code;
+        if (
+          res.status === 401 &&
+          (code === "IDENTITY_EXPIRED" ||
+            code === "IDENTITY_INVALID" ||
+            /expired|identity/i.test(data?.error?.message || ""))
+        ) {
+          notifyAuthRefreshRequired(code || "IDENTITY_EXPIRED");
+        }
         throw new Error(data?.error?.message || "Unable to send message");
       }
       setConversationId(data.conversationId);
       applyDeskState(data);
+      if (data.identityRefreshRequired) {
+        notifyAuthRefreshRequired("IDENTITY_EXPIRED");
+      }
       if (data.handoffTriggered || data.waitingForHuman || data.aiPaused) {
         setWaitingForHuman(true);
         if (data.handoffAt) setHandoffAt(data.handoffAt);
@@ -327,14 +476,14 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           setMessages(full.messages);
           persist(data.conversationId, full.messages);
         } else {
-          const next = [
-            ...nextUser.filter((m) => m.id !== optimisticId),
-            {
+          const next = nextUser.filter((m) => m.id !== optimisticId);
+          if (data.userMessage) {
+            next.push({
               id: data.userMessage.id,
               role: "USER",
               content: data.userMessage.content,
-            },
-          ];
+            });
+          }
           if (data.message) {
             next.push({
               id: data.message.id,
@@ -350,20 +499,22 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
         return;
       }
 
-      const next = [
-        ...nextUser.filter((m) => m.id !== optimisticId),
-        {
+      const next = nextUser.filter((m) => m.id !== optimisticId);
+      if (data.userMessage) {
+        next.push({
           id: data.userMessage.id,
           role: "USER",
           content: data.userMessage.content,
-        },
-      ];
+        });
+      }
       if (data.message) {
         next.push({
           id: data.message.id,
           role: "ASSISTANT",
           content: data.message.content,
           responseTime: data.message.responseTime,
+          toolSteps: data.toolSteps || [],
+          pendingConfirmations: data.pendingConfirmations || [],
         });
       }
       setMessages(next);
@@ -379,6 +530,80 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       setLastFailedText(text);
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setSending(false);
+    }
+  }
+
+  async function handleConfirmDecision(confirmation, decision) {
+    const cid = confirmation.conversationId || conversationId;
+    if (!cid || !confirmation?.id) {
+      throw new Error("Missing conversation");
+    }
+    const updated = await resolvePublicConfirmation(
+      agent.publicKey,
+      confirmation.id,
+      {
+        conversationId: cid,
+        decision,
+        ...(hostUserRef.current?.subject
+          ? { userSubject: hostUserRef.current.subject }
+          : {}),
+        ...(hostUserRef.current?.displayName
+          ? { userDisplay: hostUserRef.current.displayName }
+          : {}),
+      }
+    );
+    setMessages((prev) =>
+      prev.map((m) => ({
+        ...m,
+        pendingConfirmations: (m.pendingConfirmations || []).map((c) =>
+          c.id === confirmation.id
+            ? { ...c, status: updated.status || (decision === "deny" ? "DENIED" : "APPROVED") }
+            : c
+        ),
+      }))
+    );
+    if (decision === "approve") {
+      setSending(true);
+      setError("");
+      try {
+        const user = hostUserRef.current;
+        const userSession =
+          user && (user.subject || user.accessToken)
+            ? {
+                ...(user.subject ? { subject: user.subject } : {}),
+                ...(user.accessToken ? { accessToken: user.accessToken } : {}),
+                ...(user.displayName ? { displayName: user.displayName } : {}),
+              }
+            : undefined;
+        const data = await resumePublicChatAfterConfirmation(agent.publicKey, {
+          conversationId: cid,
+          confirmationId: confirmation.id,
+          userSession,
+        });
+        setConversationId(data.conversationId);
+        applyDeskState(data);
+        if (data.identityRefreshRequired) {
+          notifyAuthRefreshRequired("IDENTITY_EXPIRED");
+        }
+        if (data.handoffTriggered || data.waitingForHuman || data.aiPaused) {
+          setWaitingForHuman(true);
+          if (data.handoffAt) setHandoffAt(data.handoffAt);
+        }
+        setMessages((prev) => {
+          const next = mergeAssistantReply(prev, data);
+          persist(data.conversationId, next);
+          return next;
+        });
+        if (features.notificationSound && data.message) playNotificationBeep();
+        if (data.degraded) {
+          setError("Generation failed — Try again");
+        }
+      } catch (err) {
+        setError(err.message || "Unable to continue after approval");
+        throw err;
+      } finally {
+        setSending(false);
+      }
     }
   }
 
@@ -402,16 +627,46 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     }
   }
 
-  async function rateMessage(messageId, rating) {
+  async function rateMessage(messageId, rating, reason) {
     if (!messageId || String(messageId).startsWith("welcome")) return;
     try {
       await fetch(`/api/public/agents/${agent.publicKey}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId, rating }),
+        body: JSON.stringify({
+          messageId,
+          rating,
+          ...(reason ? { reason } : {}),
+        }),
       });
     } catch {
       // keep local highlight even if network fails
+    }
+  }
+
+  async function submitCsat({ score, skip = false } = {}) {
+    if (!conversationId || csatBusy) return;
+    setCsatBusy(true);
+    try {
+      const res = await fetch(
+        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/csat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(skip ? { skip: true } : { score }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error?.message || "Unable to save rating");
+      }
+      setCsatPending(false);
+      if (!skip && score) setCsatThanks(true);
+      applyDeskState(data);
+    } catch (err) {
+      setError(err.message || "Unable to save rating");
+    } finally {
+      setCsatBusy(false);
     }
   }
 
@@ -424,6 +679,10 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
     }
     setHandoffLoading(true);
     setError("");
+    setShowHandoffCta(false);
+    setWaitingForHuman(true);
+    setCsatPending(false);
+    setCsatThanks(false);
     try {
       const res = await fetch(
         `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/handoff`,
@@ -435,24 +694,38 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const details = data?.error?.details || {};
         const msg =
           data?.error?.message ||
-          data?.error?.details?.message ||
+          details.message ||
           "Unable to request human support";
+        if (res.status === 409 && details.code === "already_waiting") {
+          applyDeskState({
+            waitingForHuman: true,
+            status: "WAITING_HUMAN",
+            ...details,
+          });
+          await refreshConversation();
+          setHandoffLoading(false);
+          return;
+        }
         applyDeskState({
-          ...data?.error?.details,
+          ...details,
           handoffEligible: false,
           handoffBlockMessage: msg,
-          handoffRemaining: data?.error?.details?.handoffRemaining,
+          handoffRemaining: details.handoffRemaining,
         });
         throw new Error(msg);
       }
       applyDeskState(data);
       setWaitingForHuman(true);
+      setShowHandoffCta(false);
       setDeskHumanReply(false);
       await refreshConversation();
       setHandoffLoading(false);
     } catch (err) {
+      setWaitingForHuman(false);
+      setShowHandoffCta(true);
       setError(err.message || "Unable to request human support");
       setHandoffLoading(false);
     }
@@ -461,23 +734,15 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
   function resetChat() {
     setConversationId(null);
     setMessages(welcomeBubble(agent));
-    setWaitingForHuman(false);
-    setHandoffAt(null);
-    setHumanTyping(false);
-    setDeskHumanReply(false);
-    setWaitTimedOut(false);
-    setHandoffEligible(true);
-    setHandoffRemaining(3);
-    setHandoffBlockMessage("");
+    resetDeskState();
     setError("");
     setHistoryOpen(false);
-    if (historyEnabled) {
-      saveEmbedHistory(
-        agent.publicKey,
-        { conversations: pastChats, activeId: null },
-        resetMode
-      );
-    }
+    saveEmbedHistory(
+      agent.publicKey,
+      { conversations: pastChats, activeId: null },
+      resetMode,
+      hostUserRef.current?.subject || null
+    );
   }
 
   const placeholder = identity.messagePlaceholder || "Type your message...";
@@ -533,6 +798,21 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           waitTimedOut={waitTimedOut}
         />
       ) : null}
+      {csatPending && !waitingForHuman ? (
+        <CsatPrompt
+          busy={csatBusy}
+          onRate={(score) => submitCsat({ score })}
+          onSkip={() => submitCsat({ skip: true })}
+        />
+      ) : null}
+      {csatThanks && !csatPending ? (
+        <div
+          className="mx-2 mt-2 rounded-lg border border-[var(--wc-primary)]/15 bg-[var(--wc-primary)]/6 px-3 py-2 text-[12px]"
+          style={{ color: "var(--wc-shell-fg)" }}
+        >
+          Thanks for your feedback.
+        </div>
+      ) : null}
       <MessageList
         messages={messages}
         loading={sending}
@@ -543,6 +823,8 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
         showFeedback={features.messageFeedback && !waitingForHuman}
         intro={intro}
         onFeedback={rateMessage}
+        onConfirmDecision={handleConfirmDecision}
+        confirmBusy={sending}
       />
       {error ? (
         <div className="mx-2 mb-1 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-2 py-1.5 text-[12px] text-[var(--color-danger)]">
@@ -562,13 +844,13 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           </div>
         </div>
       ) : null}
-      {!waitingForHuman && conversationId ? (
+      {!waitingForHuman && conversationId && showHandoffCta ? (
         <div className="space-y-1 px-2 pb-1">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 w-full text-[12px]"
+            className="h-8 w-full text-[12px] transition-none"
             disabled={handoffLoading || sending || !handoffEligible}
             onClick={requestHandoff}
           >
@@ -609,8 +891,15 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
       ref={hostRef}
       className={
         bubbleMode
-          ? "flex h-full min-h-0 w-full max-w-full flex-col items-end justify-end bg-transparent"
-          : "flex h-dvh min-h-0 flex-col bg-transparent"
+          ? cn(
+              "flex h-auto w-fit max-w-[calc(100vw-1rem)] shrink-0 flex-col bg-transparent",
+              positionToChatAlign(widgetPosition) === "start"
+                ? "items-start self-start"
+                : "items-end self-end"
+            )
+          : fullPage
+            ? "flex h-full min-h-0 flex-col bg-transparent"
+            : "flex h-dvh min-h-0 flex-col bg-transparent"
       }
     >
       <ChatWidget
@@ -621,9 +910,9 @@ export function PublicWebchat({ agent, parentOrigin = "" }) {
           unlockNotificationAudio();
           setWidgetOpen((v) => !v);
         }}
-        fullPage={fullPage || !framed}
+        fullPage={fullPage}
         fillHost={bubbleMode}
-        align="end"
+        align={positionToChatAlign(widgetPosition)}
         historyOpen={historyOpen}
         onHistoryToggle={
           historyEnabled

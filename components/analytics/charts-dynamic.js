@@ -9,6 +9,7 @@ export {
   AgentRadarChart,
   ChartAreaInteractive,
   PlatformGrowthChart,
+  PlatformVolumeChart,
   ResponseHistogram,
   SentimentOverTimeChart,
   SentimentShareChart,

@@ -112,19 +112,19 @@ export default function DashboardPage() {
   const kpiHint = (value) => (metricsLoading ? undefined : zeroHint(value));
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       {/* First viewport: one composition — brand + one CTA (F04-B) */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-            Hapy
+            Aide
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-[var(--color-text)] sm:text-3xl">
             {authLoading
               ? "Workspace"
               : firstName
                 ? `${firstName}'s workspace`
-                : "Hapy workspace"}
+                : "Aide workspace"}
           </h1>
           <p className="mt-1 max-w-md text-sm text-[var(--color-text-secondary)]">
             Conversations, sentiment, and agents in one place.
@@ -266,7 +266,7 @@ export default function DashboardPage() {
               View all
             </Link>
           </div>
-          <div className="hapy-card min-h-[280px]">
+          <div className="aide-card min-h-[280px]">
             {loading ? (
               <div className="space-y-2 p-4">
                 <Skeleton className="h-12 bg-[var(--color-border)]" />

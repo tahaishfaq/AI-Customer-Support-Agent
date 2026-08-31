@@ -2,11 +2,10 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { withVerifyFullSsl } from "../lib/pg-connection.js";
+import { resolveTestBaseUrl } from "./lib/test-base-url.mjs";
+import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
-const BASE = (process.env.TEST_BASE_URL || "http://127.0.0.1:3000").replace(
-  /\/$/,
-  ""
-);
+const BASE = resolveTestBaseUrl();
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -101,7 +100,7 @@ async function api(jar, path, options = {}) {
 async function registerUser(name, email, password) {
   const res = await fetch(`${BASE}/api/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: uniqueTestIpHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       name,
       email,
@@ -124,8 +123,8 @@ async function main() {
 
   // Unique per run so parallel PR smokes do not collide (F03-F).
   const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const email = `p0-product-${stamp}@hapy.test`;
-  const emailB = `p0-product-b-${stamp}@hapy.test`;
+  const email = `p0-product-${stamp}@aide.test`;
+  const emailB = `p0-product-b-${stamp}@aide.test`;
   const password = "ProductSmoke1!";
   const knowledgePhrase = "5 business days";
   const emailsToClean = [email, emailB];

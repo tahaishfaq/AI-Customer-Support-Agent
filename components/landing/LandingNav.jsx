@@ -31,7 +31,7 @@ export function LandingNav() {
           href="/"
           className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--color-primary)]"
         >
-          Hapy
+          Aide
         </Link>
         <nav className="flex items-center gap-2 sm:gap-3">
           <Link

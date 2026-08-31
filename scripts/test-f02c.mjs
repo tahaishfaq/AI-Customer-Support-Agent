@@ -26,10 +26,11 @@ function main() {
   );
 
   const analytics = read("lib/services/analytics.service.js");
+  const analyticsSql = read("lib/services/analytics-sql.js");
   assert(
     analytics.includes("ANALYTICS_SAMPLE_CAP") &&
       analytics.includes("sinceForRange") &&
-      analytics.includes("groupBy"),
+      (analytics.includes("groupBy") || analyticsSql.includes("groupBy")),
     "analytics must cap samples, bound 'all', and use SQL groupBy"
   );
   assert(

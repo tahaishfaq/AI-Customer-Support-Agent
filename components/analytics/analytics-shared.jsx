@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { getDashboard } from "@/lib/api/analytics";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import {
+  SoftStagger,
+  SoftStaggerItem,
+} from "@/components/motion/soft-motion";
 import { cn } from "@/lib/utils";
 
 export const ANALYTICS_RANGES = [
@@ -58,10 +62,10 @@ export function RangeChips({ range, onChange, className }) {
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-[12px] font-medium",
+            "rounded-md px-2.5 py-1.5 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-3 sm:py-1.5 sm:text-[12px]",
             range === item.id
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] ring-1 ring-[var(--color-border)] hover:text-[var(--color-text)]"
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-muted-foreground ring-1 ring-border hover:text-foreground"
           )}
         >
           {item.label}
@@ -75,60 +79,73 @@ export function AnalyticsKpiGrid({ overview, extra, loading }) {
   const hint = (value) => (loading ? undefined : zeroHint(value));
 
   return (
-    <section
+    <SoftStagger
+      as="section"
       className={cn(
         "grid gap-3 sm:grid-cols-2",
         extra ? "lg:grid-cols-4" : "lg:grid-cols-3"
       )}
     >
-      {extra}
-      <MetricCard
-        label="Total Conversations"
-        value={overview?.totalConversations ?? 0}
-        hint={hint(overview?.totalConversations ?? 0)}
-        loading={loading}
-        icon={MessagesSquare}
-      />
-      <MetricCard
-        label="Total Messages"
-        value={overview?.totalMessages ?? 0}
-        hint={hint(overview?.totalMessages ?? 0)}
-        loading={loading}
-        tone="info"
-        icon={MessageCircle}
-      />
-      <MetricCard
-        label="Avg Response Time"
-        value={formatResponseTime(overview?.averageResponseTimeMs)}
-        hint={hint(overview?.averageResponseTimeMs ?? 0)}
-        loading={loading}
-        tone="warning"
-        icon={Clock}
-      />
-      <MetricCard
-        label="Avg Conversation Length"
-        value={overview?.averageConversationLength ?? 0}
-        hint={hint(overview?.averageConversationLength ?? 0)}
-        loading={loading}
-        icon={Hash}
-      />
-      <MetricCard
-        label="Positive Sentiment"
-        value={formatPercent(overview?.positiveSentimentPercent)}
-        hint={hint(overview?.positiveSentimentPercent ?? 0)}
-        loading={loading}
-        tone="positive"
-        icon={Smile}
-      />
-      <MetricCard
-        label="Negative Sentiment"
-        value={formatPercent(overview?.negativeSentimentPercent)}
-        hint={hint(overview?.negativeSentimentPercent ?? 0)}
-        loading={loading}
-        tone="negative"
-        icon={Frown}
-      />
-    </section>
+      {extra ? <SoftStaggerItem>{extra}</SoftStaggerItem> : null}
+      <SoftStaggerItem>
+        <MetricCard
+          label="Total Conversations"
+          value={overview?.totalConversations ?? 0}
+          hint={hint(overview?.totalConversations ?? 0)}
+          loading={loading}
+          icon={MessagesSquare}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Total Messages"
+          value={overview?.totalMessages ?? 0}
+          hint={hint(overview?.totalMessages ?? 0)}
+          loading={loading}
+          tone="info"
+          icon={MessageCircle}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Avg Response Time"
+          value={formatResponseTime(overview?.averageResponseTimeMs)}
+          hint={hint(overview?.averageResponseTimeMs ?? 0)}
+          loading={loading}
+          tone="warning"
+          icon={Clock}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Avg Conversation Length"
+          value={overview?.averageConversationLength ?? 0}
+          hint={hint(overview?.averageConversationLength ?? 0)}
+          loading={loading}
+          icon={Hash}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Positive Sentiment"
+          value={formatPercent(overview?.positiveSentimentPercent)}
+          hint={hint(overview?.positiveSentimentPercent ?? 0)}
+          loading={loading}
+          tone="positive"
+          icon={Smile}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Negative Sentiment"
+          value={formatPercent(overview?.negativeSentimentPercent)}
+          hint={hint(overview?.negativeSentimentPercent ?? 0)}
+          loading={loading}
+          tone="negative"
+          icon={Frown}
+        />
+      </SoftStaggerItem>
+    </SoftStagger>
   );
 }
 

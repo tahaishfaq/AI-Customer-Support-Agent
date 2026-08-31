@@ -1,12 +1,12 @@
-# Hapy — Kya kya ship hua (F01–F12 + extras)
+# Aide — Kya kya ship hua (F01–F13 + extras)
 
 Yeh file simple language mein hai: **kyun banaya**, **kya improve hua**, aur **user ko kya feel hota hai**.
 
 Tests ke liye technical detail alag file mein hai: `SHIPPED_FEATURES_TEST_APPENDIX.md` (developers / CI only).
 
-**Check sab theek hai:** `npm run test:shipped` · Human desk: `npm run test:f12`
+**Check sab theek hai:** `npm run test:shipped` · Human desk: `npm run test:f12` · Actions: `npm run test:f11` · Universal: `npm run test:f11u` · Tools hub: `npm run test:f13`
 
-**Aage ka kaam:** **[F00 DoD/demo buffer](features/F00_DOD_DEMO_BUFFER.md)** abhi → phir **[F11 Actions](features/F11_AGENT_ACTIONS.md)**. Alt: [F10 RAG](features/F10_SEMANTIC_RAG.md) only if KB pain. OOS later: [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md) §4.
+**Aage ka kaam:** **[F00 DoD/demo](features/F00_DOD_DEMO_BUFFER.md)** (live ticks + B26 rehearsal) · Alt: [F10 RAG](features/F10_SEMANTIC_RAG.md) if KB pain. OOS: [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md) §4.
 
 ---
 
@@ -17,13 +17,16 @@ Tests ke liye technical detail alag file mein hai: `SHIPPED_FEATURES_TEST_APPEND
 | F01 | Errors & logs | App crash ya OpenAI down par white screen / ajeeb errors | Clear message + support ko trace karne ke liye request id |
 | F02 | Speed & load | Analytics / chat slow; DB pool exhaust | Faster pages, chat zyada wait nahi, limits clear |
 | F03 | Production tests | Deploy ke baad pata na ho kya toot gaya | CI + smoke scripts — merge se pehle check |
-| F04 | Design / UI | Product cheap ya unfinished lagta tha | Teal Hapy look, empty states, mobile theek |
+| F04 | Design / UI | Product cheap ya unfinished lagta tha | Teal Aide look, empty states, mobile theek |
 | F05 | Agent test studio | Bot test karna mushkil; grounding dikhna nahi tha | Test chat + sources + suggested questions |
 | F06 | Admin security | Admin APIs open hon to risk | Sirf admin login; har admin route protected |
 | F07 | Admin console | Operator ko users dhundna mushkil | Filters, badges, quick links, less clutter |
 | F08 | Knowledge search | Poora FAQ prompt mein nahi jaata; galat jawab | Sirf relevant hissa + typo fix + clarify |
 | F09 | Prompts & style | Har agent alag tone; rules scattered | Short / detailed / hybrid answers; safe rules |
+| F11 | Agent actions | FAQ mein live order/CRM nahi | Bot allowlisted API call karke real status batata hai |
+| F11-U | Universal authz | Har business alag product maangta | 50 packs · Guest/Signed-in · Confirm · cross-user refuse |
 | F12 | Human desk | AI stuck / angry user — koi insaan nahi | Embed se handoff → owner Inbox → same chat mein human reply |
+| F13 | Tools hub | Actions / MCP / HTTP alag-alag feel | Ek **Tools** surface: Integrations · MCP · HTTP |
 | Extra | Re-crawl schedule | Website ek bar crawl; content purana reh jata | User interval set kare — auto refresh |
 
 ---
@@ -104,7 +107,7 @@ Code merge ho jaye aur production par register / embed / chat toot jaye — inte
 
 ---
 
-## F04 — Design & Hapy look
+## F04 — Design & Aide look
 
 ### Kyun add kiya?
 
@@ -257,6 +260,34 @@ Har agent ka system prompt alag likha hota tha — kabhi zyada lambi reply, kabh
 
 ---
 
+## F11 — Agent actions (tools)
+
+### Kyun add kiya?
+
+Customer order status poochta hai — FAQ mein nahi hota ya purana hota hai. Bot sirf text bolta tha (“portal pe dekho”). Zendesk/Botpress jaisa **live API call** chahiye tha, bina flow canvas ke.
+
+### Kya improve hua?
+
+- **Customization → Actions** — Connection | Capabilities (catalog + Integrations hub) | Advanced; credentials encrypted; vertical packs (Brandly / Demo / Shopify / HubSpot starters)
+- **Chat tool loop** — studio Test + embed dono; model tool call → server HTTP (SSRF-safe) → natural jawab
+- **Demo order API** — `ORD-100` → Shipped (local test)
+- **Studio timeline** — reply ke neeche **Called: get_order_status → 200**
+- **Kill switch** — agent-wide actions off; per-action enable; templates; header `••••` redaction
+- **Safety** — rate limits, daily workspace cap, GET cache, concurrency cap, ToolRun audit list
+- **UX-1, UX-2, UX-3, UX-4** — capability cards, Try sample, connection health, Install Brandly / vertical packs (`test:f11-ux2`–`ux4`); UX-5 deferred
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| “Order ORD-100?” → guess / FAQ miss | Live lookup → “Shipped…” |
+| Random URL scrape | Sirf owner allowlisted URL |
+| Flow canvas setup | Form + Test button / capability toggles |
+
+**Detail:** [`features/F11_AGENT_ACTIONS.md`](features/F11_AGENT_ACTIONS.md) · `npm run test:f11` · `test:f11r` · `test:f11-ux2`–`ux4`
+
+---
+
 ## F12 — Human desk (handoff)
 
 ### Kyun add kiya?
@@ -265,27 +296,29 @@ Kabhi AI jawab nahi de sakta — refund fight, “mujhe banda chahiye”, legal 
 
 ### Kya improve hua?
 
-- **Embed widget** — “Talk to a human” button + keywords (e.g. *talk to human*, *speak to manager*) → auto handoff
+- **Embed widget** — “Talk to a human” sirf tab jab customer **explicitly** maange (ya AI resolve na kar sake). Pehle agent try karta hai; doosri dafa insist par desk connect
 - **Human desk inbox** (`/inbox`) — waiting queue, filters (Waiting / All / Open / Resolved), search
 - **Same thread** — customer embed mein hi human reply (`HUMAN` role); alag app nahi
 - **AI pause** — `WAITING_HUMAN` par bot chup; sirf owner reply
 - **Waiting UX** — banner “Waiting for human”, typing indicator, 1 min timeout message agar koi reply na ho
 - **Owner actions** — human reply, **Return to AI**, **Resolve & close**
+- **Internal notes (F12-U U4)** — desk **Note** mode; customer never sees; after Return to AI, bot may use note **facts** (not private judgments) for better replies
+- **CSAT (F12-U U5)** — after resolve, embed offers optional **1–5**; Skip ok; desk shows score when rated
 - **Handoff limits** — max **3** requests per chat; **30 min cooldown** resolve ke baad dubara request
 - **Nav badge** — sidebar par kitne threads wait kar rahe hain
 - **Context summary** — handoff par last messages ka text summary (LLM cost nahi)
 - **Workspace isolation** — sirf apne workspace ke threads; admin inspect-only (reply nahi)
-- **Embed history** — page refresh par **fresh chat**; purani thread **History** se resume
+- **Embed history** — page refresh par **current chat persist**; **24 hours** baad naya chat
 - **Chat input** — multiline / scroll par soft corners (ChatGPT-style), extreme pill radius nahi
 
 ### Simple examples
 
 | Pehle | Ab |
 |-------|-----|
-| “Talk to human” → AI phir jawab deta | Handoff → AI band → owner reply same widget |
+| “Talk to human” pehle message | AI pehle try; button tab; doosri dafa / AI fail → human |
 | Owner ko pata nahi kaun wait kar raha | `/inbox` + nav badge |
 | Resolve ke baad Resolved tab khali | Return to AI / close dono **Resolved** filter mein dikhte hain |
-| Refresh → purani chat auto open | Fresh welcome; History se kholo |
+| Refresh → chat gayab | Same current chat; 24h baad naya chat |
 
 ### Demo path (2 browser)
 
@@ -300,6 +333,181 @@ Kabhi AI jawab nahi de sakta — refund fight, “mujhe banda chahiye”, legal 
 
 ---
 
+## F13 — Tools hub (Integrations · MCP · HTTP)
+
+### Kyun add kiya?
+
+F11 actions the, lekin owner ko **Integrations / MCP / HTTP** ek Botpress-jaisi Tools surface chahiye thi — site demo starters, MCP discover, aur HTTP editor alag lanes mein.
+
+### Kya improve hua?
+
+- Customization section **Tools** — tabs: **Integrations · MCP · HTTP**
+- **Site demo 6-pack** (`site_demo_v1`) + vertical packs hub (Brandly first)
+- **HTTP** list cards + Add HTTP tool dialog (Params · Body · Auth · Headers · Inputs · Timeout)
+- **MCP** — demo `/api/demo/mcp`, probe/discover, enable subset; tool loop + kill switch
+- Hardening: MCP audit events, per-server rate limits, `ToolRun.mcpToolId`
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Connection / Capabilities / Advanced | Integrations / MCP / HTTP |
+| MCP nahi | Demo MCP → enable `get_demo_time` → Studio |
+| Advanced form long page | Dialog tabs + tool cards |
+
+**Tests:** `npm run test:f13` (t0–t4) · `test:shipped` includes F13  
+
+**Detail:** [`features/F13_TOOLS_HUB.md`](features/F13_TOOLS_HUB.md)
+
+---
+
+## F14 — In-chat action consent (Phase A)
+
+### Kyun add kiya?
+
+WRITE / confirm-gated tools pe model “please confirm” bol sakta tha, lekin embed/studio mein **Confirm button** nahi tha — approval incomplete.
+
+### Kya improve hua?
+
+- Tool loop `CONFIRMATION_REQUIRED` pe **PENDING** `ActionConfirmation` banata hai
+- Chat response mein `pendingConfirmations`
+- **Confirm / Cancel** card in embed, Test studio, workspace chat
+- Approve/deny APIs (`decision`); Approve ke baad auto retry prompt
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Policy deny + text only | Confirm button in bubble |
+| No deny path | Cancel → DENIED |
+
+**Tests:** `npm run test:f14a`  
+
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+
+---
+
+## F14-B — Consent evidence model
+
+### Kyun add kiya?
+
+Confirm UI ke baad bhi owner ko durable proof nahi milta tha — kaun ne kab kis args hash pe approve/deny kiya.
+
+### Kya improve hua?
+
+- `ActionConfirmation`: `evidenceId`, `userSubject`, `userDisplay`, `decidedAt`, `decidedIp`
+- Approve/deny routes stamp IP + optional subject/display
+- `GET /api/agents/[id]/confirmations` + Tools → **Consent evidence** list
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| PENDING → APPROVED only | + `ev_…` id, subject, IP, decidedAt |
+| No owner list | Consent evidence under Tools → HTTP |
+
+**Tests:** `npm run test:f14b` · `npm run test:f14`  
+
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+
+---
+
+## F14-C — Host user token (`setUser`)
+
+### Kyun add kiya?
+
+Embed visitor signed-in tha site pe, lekin Aide ko subject/token nahi milta tha — identity tools owner admin key use karte ya fail.
+
+### Kya improve hua?
+
+- `aideChat.setUser({ subject, displayName, accessToken })` + `clearUser` + iframe ready handshake
+- Public chat: `userSession` body · `Authorization: Bearer` · legacy `identityToken`
+- `resolveEndUserIdentity` (HS256 JWT | host session)
+- `requiresIdentity` tools → outbound `Authorization: Bearer <end-user>` (owner Bearer overridden)
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Embed anonymous only | Host `setUser` after login |
+| Identity tool → owner Bearer | End-user access token on identity tools |
+
+**Tests:** `npm run test:f14c` · `npm run test:f14`  
+
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+
+---
+
+## F14-D — Scoped identity modes + Studio Logs
+
+### Kyun add kiya?
+
+Identity boolean se owner vs visitor token clear nahi tha. Developers ko Test Studio mein yeh bhi nahi dikhta tha ke tool/backend call consume hui ya pehle fail.
+
+### Kya improve hua?
+
+- `AgentAction.identityMode`: `NONE` · `OWNER_KEY` · `END_USER_TOKEN`
+- Policy: `END_USER_TOKEN` needs subject **and** access token; never falls back to owner Bearer
+- HTTP tool dialog: Identity mode select
+- Test Studio left tab **Logs** — session retrieval/tool events + server ToolRun history + plain-language issue lines
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Checkbox “requires identity” | Explicit NONE / OWNER_KEY / END_USER_TOKEN |
+| Bubble “Called: …” only | Logs tab: why request not consumed |
+
+**Tests:** `npm run test:f14d` · `npm run test:f14`  
+
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+
+---
+
+## F14-E — Consent hardening
+
+### Kyun add kiya?
+
+Expired Confirm / stale identity sessions abuse risk — approve spam, zombie PENDING rows, opaque tokens without TTL.
+
+### Kya improve hua?
+
+- Identity session TTL (`IDENTITY_SESSION_MAX_TTL_MS` / JWT `exp`) + clear on expiry
+- `aideChat.onAuthRefreshNeeded` + iframe `authRefreshRequired`
+- Stale PENDING → EXPIRED; approve/deny refuses expired
+- Dedicated Confirm rate limits (public + studio)
+- Confirm TTL env: `ACTIONS_CONFIRMATION_TTL_MS`
+
+**Tests:** `npm run test:f14e` · `npm run test:f14`  
+
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+
+---
+
+## Extra — Message like / dislike
+
+### Kyun add kiya?
+
+Thumbs already the — owner ko pata nahi tha **kyun** jawab galat laga, aur DOWN replies ek jagah nahi dikhti thin.
+
+### Kya improve hua?
+
+- Thumbs down ke baad **optional short reason** (~200 chars)
+- Agent overview par **Unhelpful replies** — user question + bot jawab + reason → conversation kholo
+- Helpful % (UP vs DOWN) usi list ke upar
+- Feedback **train nahi** hota private chats par — quality signal hai, knowledge change owner approve kare (baad mein)
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Sirf UP/DOWN save | DOWN + optional “wrong price / missing info” |
+| Owner ko list nahi | Agent page → Unhelpful replies |
+
+Turn on: **Customization → Message feedback**
+
+---
+
 ## Extra — Website re-crawl schedule
 
 ### Kyun add kiya?
@@ -308,11 +516,12 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 
 ### Kya improve hua?
 
-- **Agent → Knowledge → Website re-crawl schedule**
+- **Agent → Knowledge** aur **Customization → Deploy** pe **Website re-crawl schedule**
 - Options: once (default) · 24h · 3 days · weekly · monthly
 - Interval complete + visitor widget load → crawl dubara queue
 - Purani WEB knowledge **update** hoti hai (naya doc nahi duplicate)
 - Same origin lock rules — sirf locked site hi crawl
+- Site edits live watch nahi hote — schedule + next visitor visit se refresh
 
 ### Simple examples
 
@@ -337,6 +546,7 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 8. **Human desk inbox** + embed handoff button / keywords
 9. **Human reply** in same embed thread + waiting banner / typing
 10. **Handoff limits** (3/chat, 30m cooldown) + inbox filters (Open / Resolved)
+11. **Message feedback reasons** + Unhelpful replies on the agent page
 
 ### Improvements (peeche / quality)
 
@@ -351,8 +561,9 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 9. Chunk-based knowledge retrieve + fuzzy match
 10. Central prompt builder
 11. Desk poll intervals + queue soft-cap warning
-12. Embed session reset on refresh (history manual reopen)
+12. Embed session persist on refresh (new chat after 24h)
 13. Chat composer fixed radius on multiline input
+14. Dislike reason stored on Message (`feedbackReason` / `feedbackAt`)
 
 ---
 
@@ -365,7 +576,8 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 5. **Analytics** → charts load  
 6. Admin login → Users filter try karo  
 7. **Human desk** — embed handoff → inbox reply → embed par human message  
-8. Terminal: `npm run test:shipped` green · `npm run test:f12` green  
+8. Terminal: `npm run test:shipped` green · `npm run test:f12` · `npm run test:f13`  
+9. **Tools** — demo MCP → enable `get_demo_time` → Test studio  
 
 ---
 
@@ -381,8 +593,9 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 | **Human desk** | `lib/services/handoff.service.js`, `lib/desk/*`, `components/desk/*`, `app/(app)/inbox/*` |
 | Embed handoff | `components/embed/PublicWebchat.jsx`, `lib/embed-history.js` |
 | UI | `components/knowledge/KnowledgeList.jsx`, `components/agents/AgentForm.jsx` |
-| Tests | `scripts/test-f*.mjs`, `npm run test:shipped`, `npm run test:f12` |
+| **Tools hub** | `components/customization/ActionsForm.jsx`, `McpServersPanel.jsx`, `lib/mcp/*`, `lib/services/mcp.service.js` |
+| Tests | `scripts/test-f*.mjs`, `npm run test:shipped`, `npm run test:f12`, `npm run test:f13` |
 
 ---
 
-*Last updated: Aug 2026 — F01–F12 production smoke passed + scheduled re-crawl shipped.*
+*Last updated: Aug 29, 2026 — F01–F14 + F11-U complete · next F00 live DoD + B26 rehearsal.*

@@ -6,6 +6,7 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { withVerifyFullSsl } from "../lib/pg-connection.js";
+import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
 function resolveTestBaseUrl() {
   const raw = process.env.TEST_BASE_URL || "http://127.0.0.1:3000";
@@ -120,7 +121,7 @@ async function publicApi(path, options = {}) {
 async function registerUser(name, email, password) {
   const res = await fetch(`${BASE}/api/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: uniqueTestIpHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       name,
       email,
@@ -135,8 +136,8 @@ async function main() {
   await waitForHealth();
 
   const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const email = `f12-desk-${stamp}@hapy.test`;
-  const emailB = `f12-desk-b-${stamp}@hapy.test`;
+  const email = `f12-desk-${stamp}@aide.test`;
+  const emailB = `f12-desk-b-${stamp}@aide.test`;
   const password = "DeskE2E1!";
   const emailsToClean = [email, emailB];
   const passed = [];
@@ -185,7 +186,7 @@ async function main() {
       assert(publicKey, "publicKey on create");
     });
 
-    await test("keyword handoff from embed chat", async () => {
+    await test("first human request lets AI try", async () => {
       const res = await publicApi(`/api/public/agents/${publicKey}/chat`, {
         method: "POST",
         body: JSON.stringify({
@@ -196,6 +197,21 @@ async function main() {
       assert(res.status === 200, `pub chat ${res.status} ${JSON.stringify(body)}`);
       conversationId = body.conversationId;
       assert(conversationId, "conversationId");
+      assert(body.handoffTriggered !== true, "first ask must not auto-handoff");
+      assert(body.waitingForHuman !== true, "not waiting after first ask");
+      assert(body.showHandoffButton === true, "CTA after customer asked for a human");
+    });
+
+    await test("second human request connects to desk", async () => {
+      const res = await publicApi(`/api/public/agents/${publicKey}/chat`, {
+        method: "POST",
+        body: JSON.stringify({
+          message: "Still want to talk to a human",
+          conversationId,
+        }),
+      });
+      const body = await json(res);
+      assert(res.status === 200, `insist chat ${res.status} ${JSON.stringify(body)}`);
       assert(body.handoffTriggered === true, "handoffTriggered");
       assert(body.waitingForHuman === true, "waitingForHuman");
       assert(body.aiPaused === true, "aiPaused");
@@ -319,8 +335,13 @@ async function main() {
         for (const e of emailsToClean) {
           await pool.query(`DELETE FROM "User" WHERE email = $1`, [e]);
         }
+      } catch (cleanupErr) {
+        console.warn(
+          "F12 E2E cleanup skipped:",
+          cleanupErr.message || cleanupErr
+        );
       } finally {
-        await pool.end();
+        await pool.end().catch(() => {});
       }
     }
   }

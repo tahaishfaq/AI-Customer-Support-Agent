@@ -6,19 +6,35 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Search, Users } from "lucide-react";
 import { listAdminUsers } from "@/lib/api/admin";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 const STATUS_FILTERS = [
-  { id: "", label: "All" },
-  { id: "ACTIVE", label: "Active", dot: "bg-[var(--color-success)]" },
-  { id: "SUSPENDED", label: "Suspended", dot: "bg-[var(--color-danger)]" },
+  { id: "all", label: "All" },
+  { id: "ACTIVE", label: "Active" },
+  { id: "SUSPENDED", label: "Suspended" },
 ];
 
 const ROLE_FILTERS = [
-  { id: "", label: "All" },
+  { id: "all", label: "All" },
   { id: "USER", label: "User" },
   { id: "ADMIN", label: "Admin" },
 ];
@@ -54,78 +70,27 @@ function initials(name) {
 
 function RoleBadge({ role }) {
   return (
-    <span
-      className={cn(
-        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-        role === "ADMIN"
-          ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-          : "bg-[var(--color-bg)] text-[var(--color-text-secondary)]"
-      )}
+    <Badge
+      variant={role === "ADMIN" ? "default" : "secondary"}
+      className="rounded-full"
     >
       {role === "ADMIN" ? "Admin" : "User"}
-    </span>
+    </Badge>
   );
 }
 
 function StatusBadge({ status }) {
   const suspended = status === "SUSPENDED";
   return (
-    <span
+    <Badge
+      variant={suspended ? "destructive" : "outline"}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
-        suspended
-          ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
-          : "bg-[var(--color-success)]/10 text-[var(--color-success)]"
+        "rounded-full",
+        !suspended && "border-emerald-500/40 text-emerald-700"
       )}
     >
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          suspended ? "bg-[var(--color-danger)]" : "bg-[var(--color-success)]"
-        )}
-      />
       {suspended ? "Suspended" : "Active"}
-    </span>
-  );
-}
-
-function FilterPills({ items, value, onChange, label }) {
-  return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-        {label}
-      </span>
-      <div
-        role="group"
-        aria-label={label}
-        className="inline-flex flex-wrap rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
-      >
-        {items.map((item) => {
-          const active = value === item.id;
-          return (
-            <button
-              key={item.id || `${label}-all`}
-              type="button"
-              onClick={() => onChange(item.id)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                active
-                  ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-              )}
-            >
-              {item.dot ? (
-                <span
-                  className={cn("size-1.5 rounded-full", item.dot)}
-                  aria-hidden
-                />
-              ) : null}
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    </Badge>
   );
 }
 
@@ -159,7 +124,9 @@ export function AdminUsersDirectory() {
         else params.set(key, String(value));
       }
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams]
   );
@@ -179,13 +146,21 @@ export function AdminUsersDirectory() {
       setLoading(true);
       setError("");
       try {
-        const result = await listAdminUsers({ q, status, role, page, pageSize: 20 });
+        const result = await listAdminUsers({
+          q,
+          status,
+          role,
+          page,
+          pageSize: 20,
+        });
         if (cancelled) return;
         setUsers(result.users);
         setTotal(result.total);
         setTotalPages(result.totalPages);
         if (result.totalPages > 0 && page > result.totalPages) {
-          replaceQuery({ page: result.totalPages === 1 ? null : result.totalPages });
+          replaceQuery({
+            page: result.totalPages === 1 ? null : result.totalPages,
+          });
         }
       } catch (err) {
         if (!cancelled) setError(err.message || "Unable to load users");
@@ -203,47 +178,93 @@ export function AdminUsersDirectory() {
   const hasFilters = Boolean(q || status || role);
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title="Users"
         description="Every customer account. Open one to inspect workspaces."
       />
 
       <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <label className="relative block w-full lg:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input
+        <InputGroup className="w-full lg:max-w-sm">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
             type="search"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="Search name or email"
-            className="h-10 w-full rounded-lg border border-[var(--color-border)] bg-white py-2 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
           />
-        </label>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-          <FilterPills
-            label="Status"
-            items={STATUS_FILTERS}
-            value={status}
-            onChange={(id) => replaceQuery({ status: id, page: null })}
-          />
-          <FilterPills
-            label="Role"
-            items={ROLE_FILTERS}
-            value={role}
-            onChange={(id) => replaceQuery({ role: id, page: null })}
-          />
+        </InputGroup>
+
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Status
+            </span>
+            <ToggleGroup
+              value={[status || "all"]}
+              onValueChange={(next) => {
+                const id = next?.[0];
+                if (!id) return;
+                replaceQuery({
+                  status: id === "all" ? null : id,
+                  page: null,
+                });
+              }}
+              variant="outline"
+              size="sm"
+              spacing={0}
+            >
+              {STATUS_FILTERS.map((item) => (
+                <ToggleGroupItem key={item.id} value={item.id}>
+                  {item.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Role
+            </span>
+            <ToggleGroup
+              value={[role || "all"]}
+              onValueChange={(next) => {
+                const id = next?.[0];
+                if (!id) return;
+                replaceQuery({
+                  role: id === "all" ? null : id,
+                  page: null,
+                });
+              }}
+              variant="outline"
+              size="sm"
+              spacing={0}
+            >
+              {ROLE_FILTERS.map((item) => (
+                <ToggleGroupItem key={item.id} value={item.id}>
+                  {item.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
           {hasFilters ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setQInput("");
-                replaceQuery({ q: null, status: null, role: null, page: null });
+                replaceQuery({
+                  q: null,
+                  status: null,
+                  role: null,
+                  page: null,
+                });
               }}
-              className="h-8 rounded-lg px-3 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]"
             >
               Clear
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -257,12 +278,12 @@ export function AdminUsersDirectory() {
         </InlineAlert>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {loading ? (
-          <div className="space-y-3 p-4">
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
+          <div className="flex flex-col gap-3 p-4">
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
           </div>
         ) : users.length === 0 ? (
           <EmptyState
@@ -276,8 +297,9 @@ export function AdminUsersDirectory() {
             }
             action={
               hasFilters ? (
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => {
                     setQInput("");
                     replaceQuery({
@@ -287,87 +309,113 @@ export function AdminUsersDirectory() {
                       page: null,
                     });
                   }}
-                  className="h-8 rounded-lg bg-[var(--color-primary)] px-3 text-[12px] font-medium text-white"
                 >
                   Clear filters
-                </button>
+                </Button>
               ) : null
             }
           />
         ) : (
-          <ul className="divide-y divide-[var(--color-border)]">
-            {users.map((user) => (
-              <li key={user.id}>
-                <Link
-                  href={`/admin/users/${user.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--color-bg)]"
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[11px] font-semibold text-[var(--color-primary)]">
-                    {initials(user.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-[var(--color-text)]">
-                      {user.name}
-                    </span>
-                    <span className="block truncate text-[13px] text-[var(--color-muted)]">
-                      {user.email}
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
-                      <RoleBadge role={user.role} />
-                      <StatusBadge status={user.status} />
-                      <span className="text-[12px] text-[var(--color-muted)]">
-                        {user.workspaceCount} ws · {formatLastLogin(user.lastLoginAt)}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead className="hidden lg:table-cell">Role</TableHead>
+                <TableHead className="hidden lg:table-cell">Status</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Workspaces
+                </TableHead>
+                <TableHead className="hidden text-right lg:table-cell">
+                  Last login
+                </TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id} className="cursor-pointer">
+                  <TableCell className="whitespace-normal">
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                        {initials(user.name)}
                       </span>
-                    </span>
-                  </span>
-                  <span className="hidden shrink-0 items-center gap-3 lg:flex">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {user.name}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </span>
+                        <span className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+                          <RoleBadge role={user.role} />
+                          <StatusBadge status={user.status} />
+                        </span>
+                      </span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <RoleBadge role={user.role} />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <StatusBadge status={user.status} />
-                    <span className="w-[6.5rem] text-[13px] text-[var(--color-text-secondary)]">
-                      {user.workspaceCount}{" "}
-                      {user.workspaceCount === 1 ? "workspace" : "workspaces"}
-                    </span>
-                    <span className="w-[8.75rem] text-right">
-                      <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
-                        Last login
-                      </span>
-                      <span className="block text-[13px] text-[var(--color-text-secondary)]">
-                        {formatLastLogin(user.lastLoginAt)}
-                      </span>
-                    </span>
-                  </span>
-                  <ChevronRight className="size-4 shrink-0 text-[var(--color-muted)]" />
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">
+                    {user.workspaceCount}{" "}
+                    {user.workspaceCount === 1 ? "workspace" : "workspaces"}
+                  </TableCell>
+                  <TableCell className="hidden text-right text-muted-foreground lg:table-cell">
+                    {formatLastLogin(user.lastLoginAt)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      nativeButton={false}
+                      render={<Link href={`/admin/users/${user.id}`} />}
+                      aria-label={`Open ${user.name}`}
+                    >
+                      <ChevronRight />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
 
         {!loading && total > 0 ? (
-          <div className="flex flex-col gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[12px] text-[var(--color-muted)]">
+          <div className="flex flex-col gap-2 border-t border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
               Showing {rangeStart}–{rangeEnd} of {total}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={page <= 1}
-                onClick={() => replaceQuery({ page: page <= 2 ? null : page - 1 })}
-                className="h-8 rounded-lg bg-white px-3 text-[12px] font-medium ring-1 ring-[var(--color-border)] disabled:opacity-40"
+                onClick={() =>
+                  replaceQuery({ page: page <= 2 ? null : page - 1 })
+                }
               >
                 Previous
-              </button>
-              <span className="text-[12px] text-[var(--color-text-secondary)]">
+              </Button>
+              <span className="text-xs text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={page >= totalPages}
                 onClick={() => replaceQuery({ page: page + 1 })}
-                className="h-8 rounded-lg bg-white px-3 text-[12px] font-medium ring-1 ring-[var(--color-border)] disabled:opacity-40"
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}

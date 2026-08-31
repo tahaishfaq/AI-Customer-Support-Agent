@@ -44,6 +44,7 @@ function testSourceProductionPaths() {
   const paths = [
     "app/api/inbox/route.js",
     "app/api/inbox/count/route.js",
+    "app/api/inbox/seen/route.js",
     "app/api/conversations/[id]/handoff/route.js",
     "app/api/conversations/[id]/resolve/route.js",
     "app/api/conversations/[id]/messages/route.js",

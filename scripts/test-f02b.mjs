@@ -32,7 +32,7 @@ function main() {
     "F02-B must document chat / analytics / admin overview hot paths"
   );
   assert(
-    /Baseline checklist/i.test(f02) && f02.includes("x-hapy-duration-ms"),
+    /Baseline checklist/i.test(f02) && f02.includes("x-aide-duration-ms"),
     "F02-B must have baseline checklist + duration header note"
   );
   assert(
@@ -52,8 +52,8 @@ function main() {
 
   const duration = read("lib/observability/duration.js");
   assert(
-    duration.includes("x-hapy-duration-ms"),
-    "duration helper must set x-hapy-duration-ms"
+    duration.includes("x-aide-duration-ms"),
+    "duration helper must set x-aide-duration-ms"
   );
 
   const productDash = read("app/api/analytics/dashboard/route.js");

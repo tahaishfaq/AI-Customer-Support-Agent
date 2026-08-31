@@ -43,7 +43,8 @@ function main() {
 
   const preview = read("components/customization/CustomizationPreview.jsx");
   assert(
-    /yoursite\.com/.test(preview) && /siteChrome|siteBody|How the widget sits/.test(preview),
+    /siteBody/.test(preview) &&
+      /real site \+ widget|min-h-\[520px\]/.test(preview),
     "preview must look like a real site stage"
   );
   assert(
@@ -54,7 +55,7 @@ function main() {
   const dash = read("app/(app)/dashboard/page.jsx");
   assert(
     /tracking-wider text-\[var\(--color-primary\)\]/.test(dash) &&
-      /\bHapy\b/.test(dash),
+      /Aide/.test(dash),
     "dashboard brand signal in first viewport"
   );
   assert(

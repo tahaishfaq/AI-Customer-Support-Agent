@@ -21,9 +21,15 @@ export default function AgentKnowledgePage() {
           siteCrawledAt={agent.siteCrawledAt}
           siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
           crawlRecrawlHours={agent.crawlRecrawlHours ?? 0}
+          webSearchEnabled={agent.webSearchEnabled === true}
           onCrawlScheduleChange={(hours) =>
             studio.setAgent((prev) =>
               prev ? { ...prev, crawlRecrawlHours: hours } : prev
+            )
+          }
+          onWebSearchChange={(enabled) =>
+            studio.setAgent((prev) =>
+              prev ? { ...prev, webSearchEnabled: enabled } : prev
             )
           }
         />

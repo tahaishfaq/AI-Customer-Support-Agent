@@ -98,6 +98,17 @@ function labelFor(text) {
   return "Continue with Google";
 }
 
+function isFedCmAbort(err) {
+  if (!err) return false;
+  const name = err.name || "";
+  const message = String(err.message || err);
+  return (
+    name === "AbortError" ||
+    message.includes("FedCM") ||
+    message.includes("signal is aborted")
+  );
+}
+
 export function GoogleSignInButton({
   onError,
   onSuccess,
@@ -144,6 +155,9 @@ export function GoogleSignInButton({
         }
       },
       cancel_on_tap_outside: true,
+      // Avoid FedCM One Tap in privacy browsers / Incognito (AbortError noise).
+      use_fedcm_for_prompt: false,
+      auto_select: false,
     });
     initializedRef.current = true;
   }
@@ -176,30 +190,18 @@ export function GoogleSignInButton({
     try {
       await waitForGis();
       ensureInitialized();
-
-      let handled = false;
-      window.google.accounts.id.prompt((notification) => {
-        if (handled) return;
-        if (
-          notification.isNotDisplayed?.() ||
-          notification.isSkippedMoment?.()
-        ) {
-          handled = true;
+      // Skip One Tap prompt — FedCM aborts in Incognito and logs console errors.
+      // Official button click still works for the OAuth flow.
+      paintOfficialButton();
+    } catch (err) {
+      if (isFedCmAbort(err)) {
+        try {
           paintOfficialButton();
           return;
+        } catch {
+          /* fall through */
         }
-        if (notification.isDismissedMoment?.()) {
-          handled = true;
-          setPhase("idle");
-        }
-      });
-
-      window.setTimeout(() => {
-        if (handled) return;
-        handled = true;
-        paintOfficialButton();
-      }, 1500);
-    } catch {
+      }
       setPhase("error");
       onErrorRef.current?.(
         "Continue with Google unavailable. Use email instead."
@@ -209,24 +211,24 @@ export function GoogleSignInButton({
 
   if (!clientId) {
     return (
-      <p className="text-center text-sm text-[var(--color-muted)]">
+      <p className="text-center text-sm text-muted-foreground">
         Google Sign-In is not configured.
       </p>
     );
   }
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-full min-h-10">
       {phase === "idle" || phase === "loading" ? (
         <Button
           type="button"
           variant="outline"
-          className="h-10 w-full gap-2 border-[#dadce0] bg-white text-[14px] font-medium text-[#3c4043] hover:bg-[#f8f9fa]"
+          className="h-10 w-full gap-2 border-border bg-card text-sm font-medium text-foreground hover:bg-muted"
           disabled={phase === "loading" || busy}
           onClick={startGoogleSignIn}
         >
           {phase === "loading" ? (
-            <Loader2 className="size-4 animate-spin text-[var(--color-muted)]" />
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
           ) : (
             <GoogleMark className="size-4" />
           )}
@@ -243,8 +245,8 @@ export function GoogleSignInButton({
       />
 
       {phase === "error" ? (
-        <div className="space-y-2 text-center">
-          <p className="text-sm text-[var(--color-muted)]">
+        <div className="flex flex-col gap-2 text-center">
+          <p className="text-sm text-muted-foreground">
             Continue with Google unavailable. Use email instead.
           </p>
           <Button

@@ -13,7 +13,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata = {
-  title: "Hapy — AI Customer Support",
+  title: "Aide — AI Customer Support",
   description:
     "AI-powered customer support agents with conversation insights.",
 };
@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
       className={`${instrumentSans.variable} ${dmSans.variable} min-h-dvh antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
+      <body className="flex min-h-dvh flex-col bg-background text-foreground" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

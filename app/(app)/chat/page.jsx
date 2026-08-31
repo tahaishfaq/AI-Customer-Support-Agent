@@ -6,13 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function ChatFallback() {
   return (
-    <div className="flex h-full flex-col bg-[var(--color-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-3">
-        <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+    <div className="flex h-full flex-col bg-background">
+      <div className="border-b border-border px-4 py-3">
+        <Skeleton className="h-8 w-48" />
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
-        <Skeleton className="h-14 w-2/3 rounded-2xl bg-[var(--color-border)]" />
-        <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
+        <Skeleton className="h-14 w-2/3 rounded-2xl" />
+        <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
       </div>
     </div>
   );

@@ -31,7 +31,12 @@ function isPdfFile(file) {
   );
 }
 
-export function UploadPdfKnowledge({ agentId, onUploaded, disabled }) {
+export function UploadPdfKnowledge({
+  agentId,
+  onUploaded,
+  onDraft,
+  disabled,
+}) {
   const inputRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
@@ -86,9 +91,16 @@ export function UploadPdfKnowledge({ agentId, onUploaded, disabled }) {
     setError("");
     try {
       const name = displayName.trim() || file.name;
-      const doc = await uploadPdfKnowledge(agentId, file, name);
+      if (agentId) {
+        const doc = await uploadPdfKnowledge(agentId, file, name);
+        onUploaded?.(doc);
+      } else if (onDraft) {
+        onDraft({ name, file });
+      } else {
+        setError("Unable to add PDF");
+        return;
+      }
       setOpen(false);
-      onUploaded?.(doc);
     } catch (err) {
       setError(err.message || "Upload failed");
     } finally {
@@ -226,7 +238,11 @@ export function UploadPdfKnowledge({ agentId, onUploaded, disabled }) {
               disabled={loading || !file}
               onClick={handleUpload}
             >
-              {loading ? "Uploading…" : "Upload to knowledge"}
+              {loading
+                ? "Uploading…"
+                : agentId
+                  ? "Upload to knowledge"
+                  : "Add PDF"}
             </Button>
           </DialogFooter>
         </DialogContent>

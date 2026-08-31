@@ -11,7 +11,7 @@ import { withVerifyFullSsl } from "../lib/pg-connection.js";
 async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-  const name = process.env.ADMIN_BOOTSTRAP_NAME?.trim() || "Hapy Admin";
+  const name = process.env.ADMIN_BOOTSTRAP_NAME?.trim() || "Aide Admin";
 
   if (!email || !password) {
     throw new Error(

@@ -1,33 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, Loader2, Plus } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import { listKnowledge } from "@/lib/api/knowledge";
-import { updateAgent } from "@/lib/api/agents";
 import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 import { AddTextKnowledgeDialog } from "@/components/knowledge/AddTextKnowledgeDialog";
 import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
+import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
+import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
-import {
-  CRAWL_RECRAWL_OPTIONS,
-  labelForCrawlRecrawlHours,
-  nextRecrawlAt,
-} from "@/lib/services/crawl-schedule";
-import { toast } from "sonner";
 
 function CrawlStatusBadge({ status }) {
   if (!status) return null;
   const styles = {
     FAILED:
-      "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
+      "border-destructive/30 bg-destructive/10 text-destructive",
     QUEUED:
-      "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
+      "border-border bg-muted text-muted-foreground",
     RUNNING:
-      "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
-    DONE: "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
+      "border-primary/30 bg-primary/10 text-primary",
+    DONE: "border-border bg-muted text-muted-foreground",
   };
   const label = {
     FAILED: "Crawl failed",
@@ -44,106 +39,14 @@ function CrawlStatusBadge({ status }) {
   );
 }
 
-function CrawlSchedulePanel({
-  agentId,
-  crawlRecrawlHours,
-  siteCrawledAt,
-  siteKnowledgeOrigin,
-  hasWeb,
-  onSaved,
-}) {
-  const [value, setValue] = useState(crawlRecrawlHours ?? 0);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setValue(crawlRecrawlHours ?? 0);
-  }, [crawlRecrawlHours]);
-
-  const nextAt =
-    hasWeb && value > 0
-      ? nextRecrawlAt({ crawlRecrawlHours: value, siteCrawledAt })
-      : null;
-
-  async function save() {
-    setSaving(true);
-    try {
-      await updateAgent(agentId, { crawlRecrawlHours: value });
-      onSaved?.(value);
-      toast.success("Website crawl schedule saved");
-    } catch (err) {
-      toast.error(err.message || "Unable to save crawl schedule");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const changed = value !== (crawlRecrawlHours ?? 0);
-
-  return (
-    <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            Website re-crawl schedule
-          </p>
-          <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">
-            By default the widget crawls your site once when first embedded.
-            Choose an interval to refresh website knowledge automatically when
-            visitors load the widget.
-          </p>
-          {hasWeb && value > 0 && siteCrawledAt ? (
-            <p className="mt-2 text-[13px] text-[var(--color-text-secondary)]">
-              Last crawl{" "}
-              {new Date(siteCrawledAt).toLocaleString()}
-              {siteKnowledgeOrigin
-                ? ` from ${String(siteKnowledgeOrigin).replace(/^https?:\/\//, "")}`
-                : ""}
-              . Next eligible recrawl
-              {nextAt ? ` after ${nextAt.toLocaleString()}` : " when interval passes"}.
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={value}
-            onChange={(e) => setValue(Number(e.target.value))}
-            className="h-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm text-[var(--color-text-primary)]"
-            aria-label="Website re-crawl interval"
-          >
-            {CRAWL_RECRAWL_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!changed || saving}
-            onClick={save}
-            className="gap-1.5"
-          >
-            {saving ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            Save
-          </Button>
-        </div>
-      </div>
-      {value > 0 ? (
-        <p className="mt-2 text-[12px] text-[var(--color-text-secondary)]">
-          Scheduled: {labelForCrawlRecrawlHours(value)}. Recrawl runs on the next
-          widget ping after the interval — no extra setup needed.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 export function KnowledgeList({
   agentId,
   siteCrawledAt,
   siteKnowledgeOrigin,
   crawlRecrawlHours = 0,
+  webSearchEnabled = false,
   onCrawlScheduleChange,
+  onWebSearchChange,
 }) {
   const [documents, setDocuments] = useState([]);
   const [latestCrawl, setLatestCrawl] = useState(null);
@@ -194,12 +97,9 @@ export function KnowledgeList({
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {[1, 2, 3].map((i) => (
-          <Skeleton
-            key={i}
-            className="h-16 w-full rounded-xl bg-[var(--color-border)]"
-          />
+          <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -211,7 +111,7 @@ export function KnowledgeList({
   return (
     <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-[var(--color-text-secondary)]">
+        <p className="text-sm text-muted-foreground">
           FAQ text, PDFs, and website pages this agent can use.
           {hasWeb && siteCrawledAt
             ? ` Website knowledge saved from ${String(siteKnowledgeOrigin || "").replace(/^https?:\/\//, "") || "embed"} on ${new Date(siteCrawledAt).toLocaleDateString()}.`
@@ -232,30 +132,39 @@ export function KnowledgeList({
       </div>
 
       {hasLargeDoc ? (
-        <p className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-[13px] text-[var(--color-text-secondary)]">
+        <p className="mt-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-[13px] text-muted-foreground">
           Large document — chat uses the most relevant sections, not the whole
           file (over {LARGE_DOC_CHARS.toLocaleString()} characters).
         </p>
       ) : null}
 
-      <CrawlSchedulePanel
-        agentId={agentId}
-        crawlRecrawlHours={crawlRecrawlHours}
-        siteCrawledAt={siteCrawledAt}
-        siteKnowledgeOrigin={siteKnowledgeOrigin}
-        hasWeb={hasWeb}
-        onSaved={onCrawlScheduleChange}
-      />
+      <div className="mt-4 flex flex-col gap-4">
+        <WebSearchPanel
+          agentId={agentId}
+          webSearchEnabled={webSearchEnabled}
+          onSaved={onWebSearchChange}
+        />
+
+        <CrawlSchedulePanel
+          agentId={agentId}
+          crawlRecrawlHours={crawlRecrawlHours}
+          siteCrawledAt={siteCrawledAt}
+          siteKnowledgeOrigin={siteKnowledgeOrigin}
+          hasWeb={hasWeb}
+          onSaved={onCrawlScheduleChange}
+          variant="panel"
+        />
+      </div>
 
       {latestCrawl?.status === "FAILED" ? (
-        <div className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">
+        <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <CrawlStatusBadge status="FAILED" />
-            <p className="text-sm font-medium text-[var(--color-danger)]">
+            <p className="text-sm font-medium text-destructive">
               Website crawl failed
             </p>
           </div>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-muted-foreground">
             {(latestCrawl.error || "")
               .replace(/^CRAWL_FAILED:\s*/i, "")
               .trim() || "The one-time site crawl could not finish."}{" "}
@@ -265,9 +174,9 @@ export function KnowledgeList({
       ) : null}
 
       {crawlActive ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
           <CrawlStatusBadge status={latestCrawl.status} />
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <p className="text-sm text-muted-foreground">
             Website crawl{" "}
             {latestCrawl.status === "RUNNING" ? "in progress" : "queued"}
             {latestCrawl.origin ? ` for ${latestCrawl.origin}` : ""}. This page
@@ -277,12 +186,12 @@ export function KnowledgeList({
       ) : null}
 
       {error ? (
-        <div className="mt-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3">
-          <p className="text-sm text-[var(--color-danger)]">{error}</p>
+        <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+          <p className="text-sm text-destructive">{error}</p>
           <button
             type="button"
             onClick={() => load()}
-            className="mt-2 text-sm font-medium text-[var(--color-primary)] underline"
+            className="mt-2 text-sm font-medium text-primary underline"
           >
             Try again
           </button>
@@ -291,7 +200,7 @@ export function KnowledgeList({
 
       {documents.length === 0 && !error ? (
         <EmptyState
-          className="mt-4 border-solid shadow-[var(--shadow-card)]"
+          className="mt-4"
           icon={BookOpen}
           title={
             crawlActive
@@ -318,7 +227,7 @@ export function KnowledgeList({
           }
         />
       ) : (
-        <div className="hapy-card mt-4 overflow-hidden">
+        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
           {documents.map((doc) => (
             <KnowledgeItem
               key={doc.id}

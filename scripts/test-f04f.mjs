@@ -29,7 +29,10 @@ function main() {
   );
 
   const css = read("app/globals.css");
-  assert(/--color-primary:\s*#0b5f58/.test(css), "teal primary");
+  assert(
+    /--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css),
+    "teal primary (#0d7377 family)"
+  );
   assert(/--text-sm:/.test(css) && /--font-display:/.test(css), "type tokens");
 
   const theme = read("lib/customization/theme.js");

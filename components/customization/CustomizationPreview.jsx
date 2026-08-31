@@ -3,86 +3,19 @@
 import { useState } from "react";
 import {
   History,
-  Maximize2,
   MessageCircle,
-  PanelBottom,
   Paperclip,
   RotateCcw,
   Send,
   ThumbsUp,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AvatarImage } from "@/components/ui/avatar-image";
-
-const PLACEMENTS = [
-  {
-    id: "bottom-left",
-    label: "Left bottom",
-    icon: PanelBottom,
-  },
-  {
-    id: "bottom-right",
-    label: "Right bottom",
-    icon: PanelBottom,
-  },
-  {
-    id: "full-page",
-    label: "Full page",
-    icon: Maximize2,
-  },
-];
-
-function PlacementPicker({ value, onChange, className }) {
-  return (
-    <div className={cn("grid grid-cols-3 gap-1.5", className)}>
-      {PLACEMENTS.map((item) => {
-        const Icon = item.icon;
-        const selected = value === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onChange(item.id)}
-            className={cn(
-              "flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-colors",
-              selected
-                ? "border-[var(--color-primary)] bg-[var(--color-primary)]/[0.06] text-[var(--color-primary)]"
-                : "border-[var(--color-border)] bg-white text-[var(--color-text)] hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-bg)]"
-            )}
-          >
-            <Icon
-              className={cn(
-                "size-3.5",
-                selected ? "text-[var(--color-primary)]" : "text-[var(--color-primary)]",
-                item.id === "bottom-left" && "-scale-x-100"
-              )}
-            />
-            <span className="text-[10px] font-medium leading-tight">
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function monogram(name) {
-  if (!name) return "A";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
+import {
+  normalizeWidgetPosition,
+  positionToPreviewClasses,
+} from "@/lib/customization/position";
+import { monogram } from "@/components/conversations/format";
 
 function fontFamily(font) {
   if (font === "dm-sans") return "var(--font-sans), system-ui, sans-serif";
@@ -146,7 +79,10 @@ function ChatWindow({
 
   return (
     <div
-      className={`flex w-full min-w-[280px] flex-col overflow-hidden border shadow-[0_12px_40px_rgba(15,23,42,0.12)] ${className}`}
+      className={cn(
+        "flex w-full min-w-0 flex-col overflow-hidden border shadow-[0_12px_40px_rgba(15,23,42,0.12)]",
+        className
+      )}
       style={{
         backgroundColor: shellBg,
         color: shellFg,
@@ -175,7 +111,6 @@ function ChatWindow({
         <RotateCcw className="size-3.5 shrink-0 opacity-80" aria-hidden />
       </div>
 
-      {/* min-h-0 + overflow so max-height never lets bubbles bleed into the composer */}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
         <div className="mb-1 flex shrink-0 flex-col items-center gap-2 py-2">
           <Avatar
@@ -217,10 +152,7 @@ function ChatWindow({
                 Hi! How can I help you today?
               </div>
               {features?.messageFeedback ? (
-                <div
-                  className="mt-1 flex gap-1.5"
-                  style={{ color: muted }}
-                >
+                <div className="mt-1 flex gap-1.5" style={{ color: muted }}>
                   <ThumbsUp className="size-3" />
                   <ThumbsUp className="size-3 rotate-180" />
                 </div>
@@ -258,7 +190,7 @@ function ChatWindow({
         </span>
       </div>
       <p
-        className="shrink-0 px-3 pb-2 text-center text-[10px]"
+        className="shrink-0 truncate px-3 pb-2 text-center text-[10px]"
         style={{ color: muted, backgroundColor: shellBg }}
       >
         {footer}
@@ -310,16 +242,18 @@ export function CustomizationPreview({ agent, customization }) {
 
   const label = identity.displayName?.trim() || agent?.name || "Agent";
   const placeholder = identity.messagePlaceholder || "Type your message...";
-  const footer = identity.footer || "by Hapy";
-  const primary = appearance.primaryColor || "#0b5f58";
+  const footer = identity.footer || "by Aide";
+  const primary = appearance.primaryColor || "#0d7377";
   const radius = Math.max(0, Math.min(28, appearance.cornerRadius ?? 16));
   const embedded = deploy.chatInterface === "embedded";
-  const proactive =
-    !embedded &&
-    deploy.proactiveEnabled &&
-    (deploy.proactiveMessage || "Hi! Need help?");
+  const widgetPosition = normalizeWidgetPosition(deploy.widgetPosition);
+  const previewPos = positionToPreviewClasses(widgetPosition);
+  const proactiveMessage =
+    deploy.proactiveMessage?.trim() || "Hi! Need help?";
+  const proactiveOn = !embedded && deploy.proactiveEnabled;
 
-  const [placement, setPlacement] = useState(null);
+  // Open vs closed: never stack panel + proactive + launcher (real widget doesn't).
+  const [panelOpen, setPanelOpen] = useState(true);
 
   const windowProps = {
     identity,
@@ -336,19 +270,15 @@ export function CustomizationPreview({ agent, customization }) {
     <LauncherButton deploy={deploy} identity={identity} primary={primary} />
   );
 
-  const bubbleStack = (
+  const closedStack = (
     <div
       className={cn(
-        "flex flex-col gap-3",
-        placement === "bottom-left" ? "items-start" : "items-end"
+        "flex max-w-[min(100%,280px)] flex-col gap-2.5",
+        previewPos.items
       )}
     >
-      <ChatWindow
-        {...windowProps}
-        className="h-[min(420px,52vh)] w-[320px] max-w-[calc(100vw-3rem)]"
-      />
-      {proactive ? (
-        <div className="flex max-w-[260px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
+      {proactiveOn ? (
+        <div className="flex max-w-[240px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
           <Avatar
             src={identity.avatarUrl}
             label={label}
@@ -356,8 +286,12 @@ export function CustomizationPreview({ agent, customization }) {
             primary={primary}
           />
           <div className="min-w-0">
-            <p className="text-[12px] text-slate-800">{proactive}</p>
-            <p className="mt-0.5 text-[10px] text-slate-400">a few moments ago</p>
+            <p className="line-clamp-3 text-[12px] text-slate-800">
+              {proactiveMessage}
+            </p>
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              a few moments ago
+            </p>
           </div>
         </div>
       ) : null}
@@ -365,27 +299,24 @@ export function CustomizationPreview({ agent, customization }) {
     </div>
   );
 
-  const siteChrome = (
-    <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[#f1f5f9] px-3 py-2">
-      <span className="size-2 rounded-full bg-[#fca5a5]" />
-      <span className="size-2 rounded-full bg-[#fcd34d]" />
-      <span className="size-2 rounded-full bg-[#86efac]" />
-      <span className="ml-3 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
-        yoursite.com
-      </span>
-    </div>
+  const openPanel = (
+    <ChatWindow
+      {...windowProps}
+      className="h-[min(420px,58vh)] w-[min(100%,320px)]"
+    />
   );
 
   const siteBody = (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden px-5 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto max-w-lg">
-        <div className="h-3 w-24 rounded-full bg-white/90" />
-        <div className="mt-4 h-7 w-3/4 max-w-sm rounded-lg bg-white" />
-        <div className="mt-3 h-2.5 w-full rounded-full bg-white/75" />
-        <div className="mt-2 h-2.5 w-5/6 rounded-full bg-white/75" />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+      <div className="mx-auto max-w-md opacity-90">
+        <div className="h-2.5 w-20 rounded-full bg-white/95" />
+        <div className="mt-4 h-6 w-2/3 max-w-xs rounded-lg bg-white" />
+        <div className="mt-3 h-2 w-full rounded-full bg-white/70" />
+        <div className="mt-2 h-2 w-4/5 rounded-full bg-white/70" />
+        <div className="mt-2 h-2 w-3/5 rounded-full bg-white/55" />
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="h-24 rounded-xl bg-white/95 shadow-sm" />
-          <div className="h-24 rounded-xl bg-white/80 shadow-sm" />
+          <div className="h-20 rounded-xl bg-white/90 shadow-sm" />
+          <div className="h-20 rounded-xl bg-white/70 shadow-sm" />
         </div>
       </div>
     </div>
@@ -393,121 +324,56 @@ export function CustomizationPreview({ agent, customization }) {
 
   return (
     <div>
-      {/* Live preview — reads as a real site + widget, not a toy grid */}
       <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
-        {siteChrome}
-        <div className="relative min-h-[520px] bg-[#eef2f6]">
+        {!embedded ? (
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2">
+            <p className="text-[11px] text-muted-foreground">
+              {panelOpen ? "Panel open" : "Launcher closed"}
+            </p>
+            <div className="flex rounded-md border border-[var(--color-border)] p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setPanelOpen(true)}
+                className={cn(
+                  "rounded px-2 py-1 transition-colors",
+                  panelOpen
+                    ? "bg-[#0d7377] text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Open
+              </button>
+              <button
+                type="button"
+                onClick={() => setPanelOpen(false)}
+                className={cn(
+                  "rounded px-2 py-1 transition-colors",
+                  !panelOpen
+                    ? "bg-[#0d7377] text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Closed
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="relative min-h-[480px] bg-[#e8eef3]">
           {siteBody}
           {embedded ? (
-            <div className="relative z-10 flex min-h-[520px] p-3 sm:p-4">
+            <div className="relative z-10 flex min-h-[480px] p-3 sm:p-4">
               <ChatWindow {...windowProps} className="max-w-none flex-1" />
             </div>
-          ) : (
-            <div className="absolute bottom-4 right-4 z-10 flex max-w-[calc(100%-2rem)] flex-col items-end gap-3">
-              <ChatWindow
-                {...windowProps}
-                className="h-[380px] w-[320px] max-w-full"
-              />
-              {proactive ? (
-                <div className="flex max-w-[240px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
-                  <Avatar
-                    src={identity.avatarUrl}
-                    label={label}
-                    sizeClass="size-7 text-[10px]"
-                    primary={primary}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-[12px] text-slate-800">{proactive}</p>
-                    <p className="mt-0.5 text-[10px] text-slate-400">
-                      a few moments ago
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-              {launcher}
+          ) : panelOpen ? (
+            <div className="relative z-10 flex min-h-[480px] items-center justify-center p-4 sm:p-6">
+              {openPanel}
             </div>
+          ) : (
+            <div className={previewPos.container}>{closedStack}</div>
           )}
         </div>
       </div>
-
-      <p className="mt-3 text-[11px] font-medium text-[var(--color-muted)]">
-        How the widget sits on a customer site
-      </p>
-      <PlacementPicker
-        className="mt-1.5"
-        value={placement}
-        onChange={setPlacement}
-      />
-
-      <Dialog
-        open={Boolean(placement)}
-        onOpenChange={(open) => {
-          if (!open) setPlacement(null);
-        }}
-      >
-        <DialogContent
-          className="flex max-h-[min(88vh,820px)] w-[calc(100%-1.5rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
-          showCloseButton
-        >
-          <DialogHeader className="px-5 py-3.5 pr-12 text-left">
-            <DialogTitle>
-              {PLACEMENTS.find((p) => p.id === placement)?.label || "Preview"}
-            </DialogTitle>
-            <DialogDescription>
-              How the chat sits on a website. Switch placements below — style
-              still follows your live preview on the right.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="border-y border-[var(--color-border)] px-5 py-2.5">
-            <PlacementPicker value={placement} onChange={setPlacement} />
-          </div>
-
-          <div className="min-h-0 flex-1 bg-slate-100 p-3 sm:p-4">
-            {placement === "full-page" ? (
-              <div className="flex h-[min(70vh,640px)] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
-                <ChatWindow
-                  {...windowProps}
-                  className="max-w-none flex-1 rounded-none shadow-none"
-                />
-              </div>
-            ) : (
-              <div className="relative h-[min(70vh,640px)] overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm">
-                <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[#f1f5f9] px-3 py-2">
-                  <span className="size-2 rounded-full bg-[#fca5a5]" />
-                  <span className="size-2 rounded-full bg-[#fcd34d]" />
-                  <span className="size-2 rounded-full bg-[#86efac]" />
-                  <span className="ml-3 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[var(--color-muted)]">
-                    yoursite.com
-                  </span>
-                </div>
-                <div className="relative h-[calc(100%-36px)] bg-[#eef2f6]">
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    <div className="mx-auto max-w-3xl px-6 py-8">
-                      <div className="h-8 w-2/3 rounded-lg bg-white" />
-                      <div className="mt-3 h-3 w-full rounded-full bg-white/80" />
-                      <div className="mt-2 h-3 w-5/6 rounded-full bg-white/80" />
-                      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                        <div className="h-28 rounded-xl bg-white" />
-                        <div className="h-28 rounded-xl bg-white" />
-                        <div className="h-28 rounded-xl bg-white" />
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "absolute bottom-4 z-10",
-                      placement === "bottom-left" ? "left-4" : "right-4"
-                    )}
-                  >
-                    {bubbleStack}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-

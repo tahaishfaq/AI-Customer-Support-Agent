@@ -11,7 +11,7 @@
  *   F02_BENCH_EMAIL / F02_BENCH_PASSWORD — product user (or auto-register)
  *   F02_BENCH_SKIP_CHAT=1  skip OpenAI studio chat samples
  *
- * Prints p50 / p95 (client wall ms) and server x-hapy-duration-ms when present.
+ * Prints p50 / p95 (client wall ms) and server x-aide-duration-ms when present.
  */
 import "dotenv/config";
 
@@ -128,7 +128,7 @@ async function timedFetch(jar, path, options = {}) {
   const t0 = Date.now();
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   const clientMs = Date.now() - t0;
-  const serverRaw = res.headers.get("x-hapy-duration-ms");
+  const serverRaw = res.headers.get("x-aide-duration-ms");
   const serverMs = serverRaw != null ? Number(serverRaw) : null;
   const body = await json(res);
   return { res, body, clientMs, serverMs };
@@ -146,7 +146,7 @@ async function sample(fn, times) {
 
 async function ensureProductUser() {
   const email =
-    process.env.F02_BENCH_EMAIL || `f02-bench-${Date.now()}@hapy.test`;
+    process.env.F02_BENCH_EMAIL || `f02-bench-${Date.now()}@aide.test`;
   const password = process.env.F02_BENCH_PASSWORD || "F02BenchPass1!";
 
   if (!process.env.F02_BENCH_EMAIL) {

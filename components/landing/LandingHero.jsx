@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const LIVE_BEATS = [
   { id: "a1", role: "assistant", text: "Hi! How can I help you today?" },
-  { id: "u1", role: "user", text: "What services does Hapy offer?" },
+  { id: "u1", role: "user", text: "What services does Aide offer?" },
   { id: "a2", role: "assistant", text: "We help with MVP development, AI integration, and support automation." },
 ];
 
@@ -106,7 +106,7 @@ function LiveSupportPanel() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold">
-                  Hapy Support
+                  Aide Support
                 </p>
                 <p className="flex items-center gap-1.5 text-[10px] text-white/85">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-300" />
@@ -181,7 +181,7 @@ export function LandingHero() {
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-8 px-6 py-10 sm:px-8 sm:py-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
         <div>
           <p className="font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-[var(--color-primary)] sm:text-[2.75rem]">
-            Hapy
+            Aide
           </p>
           <h1 className="mt-3 max-w-xl font-[family-name:var(--font-display)] text-[1.85rem] font-semibold leading-[1.15] tracking-tight text-[var(--color-text)] sm:text-4xl">
             The AI-native customer support workspace.
