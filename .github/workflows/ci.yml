@@ -34,6 +34,8 @@ jobs:
       - run: npx prisma generate
       - name: Shipped contract smokes (no secrets)
         run: npm run test:shipped
+      - name: Orchestrator contract (O0–O5)
+        run: npm run test:orchestrator
       - name: Product + admin + bugfix HTTP smoke
         env:
           CI: "true"

@@ -54,7 +54,7 @@ export function AdminShell({ children }) {
           id="aide-admin-main"
           key={pathname}
           tabIndex={-1}
-          className="animate-page-in flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
+          className="animate-page-in flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none"
         >
           {children}
         </div>

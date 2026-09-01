@@ -152,6 +152,8 @@ model User {
   auditEvents   AuditEvent[]
   restoreRequests RestoreRequest[]
   assignedConversations Conversation[] @relation("AssignedConversations")
+  customPlanRequests CustomPlanRequest[]
+  handledCustomPlanRequests CustomPlanRequest[] @relation("CustomPlanRequestHandler")
 }
 
 model Account {
@@ -529,4 +531,77 @@ model PlatformSettings {
   /** Mirror of ADMIN_BOOTSTRAP_EMAIL after seed — blocks Google if env drifts */
   reservedAdminEmail    String?
   updatedAt             DateTime @updatedAt
+}
+
+// —— B01 Billing (SafePay) — B0 catalog + custom requests ——
+
+enum BillingPlanType {
+  FREE
+  POPULAR
+  TEAMS
+  CUSTOM
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum CustomPlanRequestStatus {
+  NEW
+  CONTACTED
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+model BillingPlan {
+  id                   String          @id @default(cuid())
+  slug                 String          @unique
+  name                 String
+  description          String?
+  planType             BillingPlanType @unique
+  isPopular            Boolean         @default(false)
+  priceMinor           Int             @default(0)
+  currency             String          @default("PKR")
+  interval             BillingInterval @default(MONTH)
+  safepayPlanId        String?
+  maxWorkspaces        Int             @default(1)
+  maxAgentsPerWorkspace Int            @default(2)
+  featuresJson         Json?
+  sortOrder            Int             @default(0)
+  isActive             Boolean         @default(true)
+  isDefault            Boolean         @default(false)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  customPlanRequests   CustomPlanRequest[]
+
+  @@index([isActive, sortOrder])
+}
+
+model CustomPlanRequest {
+  id                String                  @id @default(cuid())
+  userId            String
+  planId            String?
+  companyName       String?
+  contactName       String?
+  contactEmail      String
+  phone             String?
+  estimatedSeats    Int?
+  useCase           String?
+  message           String
+  status            CustomPlanRequestStatus @default(NEW)
+  adminNotes        String?
+  handledByAdminId  String?
+  handledAt         DateTime?
+  emailSentAt       DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              BillingPlan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
+  handledByAdmin    User?                   @relation("CustomPlanRequestHandler", fields: [handledByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([planId])
 }

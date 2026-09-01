@@ -1,0 +1,10 @@
+{
+  "status": "denied",
+  "code": "CROSS_USER_DENIED",
+  "forModel": "This request looks like it asks for someone else's account data. Refuse politely.",
+  "forClient": { "type": "none" },
+  "meta": {
+    "capabilityId": "act_get_order_status",
+    "latencyMs": 1
+  }
+}

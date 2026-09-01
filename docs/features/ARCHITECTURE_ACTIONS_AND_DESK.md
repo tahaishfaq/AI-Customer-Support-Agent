@@ -188,26 +188,45 @@ Knowledge aur tools **saath** chal sakte hain — tools FAQ replace nahi karte.
 
 ---
 
-## F11 — Architecture layers
+## F11 — Architecture layers (O01)
+
+```
+CHANNEL (embed / studio API)
+   │
+AGENT (prompt-builder + knowledge-retrieve)
+   │
+ORCHESTRATOR  runTurn()  ←── generic; no shop rules
+   │
+CAPABILITY REGISTRY  (HTTP + MCP + builtins)
+   │
+   ├─ invoke-tool / HTTP adapter  → Domain APIs (orders…)
+   ├─ MCP adapter                 → External MCP
+   └─ builtin adapter             → Aide desk (request_handoff)
+```
+
+Legacy sketch (same responsibilities, older names):
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
 │ Embed /     │────▶│ Chat API     │────▶│ chat.service    │
-│ Studio Test │     │ (auth/public)│     │ + tool loop     │
+│ Studio Test │     │ (auth/public)│     │ → runTurn       │
 └─────────────┘     └──────────────┘     └────────┬────────┘
                                                    │
                     ┌──────────────────────────────┼──────────────┐
                     ▼                              ▼              ▼
-            knowledge-retrieve              prompt-builder    tool-executor
-            (F08 KB chunks)                 (F09 + tools)     (HTTP + SSRF)
+            knowledge-retrieve              prompt-builder    invoke-tool
+            (F08 KB chunks)                 (F09 + tools)     (HTTP/MCP/builtin)
                     │                              │              │
                     └──────────────┬───────────────┴──────┐       │
                                    ▼                      ▼       ▼
-                                 LLM (OpenAI)      AgentAction DB   Customer API
+                                 LLM (OpenAI)      Capability Registry
                                    │                      │
                                    ▼                      ▼
                             Message (ASSISTANT)    ToolRun audit
 ```
+
+**Entry:** `import { runTurn } from "@/lib/orchestrator"`  
+**Contract:** [`ORCHESTRATOR_CONTRACT.md`](./ORCHESTRATOR_CONTRACT.md) · plan [`ORCHESTRATOR_LAYER_PLAN.md`](./ORCHESTRATOR_LAYER_PLAN.md)
 
 ### Data (sketch)
 

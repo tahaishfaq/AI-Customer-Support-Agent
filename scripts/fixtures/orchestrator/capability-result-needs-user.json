@@ -1,0 +1,16 @@
+{
+  "status": "needs_user",
+  "code": "CONFIRMATION_REQUIRED",
+  "forModel": "A Confirm button was shown to the user in chat. Tell them briefly what will happen and wait for their click.",
+  "forClient": {
+    "type": "confirm",
+    "payload": {
+      "confirmationId": "conf_fixture_1",
+      "actionName": "cancel_order"
+    }
+  },
+  "meta": {
+    "capabilityId": "act_cancel_order",
+    "latencyMs": 3
+  }
+}

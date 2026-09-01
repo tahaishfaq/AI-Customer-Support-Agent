@@ -49,7 +49,7 @@ function formatWhen(value) {
 
 function zeroHint(value) {
   const n = typeof value === "number" ? value : Number(value);
-  return n === 0 || value === "0%" || value === "—" ? "No change" : undefined;
+  return n === 0 || value === "0%" || value === "—" ? "No data yet" : undefined;
 }
 
 export default function DashboardPage() {
@@ -107,32 +107,28 @@ export default function DashboardPage() {
     return map;
   }, [conversations]);
 
-  const recent = conversations.slice(0, 6);
-
+  const recent = conversations.slice(0, 8);
+  const featuredAgents = agents.slice(0, 6);
   const kpiHint = (value) => (metricsLoading ? undefined : zeroHint(value));
 
   return (
-    <main className="aide-page">
-      {/* First viewport: one composition — brand + one CTA (F04-B) */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="aide-page space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-            Aide
-          </p>
-          <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-[var(--color-text)] sm:text-3xl">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
             {authLoading
               ? "Workspace"
               : firstName
                 ? `${firstName}'s workspace`
                 : "Aide workspace"}
           </h1>
-          <p className="mt-1 max-w-md text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-1 text-sm text-muted-foreground">
             Conversations, sentiment, and agents in one place.
           </p>
         </div>
         <Link
           href="/agents/new"
-          className={cn(buttonVariants(), "shrink-0 gap-1.5")}
+          className={cn(buttonVariants(), "shrink-0 gap-1.5 self-start sm:self-auto")}
         >
           <Plus className="size-3.5" />
           New agent
@@ -140,96 +136,100 @@ export default function DashboardPage() {
       </header>
 
       {error ? (
-        <InlineAlert
-          className="mt-5"
-          onRetry={() => setReloadKey((k) => k + 1)}
-        >
+        <InlineAlert onRetry={() => setReloadKey((k) => k + 1)}>
           {error}
         </InlineAlert>
       ) : null}
 
-      {/* One job: workspace health */}
-      <section className="mt-8" aria-label="Workspace insights">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--color-text)]">
-          Insights
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <MetricCard
-            label="Total Conversations"
-            value={overview?.totalConversations ?? 0}
-            hint={kpiHint(overview?.totalConversations ?? 0)}
-            loading={metricsLoading}
-            icon={MessagesSquare}
-          />
-          <MetricCard
-            label="Total Messages"
-            value={overview?.totalMessages ?? 0}
-            hint={kpiHint(overview?.totalMessages ?? 0)}
-            loading={metricsLoading}
-            tone="info"
-            icon={MessageCircle}
-          />
-          <MetricCard
-            label="Avg Response Time"
-            value={formatResponseTime(overview?.averageResponseTimeMs)}
-            hint={kpiHint(overview?.averageResponseTimeMs ?? 0)}
-            loading={metricsLoading}
-            tone="warning"
-            icon={Clock}
-          />
-          <MetricCard
-            label="Positive Sentiment"
-            value={formatPercent(overview?.positiveSentimentPercent)}
-            hint={kpiHint(overview?.positiveSentimentPercent ?? 0)}
-            loading={metricsLoading}
-            tone="positive"
-            icon={Smile}
-          />
-          <MetricCard
-            label="Negative Sentiment"
-            value={formatPercent(overview?.negativeSentimentPercent)}
-            hint={kpiHint(overview?.negativeSentimentPercent ?? 0)}
-            loading={metricsLoading}
-            tone="negative"
-            icon={Frown}
-          />
-          <MetricCard
-            label="Most Common Topic"
-            value={overview?.mostCommonTopic || "—"}
-            hint={overview?.mostCommonTopic ? undefined : "No change"}
-            loading={metricsLoading}
-            icon={Hash}
-          />
+      <section aria-label="Workspace insights" className="min-w-0">
+        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card">
+          <div className="grid divide-y divide-border/70 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3 xl:grid-cols-6">
+            <MetricCard
+              compact
+              label="Conversations"
+              value={overview?.totalConversations ?? 0}
+              hint={kpiHint(overview?.totalConversations ?? 0)}
+              loading={metricsLoading}
+              icon={MessagesSquare}
+            />
+            <MetricCard
+              compact
+              label="Messages"
+              value={overview?.totalMessages ?? 0}
+              hint={kpiHint(overview?.totalMessages ?? 0)}
+              loading={metricsLoading}
+              tone="info"
+              icon={MessageCircle}
+            />
+            <MetricCard
+              compact
+              label="Avg response"
+              value={formatResponseTime(overview?.averageResponseTimeMs)}
+              hint={kpiHint(overview?.averageResponseTimeMs ?? 0)}
+              loading={metricsLoading}
+              tone="warning"
+              icon={Clock}
+            />
+            <MetricCard
+              compact
+              label="Positive"
+              value={formatPercent(overview?.positiveSentimentPercent)}
+              hint={kpiHint(overview?.positiveSentimentPercent ?? 0)}
+              loading={metricsLoading}
+              tone="positive"
+              icon={Smile}
+            />
+            <MetricCard
+              compact
+              label="Negative"
+              value={formatPercent(overview?.negativeSentimentPercent)}
+              hint={kpiHint(overview?.negativeSentimentPercent ?? 0)}
+              loading={metricsLoading}
+              tone="negative"
+              icon={Frown}
+            />
+            <MetricCard
+              compact
+              label="Top topic"
+              value={overview?.mostCommonTopic || "—"}
+              hint={overview?.mostCommonTopic ? undefined : "No data yet"}
+              loading={metricsLoading}
+              icon={Hash}
+            />
+          </div>
         </div>
       </section>
 
-      <section className="mt-6">
-        <DashboardShortcuts />
-      </section>
+      <DashboardShortcuts />
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-[var(--color-text)]">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+        <section className="min-w-0">
+          <div className="mb-3 flex h-7 items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-foreground">
               Agents
+              {!loading && agents.length > 0 ? (
+                <span className="ml-1.5 font-normal text-muted-foreground">
+                  ({agents.length})
+                </span>
+              ) : null}
             </h2>
             <Link
               href="/agents"
-              className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
+              className="text-[13px] font-medium text-primary hover:underline"
             >
               View all
             </Link>
           </div>
 
           {loading ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <Skeleton className="h-48 rounded-xl bg-[var(--color-border)]" />
-              <Skeleton className="h-48 rounded-xl bg-[var(--color-border)]" />
-              <Skeleton className="h-48 rounded-xl bg-[var(--color-border)]" />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <Skeleton className="h-44 rounded-xl" />
+              <Skeleton className="h-44 rounded-xl" />
+              <Skeleton className="h-44 rounded-xl" />
             </div>
           ) : agents.length === 0 ? (
             <EmptyState
-              className="py-12"
+              className="rounded-xl border border-dashed border-border py-14"
               title="Create an agent to get started"
               action={
                 <Link
@@ -241,8 +241,8 @@ export default function DashboardPage() {
               }
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {agents.map((agent) => (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {featuredAgents.map((agent) => (
                 <HomeAgentCard
                   key={agent.id}
                   agent={agent}
@@ -254,51 +254,60 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <aside>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-[var(--color-text)]">
+        <aside className="min-w-0 lg:sticky lg:top-20">
+          <div className="mb-3 flex h-7 items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-foreground">
               Recent activity
             </h2>
             <Link
-              href="/agents"
-              className="text-[13px] font-medium text-[var(--color-primary)] hover:underline"
+              href="/inbox"
+              className="text-[13px] font-medium text-primary hover:underline"
             >
-              View all
+              Inbox
             </Link>
           </div>
-          <div className="aide-card min-h-[280px]">
+
+          <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
             {loading ? (
-              <div className="space-y-2 p-4">
-                <Skeleton className="h-12 bg-[var(--color-border)]" />
-                <Skeleton className="h-12 bg-[var(--color-border)]" />
-                <Skeleton className="h-12 bg-[var(--color-border)]" />
+              <div className="space-y-2 p-3">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
               </div>
             ) : recent.length === 0 ? (
-              <p className="px-5 py-16 text-center text-[13px] text-[var(--color-muted)]">
+              <p className="px-4 py-12 text-center text-[13px] text-muted-foreground">
                 No conversations yet.
               </p>
             ) : (
-              <ul className="divide-y divide-[var(--color-border)]">
-                {recent.map((convo) => (
-                  <li key={convo.id}>
-                    <Link
-                      href={`/agents/${convo.agentId}/conversations/${convo.id}`}
-                      className="flex items-start justify-between gap-3 px-4 py-3.5 hover:bg-[var(--color-bg)]"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium text-[var(--color-text)]">
-                          {convo.agent?.name || "Agent"}
+              <ul className="divide-y divide-border/70">
+                {recent.map((convo) => {
+                  const name = convo.agent?.name || "Agent";
+                  const initial = name.slice(0, 1).toUpperCase();
+                  return (
+                    <li key={convo.id}>
+                      <Link
+                        href={`/agents/${convo.agentId}/conversations/${convo.id}`}
+                        className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
+                      >
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                          {initial}
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-[var(--color-muted)]">
-                          {convo.category || "GENERAL"} · {formatWhen(convo.startedAt)}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-medium text-foreground">
+                            {name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                            {convo.category || "GENERAL"} ·{" "}
+                            {formatWhen(convo.startedAt)}
+                          </span>
                         </span>
-                      </span>
-                      <span className="shrink-0 text-[11px] text-[var(--color-muted)]">
-                        {convo.messageCount || 0} msgs
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                        <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                          {convo.messageCount || 0}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

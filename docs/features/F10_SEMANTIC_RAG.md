@@ -1,9 +1,10 @@
 # F10 — Semantic RAG (later — P3)
 
-**Status:** **Not the default next.** Do **F00** buffer first, then prefer **F11**. Open F10 only when [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md) §2/§3 says so **or** an agent hits the F08 soft threshold below.  
+**Status:** **Not the default next.** After F00 / F11-U live, prefer **M01 MCP** before F10 unless KB pain is real. Open F10 only when [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md) §2/§3 says so **or** an agent hits the F08 soft threshold below.  
 **Goal:** Fin-grade **retrieve → (optional) rerank → generate** with citations — meaning-based chunk pick, not only keyword overlap.  
 **Maps to:** internship OOS vector DB · P3-RAG · Fusion Band 3 item 1 · product **P-O6**.  
-**Prerequisite:** F08 (lexical stuffing) + F09 (prompts) shipped — F10 **extends** retrieve, does not replace grounding rules.
+**Prerequisite:** F08 (lexical stuffing) + F09 (prompts) shipped — F10 **extends** retrieve, does not replace grounding rules.  
+**O01 sync (Aug 31, 2026):** Knowledge retrieve stays **Agent-layer** (prompt stuffing), **not** an Orchestrator capability/tool. F10 changes `knowledge-retrieve` / embeddings only — **do not** wrap RAG as a chat tool unless product explicitly decides later.
 
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test**. Until then, keep plan lines + the decision sections below.
 

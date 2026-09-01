@@ -1,18 +1,20 @@
 # B01 — Billing & subscriptions (SafePay)
 
-**Status:** 📋 Planning — **not started**  
+**Status:** 📋 Planning — **not started** (synced Aug 31, 2026 — O01 Orchestrator ✅; MCP plan has future `maxMcpServers`)  
 **Replaces backlog sketch:** [`POST_MVP_BACKLOG_PLAN.md`](../POST_MVP_BACKLOG_PLAN.md) § **P3-BILLING** (was Stripe; **provider = SafePay**)  
 **Priority rule:** **Security first.** Money paths must be correct before UX polish.  
-**Execution rule:** One phase → automated + manual test → next phase. Never skip a test gate.
+**Execution rule:** One phase → automated + manual test → next phase. Never skip a test gate.  
+**O01 invariant:** Billing / plan / suspend gates stay **above** Orchestrator (proxy/layout). Do **not** put plan checks inside `runTurn`. Entitlements (incl. future MCP server caps) enforce at API/config load, not in the tool loop.
 
 | | |
 |--|--|
 | **Provider** | [SafePay](https://getsafepay.com) — hosted subscription checkout (`@sfpy/node-sdk`) |
-| **Plans** | **Unlimited** admin-configured catalog; each plan has type **Free** \| **Popular** \| **Custom** |
+| **Plans** | **Exactly 4** fixed slots — **Free** \| **Popular** \| **Teams** \| **Custom** (Botpress-style pricing grid) |
 | **Who pays** | **User** (Aide account), not Workspace |
 | **When** | After register / first Google signup — **before** dashboard / agent onboarding |
-| **Admin** | CRUD plans, SafePay plan IDs, **custom-plan request queue**; inspects subscriptions |
+| **Admin** | **Edit only** the 4 plan slots (limits, price, SafePay id); **cannot add a 5th plan** |
 | **Email** | Custom-plan requests + billing notices via **Resend** — see [`EMAIL_RESEND_PLAN.md`](./EMAIL_RESEND_PLAN.md) |
+| **Positioning** | Botpress-class agent SaaS — see [`AUDIT_BOTPRESS_VS_HAPY.md`](../AUDIT_BOTPRESS_VS_HAPY.md) |
 
 ---
 
@@ -20,20 +22,24 @@
 
 ## What we are building
 
-Aide charges customers for using the product. Admin defines **as many plans as needed** (limits + price + SafePay plan id). Each plan has a **type**:
+Aide charges customers for using the product — **Botpress-style pricing**: a fixed **4-column grid** after signup. Admin configures **each slot once** (limits + price + SafePay plan id); **no 5th plan**.
 
-| Type | Customer UX | Checkout |
-|------|-------------|----------|
-| **Free** | $0 — activate instantly | No SafePay |
-| **Popular** | Paid — **featured** badge on pricing grid | SafePay hosted checkout |
-| **Custom** | “Contact us” — **request form** (company, use case, seats, message) | No SafePay; admin notified by email + in-app queue |
+| Slot | `planType` | Customer UX | Checkout |
+|------|------------|-------------|----------|
+| 1 | **Free** | Rs 0 — activate instantly | No SafePay |
+| 2 | **Popular** | Paid — **featured** badge | SafePay hosted checkout |
+| 3 | **Teams** | Paid — higher limits / multi-workspace tier | SafePay hosted checkout |
+| 4 | **Custom** | “Contact us” — **request form** | No SafePay; admin email + in-app queue |
 
-New users pick a plan after signup. **Popular** (and any other paid `planType` with `safepayPlanId`) goes to SafePay. **Only a verified SafePay webhook** unlocks paid access. **Custom** submits `CustomPlanRequest` → Resend email to admin → admin follows up manually (may later assign a bespoke plan). Entitlements come from the active `Subscription` plan.
+New users pick a plan after signup. **Popular** and **Teams** go to SafePay when `safepayPlanId` is set. **Only a verified SafePay webhook** unlocks paid access. **Custom** submits `CustomPlanRequest` → Resend email to admin → admin follows up manually. Entitlements come from the active `Subscription` plan.
+
+**SafePay dashboard:** create **2 recurring plans** (Popular + Teams). Free and Custom stay in Aide only.
 
 ## What we are not building (this program)
 
 - Stripe / Paddle / Lemon Squeezy  
-- Team seats / per-workspace billing (needs P3-TEAMS)  
+- Unlimited / à-la-carte plan catalog (admin is locked to **4 slots**)  
+- Per-seat team billing with invite flows (Teams tier = **higher caps**, not P3-TEAMS members yet)  
 - Tax engine / PDF invoices / accounting export  
 - Coupons, trials, usage metering (optional later — named in Appendix)  
 - Card data on Aide servers (PCI: **never**)  
@@ -78,15 +84,15 @@ New users pick a plan after signup. **Popular** (and any other paid `planType` w
 | Field | Type | Notes |
 |-------|------|--------|
 | `id` | cuid | |
-| `slug` | string unique | e.g. `free`, `starter`, `growth` — stable for code/tests |
-| `name` | string | Display |
+| `slug` | string unique | Fixed: `free`, `popular`, `teams`, `custom` — seeded in B0 |
+| `name` | string | Display (admin editable), e.g. “Free”, “Popular”, “Teams”, “Custom” |
 | `description` | string? | Short |
-| `planType` | enum `FREE` \| `POPULAR` \| `CUSTOM` | Drives pricing UI + checkout behavior (see §2.1.1) |
-| `isPopular` | bool | When true **and** `planType = POPULAR`, show “Popular” badge (at most one featured plan recommended) |
+| `planType` | enum `FREE` \| `POPULAR` \| `TEAMS` \| `CUSTOM` | **Unique** — exactly one row per type (see §2.1.1) |
+| `isPopular` | bool | When true **and** `planType = POPULAR`, show “Popular” badge on pricing card |
 | `priceMinor` | int | Integer money. **B0 decision:** store **whole PKR** as integer (e.g. `2999` = Rs 2999). `0` for Free. Custom type may show “Contact us” instead of price. |
 | `currency` | string | Default `PKR` |
 | `interval` | enum `MONTH` \| `YEAR` | Start with `MONTH` unless product needs yearly |
-| `safepayPlanId` | string? | SafePay `plan_…`. Required for paid checkout; **null** for Free and Custom |
+| `safepayPlanId` | string? | SafePay `plan_…`. Required for **POPULAR** and **TEAMS** paid checkout; **null** for Free and Custom |
 | `maxWorkspaces` | int | `0` = unlimited (match existing PlatformSettings convention) |
 | `maxAgentsPerWorkspace` | int | `0` = unlimited |
 | `featuresJson` | Json | Bullet list for UI only — **not** security boundary |
@@ -95,24 +101,31 @@ New users pick a plan after signup. **Popular** (and any other paid `planType` w
 | `isDefault` | bool | At most one default (prefer Free) |
 | `createdAt` / `updatedAt` | datetime | |
 
-#### 2.1.1 Plan types (admin-configured)
+#### 2.1.1 Plan types — fixed 4 slots (Botpress-style)
 
-| `planType` | `safepayPlanId` | Pricing page | Post-select action |
-|------------|-----------------|--------------|-------------------|
-| `FREE` | null | Show price **Free** | `POST /api/billing/subscribe` → ACTIVE |
-| `POPULAR` | required (paid) | Price + optional **Popular** badge | `POST /api/billing/checkout` → SafePay |
-| `CUSTOM` | null | **Contact / request** CTA, no price or “Custom” | Open request form → `CustomPlanRequest` + admin email |
+| `planType` | `safepayPlanId` | Pricing page | Post-select action | Suggested seed limits |
+|------------|-----------------|--------------|-------------------|------------------------|
+| `FREE` | null | **Free** | `POST /api/billing/subscribe` → ACTIVE | 1 workspace, 2 agents |
+| `POPULAR` | required | Price + **Popular** badge | `POST /api/billing/checkout` → SafePay | 3 workspaces, 10 agents |
+| `TEAMS` | required | Price (no badge) | `POST /api/billing/checkout` → SafePay | 10 workspaces, 25 agents |
+| `CUSTOM` | null | **Contact us** CTA | Request form → `CustomPlanRequest` + admin email | N/A (no entitlements until converted) |
 
-- Admin may create **unlimited** active plans; UI renders a responsive grid (Free cards, Popular highlighted, Custom as form entry).  
-- `isPopular` only applies when `planType = POPULAR`; service warns if multiple `isPopular` (UI may show all or first only — pick one in B0).  
-- Paid plans that are not `POPULAR` (e.g. extra tiers) still use SafePay if `safepayPlanId` set — `planType` is primarily **merchandising**, not a hard cap on count.
+**Hard rules (enforce in service + DB):**
+
+- Catalog is **exactly 4 rows** — one per `planType`.  
+- **Unique index** on `planType`.  
+- Admin APIs: **PATCH only** per slot — **no POST create**, **no DELETE** (deactivate via `isActive` on a slot if ever needed; default all four active).  
+- Attempt to insert 5th plan → **409** `billing_plan_cap_reached`.  
+- Public UI: **4-column grid** (responsive stack on mobile) — same layout pattern as Botpress pricing.  
+- `isPopular` only on `planType = POPULAR`.  
+- `sortOrder` fixed: Free=1, Popular=2, Teams=3, Custom=4 (admin may not reorder types).
 
 **Rules:**
 
 - Public catalog: `isActive = true`, ordered by `sortOrder`.  
-- Exactly one `isDefault` among active plans (DB check or service invariant; must be `planType = FREE`).  
+- Exactly one `isDefault` — must be `planType = FREE`.  
 - Changing `priceMinor` / `safepayPlanId` does **not** rewrite historical subscriptions; upgrades use new checkout.  
-- `planType = CUSTOM` plans never call SafePay from the public catalog; admin may manually attach a bespoke plan after sales (break-glass / admin assign in B5).
+- `planType = CUSTOM` never calls SafePay from the catalog; admin converts via manual assign (B5).
 
 ### `CustomPlanRequest` (sales lead + admin queue)
 
@@ -265,8 +278,8 @@ Wire into existing `createWorkspaceForUser` / agent create — replace or overri
       → Subscription ACTIVE (transaction)
       → Audit BILLING_ACTIVATED
       → redirect /dashboard
-4b. Popular / paid plan → POST /api/billing/checkout { planId }
-      → server loads plan; requires safepayPlanId + SafePay env ready
+4b. Popular or Teams (paid) → POST /api/billing/checkout { planId }
+      → server verifies plan.planType in (POPULAR, TEAMS) + safepayPlanId + SafePay env ready
       → Subscription PENDING + checkoutReference (uuid)
       → SafePay createSubscription URL (server)
       → return { url } → browser redirect (top-level)
@@ -297,7 +310,7 @@ Same gate after JWT session exists. Do **not** create ACTIVE subscription in Goo
 
 ## 3.5 Admin
 
-- CRUD plans at `/admin/billing` — unlimited rows; set `planType`, `isPopular`, limits, SafePay id.  
+- **Edit** the 4 plan slots at `/admin/billing` — limits, display name, price, `safepayPlanId`, `featuresJson`, `isActive`. **No “Add plan” button.**  
 - Custom requests at `/admin/billing/requests` — view, status, notes, link to user.  
 - User inspect: subscription status, plan, last payment, checkoutReference (support).  
 - Cannot “force ACTIVE” without audit + reason field (break-glass) — optional B5; default **no silent force**.
@@ -315,7 +328,7 @@ Same gate after JWT session exists. Do **not** create ACTIVE subscription in Goo
 8. Admin marks CONTACTED → APPROVED → manually creates paid plan or sends checkout link (B5)
 ```
 
-**Gate behavior:** User without ACTIVE subscription remains on billing shell; Custom request does **not** unlock dashboard until admin assigns a plan or user picks Free/Popular.
+**Gate behavior:** User without ACTIVE subscription remains on billing shell; Custom request does **not** unlock dashboard until admin converts or user picks Free / Popular / Teams.
 
 ---
 
@@ -593,7 +606,7 @@ NEXT_PUBLIC_APP_URL=https://...
 | ID | Scenario | Expected |
 |----|----------|----------|
 | E8.01 | Two tabs free-subscribe | One ACTIVE row; second 409/ok no-op |
-| E8.02 | Tab A checkout Popular, Tab B checkout another paid tier | One PENDING; reject second with “finish or cancel current” |
+| E8.02 | Tab A checkout Popular, Tab B checkout Teams | One PENDING; reject second with “finish or cancel current” |
 | E8.03 | Webhook + user refresh simultaneous | Transaction / row lock; single ACTIVE |
 | E8.04 | DB unique on `checkoutReference` | Collision impossible for UUID v4; still handle 500 safely |
 | E8.05 | Plan deleted mid-flight (admin mistake) | Soft-deactivate only; checkout fails closed |
@@ -616,10 +629,10 @@ NEXT_PUBLIC_APP_URL=https://...
 
 **Build**
 
-- Prisma: `BillingPlan` (+ `planType`, `isPopular`), `CustomPlanRequest`; enums; migration  
-- Seed **example** plans: one Free (default), one Popular, one Custom — admin can add more  
-- Admin UI `/admin/billing` + `/admin/billing/requests` + APIs  
-- `GET /api/billing/plans` (public catalog grouped by type)  
+- Prisma: `BillingPlan` (+ `planType` unique, `isPopular`), `CustomPlanRequest`; enums; migration  
+- Seed **exactly 4** plans: Free (default), Popular, Teams, Custom — idempotent upsert by `planType`  
+- Admin UI `/admin/billing` — **4-slot editor** (no create) + `/admin/billing/requests` + APIs  
+- `GET /api/billing/plans` — always returns 4 slots (inactive hidden from public only)  
 - `POST /api/billing/custom-request` (stub email if Resend not ready — log only in dev)  
 - Audit on plan create/update and request status change  
 
@@ -629,8 +642,8 @@ NEXT_PUBLIC_APP_URL=https://...
 
 **Test gate**
 
-- [ ] Admin CRUD + deactivate; unlimited plan count  
-- [ ] Public plans hide inactive; Popular badge on correct card  
+- [ ] Admin can edit each of 4 slots; **409** on create 5th plan  
+- [ ] Public pricing shows 4-column grid; Popular badge on Popular only  
 - [ ] Custom form creates request + admin list entry  
 - [ ] Non-admin 404/401 on admin APIs  
 - [ ] Seed deterministic for tests  
@@ -750,15 +763,17 @@ NEXT_PUBLIC_APP_URL=https://...
 
 | Question | Recommendation | Status |
 |----------|----------------|--------|
-| Plan types | **Free / Popular / Custom** — unlimited count | **Locked (user)** |
-| Popular badge | One `isPopular` plan recommended | Pending |
-| Custom unlock | **No dashboard** until admin converts or user picks Free/Paid | Pending |
+| Plan types | **Free / Popular / Teams / Custom** — **exactly 4**, no more | **Locked (user)** |
+| Botpress alignment | Fixed pricing grid + agent SaaS tiers | **Locked (user)** |
+| Popular badge | On Popular slot only (`isPopular`) | **Locked** |
+| Custom unlock | **No dashboard** until admin converts or user picks Free/Popular/Teams | Pending |
 | Currency | **PKR** monthly | Pending |
 | Existing users | **Auto Free ACTIVE** | Pending |
 | Past due | **Soft lock** | Pending |
 | Embed when PAST_DUE | **Keep serving** | Pending |
 | Price integer unit | Whole PKR in `priceMinor` | Pending |
-| Max active plans | **No cap** — admin defines catalog | **Locked (user)** |
+| Max plans | **Hard cap 4** — unique `planType` | **Locked (user)** |
+| SafePay plans | **2** dashboard plans (Popular + Teams) | Pending setup |
 | Paid ACTIVE trigger | Require `subscription_payment:complete` | Pending B2 spike |
 | Custom request email | `BILLING_ADMIN_EMAIL` + Resend | See EMAIL_RESEND_PLAN |
 
@@ -845,8 +860,8 @@ Fixture rule: store **sample signed payloads** generated in sandbox; or mock ver
 
 ### Decisions
 
-- [x] Plan types: Free / Popular / Custom (unlimited catalog)  
-- [ ] Popular badge single vs multiple  
+- [x] Plan types: Free / Popular / Teams / Custom (**max 4**)  
+- [x] Botpress-style fixed pricing grid  
 - [ ] Currency / interval  
 - [ ] Existing user migration  
 - [ ] Past-due + embed policy  
@@ -871,6 +886,16 @@ Fixture rule: store **sample signed payloads** generated in sandbox; or mock ver
 
 ---
 
+## O01 / MCP sync (Aug 31, 2026)
+
+| Topic | Implication for B01 |
+|-------|---------------------|
+| Orchestrator shipped | Checkout / webhook / entitlement code stays outside `lib/orchestrator/` |
+| M01 MCP | Optional plan limit `maxMcpServers` lands in **B3 entitlements** (see MCP plan M5) — not a reason to reopen O01 |
+| Email | Custom-plan notify still via E01 / Resend |
+
+---
+
 # Appendix A — Later (named, not scheduled)
 
 - Trials / coupons  
@@ -879,6 +904,42 @@ Fixture rule: store **sample signed payloads** generated in sandbox; or mock ver
 - Invoice PDF  
 - Multi-seat / workspace billing (after P3-TEAMS)  
 - Hard lock past-due flag in PlatformSettings  
+
+---
+
+# Appendix C — Botpress-style tier mapping (Aide)
+
+Reference: [`AUDIT_BOTPRESS_VS_HAPY.md`](../AUDIT_BOTPRESS_VS_HAPY.md). Botpress sells **usage-oriented, no per-seat** agent tiers; Aide mirrors with **4 fixed slots** and workspace/agent caps.
+
+| Aide slot | Botpress analog | SafePay | Admin configures |
+|-----------|-----------------|---------|------------------|
+| **Free** | Hobby / trial | No | Limits, features bullets |
+| **Popular** | Growth (featured) | Yes — `plan_…` | Price, limits, badge |
+| **Teams** | Team / scale tier | Yes — `plan_…` | Price, higher limits |
+| **Custom** | Enterprise / sales | No | Request form copy only |
+
+### Suggested seed copy (editable in admin)
+
+**Popular** — SafePay description:
+```
+Aide Popular — for growing businesses. AI agents on your site, knowledge base, embed widget, human desk handoff, HTTP actions, and analytics. Billed monthly in PKR.
+```
+
+**Teams** — SafePay description:
+```
+Aide Teams — for teams running multiple brands or high-volume support. Everything in Popular, plus higher workspace and agent limits. Billed monthly in PKR.
+```
+
+**Teams** — `featuresJson` starter bullets:
+```json
+[
+  "Up to 10 workspaces",
+  "Up to 25 AI agents per workspace",
+  "Everything in Popular",
+  "Priority support",
+  "Higher action & MCP limits (future)"
+]
+```
 
 ---
 
@@ -897,6 +958,7 @@ Fixture rule: store **sample signed payloads** generated in sandbox; or mock ver
 
 | Doc | Role |
 |-----|------|
+| [`AUDIT_BOTPRESS_VS_HAPY.md`](../AUDIT_BOTPRESS_VS_HAPY.md) | Product positioning — 4-tier agent SaaS |
 | [`EMAIL_RESEND_PLAN.md`](./EMAIL_RESEND_PLAN.md) | Resend transactional email — custom plan notify, auth, onboarding |
 | [`POST_MVP_BACKLOG_PLAN.md`](../POST_MVP_BACKLOG_PLAN.md) § P3-BILLING | Historical Stripe sketch — superseded by SafePay here |
 | [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) | Add B01 when execution starts |

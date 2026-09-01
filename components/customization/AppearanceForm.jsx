@@ -22,11 +22,7 @@ import { DEFAULT_CUSTOMIZATION } from "@/lib/customization/defaults";
 import { WidgetLayoutPicker } from "@/components/customization/WidgetPositionPicker";
 import { applyWidgetLayout } from "@/lib/customization/position";
 
-const FONTS = [
-  { id: "instrument-sans", label: "Instrument Sans" },
-  { id: "dm-sans", label: "DM Sans" },
-  { id: "system", label: "System" },
-];
+const FONTS = [{ id: "dm-sans", label: "DM Sans" }];
 
 export function AppearanceForm({ appearance, deploy, onChange, onDeployChange }) {
   function patch(partial) {
@@ -37,7 +33,7 @@ export function AppearanceForm({ appearance, deploy, onChange, onDeployChange })
     onDeployChange?.(applyWidgetLayout(deploy || {}, layoutId));
   }
 
-  const primary = appearance.primaryColor || "#0b5f58";
+  const primary = appearance.primaryColor || "#ea580c";
 
   return (
     <div className="space-y-6">
@@ -54,7 +50,7 @@ export function AppearanceForm({ appearance, deploy, onChange, onDeployChange })
                   id="appearance-primary"
                   type="color"
                   value={
-                    /^#[0-9A-Fa-f]{6}$/.test(primary) ? primary : "#0b5f58"
+                    /^#[0-9A-Fa-f]{6}$/.test(primary) ? primary : "#ea580c"
                   }
                   onChange={(e) => patch({ primaryColor: e.target.value })}
                   className="size-11 cursor-pointer rounded-xl border border-border bg-card p-1"
@@ -63,7 +59,7 @@ export function AppearanceForm({ appearance, deploy, onChange, onDeployChange })
                 <Input
                   value={appearance.primaryColor}
                   onChange={(e) => patch({ primaryColor: e.target.value })}
-                  placeholder="#0b5f58"
+                  placeholder="#ea580c"
                   className={`${fieldClass} font-mono uppercase`}
                 />
                 <Button
@@ -71,7 +67,7 @@ export function AppearanceForm({ appearance, deploy, onChange, onDeployChange })
                   variant="outline"
                   size="icon"
                   className="size-11 shrink-0"
-                  title="Reset to Aide teal"
+                  title="Reset to brand orange"
                   onClick={() =>
                     patch({
                       primaryColor:

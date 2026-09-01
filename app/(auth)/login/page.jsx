@@ -1,12 +1,5 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata = {
   title: "Sign in — Aide",
@@ -14,20 +7,18 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <Card className="border-border/60 shadow-sm ring-foreground/5">
-      <CardHeader className="border-b border-border/60">
-        <CardTitle className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight sm:text-3xl">
+    <div className="w-full rounded-[1.5rem] border border-black/[0.06] bg-white/95 p-6 shadow-[0_28px_70px_-32px_rgba(20,16,12,0.35)] backdrop-blur-sm sm:p-8">
+      <div className="mb-6 text-center sm:mb-8">
+        <h1 className="landing-display text-[1.75rem] text-[var(--landing-ink)] sm:text-[2rem]">
           Welcome back
-        </CardTitle>
-        <CardDescription className="text-[15px]">
+        </h1>
+        <p className="mt-2 text-[14px] text-[var(--landing-muted)]">
           Sign in to your AI support workspace
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <Suspense>
-          <LoginForm />
-        </Suspense>
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </div>
   );
 }

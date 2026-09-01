@@ -86,7 +86,7 @@ function testChecklistBehaviors() {
   const form = read("components/customization/ActionsForm.jsx");
   assert(/listAgentToolRuns|Recent tool runs/.test(form), "owner audit UI");
   const chat = read("lib/services/chat.service.js");
-  assert(/chatCompletionWithTools/.test(chat), "embed/studio share tool loop");
+  assert(/runTurn/.test(chat), "embed/studio share orchestrator runTurn");
   const bubble = read("components/chat/MessageBubble.jsx");
   assert(/toolSteps|Called:/.test(bubble), "studio tool timeline");
 

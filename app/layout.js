@@ -1,15 +1,18 @@
-import { DM_Sans, Instrument_Sans } from "next/font/google";
+import { DM_Sans, Newsreader } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const instrumentSans = Instrument_Sans({
-  variable: "--font-instrument-sans",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
 });
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const newsreader = Newsreader({
   subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+  style: ["normal", "italic"],
 });
 
 export const metadata = {
@@ -22,10 +25,13 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${instrumentSans.variable} ${dmSans.variable} min-h-dvh antialiased`}
+      className={`${dmSans.variable} ${newsreader.variable} min-h-dvh antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-dvh flex-col bg-background text-foreground" suppressHydrationWarning>
+      <body
+        className="flex min-h-dvh flex-col bg-background font-sans text-foreground"
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

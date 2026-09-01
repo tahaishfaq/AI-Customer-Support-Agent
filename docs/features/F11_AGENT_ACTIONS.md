@@ -347,7 +347,7 @@ Yeh **conversation** hai — browser permission popup nahi.
 
 **Delivered:**
 - OpenAI tools: `lib/actions/tool-definitions.js` (schema → function tools + arg validate)
-- Loop: `lib/actions/tool-loop.js` (`chatCompletionWithTools`, max 3 steps, 25s deadline, `ToolRun` audit)
+- Loop: `lib/orchestrator` (`runTurn`, max 3 steps, 25s deadline, `ToolRun` audit via `invoke-tool`)
 - LLM turn: `chatCompletionTurn` in `llm.provider.js` (tool_calls)
 - `chat.service` loads enabled actions → appends tools prompt → runs loop (studio + embed)
 - Studio bubble: **Called:** `get_order_status → 200` timeline

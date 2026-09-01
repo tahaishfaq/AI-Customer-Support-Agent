@@ -31,19 +31,6 @@ function placementFromDeploy(deploy) {
 }
 
 function mapThreadMessages(messages) {
-  if (!agent?.welcomeMessage) return [];
-  return [
-    {
-      id: `welcome-${agent.id}`,
-      role: "ASSISTANT",
-      content: agent.welcomeMessage,
-      responseTime: null,
-      local: true,
-    },
-  ];
-}
-
-function mapThreadMessages(messages) {
   return (messages || []).map((m) => ({
     id: m.id,
     role: m.role,
@@ -237,6 +224,19 @@ export function ChatWorkspace() {
     setMessages((prev) =>
       prev.map((m) => ({
         ...m,
+        pendingConfirmations: (m.pendingConfirmations || []).map((c) =>
+          c.id === confirmation.id
+            ? {
+                ...c,
+                status:
+                  updated.status ||
+                  (decision === "deny" ? "DENIED" : "APPROVED"),
+              }
+            : c
+        ),
+      }))
+    );
+    if (decision === "approve") {
       setSending(true);
       setError("");
       try {
@@ -263,19 +263,6 @@ export function ChatWorkspace() {
       } finally {
         setSending(false);
       }
-          c.id === confirmation.id
-            ? {
-                ...c,
-                status:
-                  updated.status ||
-                  (decision === "deny" ? "DENIED" : "APPROVED"),
-              }
-            : c
-        ),
-      }))
-    );
-    if (decision === "approve") {
-      await send("Yes — please proceed with the confirmed action.");
     }
   }
 

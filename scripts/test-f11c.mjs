@@ -48,9 +48,12 @@ function testSourceWiring() {
   }
 
   const chat = read("lib/services/chat.service.js");
-  assert(/chatCompletionWithTools/.test(chat), "chat.service uses tool loop");
+  assert(/runTurn/.test(chat), "chat.service uses orchestrator runTurn");
   assert(/listEnabledActionsForAgent/.test(chat), "loads enabled actions");
   assert(/toolSteps/.test(chat), "returns toolSteps");
+
+  const orch = read("lib/orchestrator/index.js");
+  assert(/export async function runTurn/.test(orch), "orchestrator exports runTurn");
 
   const llm = read("lib/services/ai/llm.provider.js");
   assert(/chatCompletionTurn/.test(llm), "llm exposes chatCompletionTurn");

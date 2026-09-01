@@ -1,9 +1,10 @@
 # F12-E / F12-D — Escalation settings + Desk gaps vs Botpress
 
-**Status:** 📋 Planning — **awaiting approval** (no implement until you say go)  
+**Status:** 📋 Planning — **awaiting approval** (no implement until you say go) · synced Aug 31, 2026  
 **Parent:** [`F12_HUMAN_DESK.md`](F12_HUMAN_DESK.md) ✅ shipped · [`ARCHITECTURE_ACTIONS_AND_DESK.md`](ARCHITECTURE_ACTIONS_AND_DESK.md)  
 **References:** Botpress **Escalation** settings + **Botpress Desk** operator UI (your screenshots)  
-**Rule:** One phase → test → next. Desk security first (no fake HUMAN, workspace isolation).
+**Rule:** One phase → test → next. Desk security first (no fake HUMAN, workspace isolation).  
+**O01 sync:** Handoff already exposed as builtin capability `request_handoff` via Capability Registry. Escalation **settings UI** (E-track) configures Agent-layer rules / copy — **do not** add shop-specific if/else inside `runTurn`. Desk (D-track) stays Channel/Inbox UI.
 
 Yeh doc **do tracks** cover karti hai:
 
@@ -33,6 +34,7 @@ Visitor ko farq nahi — woh same widget mein “human will reply” dekhta hai.
 | Talk to human / keywords | ✅ |
 | Sensitive topics (AI pehle try) | ✅ (chhoti list, code defaults) |
 | AI `[[NEED_HUMAN]]` | ✅ |
+| Builtin `request_handoff` (O01 Capability) | ✅ |
 | Status `WAITING_HUMAN`, AI pause | ✅ |
 | Inbox, claim, resolve, return to AI | ✅ |
 | Ack + wait-timeout messages | ✅ (fixed copy) |
@@ -484,3 +486,4 @@ lib/services/desk-suggest.service.js     # new
 ---
 
 *Core handoff already live. Yeh plan = (1) Escalation settings + (2) Desk operator gaps vs Botpress. Approve E1 and/or D1–D3 in chat — phir implement.*
+| [`ORCHESTRATOR_LAYER_PLAN.md`](ORCHESTRATOR_LAYER_PLAN.md) | O01 done — escalation config ≠ Orchestrator fork |

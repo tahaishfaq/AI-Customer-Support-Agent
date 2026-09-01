@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "code": "OK",
+  "forModel": "{\"ok\":true,\"orderId\":\"123\",\"status\":\"shipped\"}",
+  "forClient": { "type": "data", "payload": { "orderId": "123" } },
+  "meta": {
+    "capabilityId": "act_get_order_status",
+    "latencyMs": 42,
+    "httpStatus": 200,
+    "toolRunId": "run_fixture_ok"
+  }
+}

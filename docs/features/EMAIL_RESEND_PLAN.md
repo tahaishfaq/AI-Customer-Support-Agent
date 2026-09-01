@@ -1,9 +1,10 @@
 # E01 — Transactional email (Resend)
 
-**Status:** 📋 Planning — **not started**  
+**Status:** 📋 Planning — **not started** (synced Aug 31, 2026 — O01 ✅; no Orchestrator dependency)  
 **Provider:** [Resend](https://resend.com) (`resend` npm package)  
 **Priority rule:** **Security first** — tokens never in logs; rate limits on all public send triggers.  
-**Execution rule:** One phase → test gate → next phase. Billing custom-request (B0) depends on EM0 + EM2.
+**Execution rule:** One phase → test gate → next phase. Billing custom-request (B0) depends on EM0 + EM2.  
+**O01 note:** Email is auth/billing/onboarding side-effect code — **never** invoked as an Orchestrator capability. No `runTurn` changes for E01.
 
 | | |
 |--|--|
@@ -392,7 +393,8 @@ scripts/test-email-em1.mjs
 | Doc | Role |
 |-----|------|
 | [`BILLING_SAFEPAY.md`](./BILLING_SAFEPAY.md) | Custom plan request + payment emails |
-| [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) | Add E01 when execution starts |
+| [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) | E01 deferred until product insists |
+| [`ORCHESTRATOR_LAYER_PLAN.md`](./ORCHESTRATOR_LAYER_PLAN.md) | O01 done — E01 does not touch it |
 | Auth `register` + `proxy.js` | Verify gate insertion |
 
 ---

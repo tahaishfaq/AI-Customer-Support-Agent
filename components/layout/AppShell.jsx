@@ -31,13 +31,13 @@ export function AppShell({ children }) {
         Skip to main content
       </a>
       <AppSidebar />
-      <SidebarInset className="min-h-0 overflow-hidden">
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
         <AppTopbar />
         <div
           id="aide-main"
           key={animKey}
           tabIndex={-1}
-          className="animate-page-in flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
+          className="animate-page-in flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-hidden outline-none"
         >
           {children}
         </div>

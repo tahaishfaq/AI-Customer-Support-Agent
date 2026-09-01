@@ -17,10 +17,8 @@ import {
 } from "@/lib/customization/position";
 import { monogram } from "@/components/conversations/format";
 
-function fontFamily(font) {
-  if (font === "dm-sans") return "var(--font-sans), system-ui, sans-serif";
-  if (font === "system") return "system-ui, sans-serif";
-  return "var(--font-display), var(--font-sans), system-ui, sans-serif";
+function fontFamily(_font) {
+  return "var(--font-dm-sans), var(--font-sans), system-ui, sans-serif";
 }
 
 function Avatar({ src, label, sizeClass, primary, invert = false, size = 28 }) {
@@ -219,7 +217,7 @@ function LauncherButton({ deploy, identity, primary }) {
   return (
     <button
       type="button"
-      className="flex size-12 items-center justify-center overflow-hidden text-white shadow-lg"
+      className="flex size-12 shrink-0 items-center justify-center overflow-hidden text-white shadow-lg"
       style={{ backgroundColor: primary, borderRadius: "9999px" }}
       aria-label="Chat launcher preview"
       tabIndex={-1}
@@ -243,7 +241,7 @@ export function CustomizationPreview({ agent, customization }) {
   const label = identity.displayName?.trim() || agent?.name || "Agent";
   const placeholder = identity.messagePlaceholder || "Type your message...";
   const footer = identity.footer || "by Aide";
-  const primary = appearance.primaryColor || "#0d7377";
+  const primary = appearance.primaryColor || "#ea580c";
   const radius = Math.max(0, Math.min(28, appearance.cornerRadius ?? 16));
   const embedded = deploy.chatInterface === "embedded";
   const widgetPosition = normalizeWidgetPosition(deploy.widgetPosition);
@@ -273,23 +271,27 @@ export function CustomizationPreview({ agent, customization }) {
   const closedStack = (
     <div
       className={cn(
-        "flex max-w-[min(100%,280px)] flex-col gap-2.5",
+        "flex max-w-[min(100%,260px)] flex-col gap-3",
         previewPos.items
       )}
     >
       {proactiveOn ? (
-        <div className="flex max-w-[240px] items-start gap-2 rounded-xl bg-white p-2.5 shadow-md ring-1 ring-black/5">
+        <div
+          className="flex w-full max-w-[220px] items-start gap-2.5 rounded-2xl bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.12)] ring-1 ring-black/5"
+          style={{ fontFamily: fontFamily(appearance.font) }}
+        >
           <Avatar
             src={identity.avatarUrl}
             label={label}
-            sizeClass="size-7 text-[10px]"
+            sizeClass="size-8 text-[10px]"
             primary={primary}
+            size={32}
           />
-          <div className="min-w-0">
-            <p className="line-clamp-3 text-[12px] text-slate-800">
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-3 text-[12px] leading-snug text-slate-800">
               {proactiveMessage}
             </p>
-            <p className="mt-0.5 text-[10px] text-slate-400">
+            <p className="mt-1 text-[10px] text-slate-400">
               a few moments ago
             </p>
           </div>
@@ -307,26 +309,28 @@ export function CustomizationPreview({ agent, customization }) {
   );
 
   const siteBody = (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
-      <div className="mx-auto max-w-md opacity-90">
-        <div className="h-2.5 w-20 rounded-full bg-white/95" />
-        <div className="mt-4 h-6 w-2/3 max-w-xs rounded-lg bg-white" />
-        <div className="mt-3 h-2 w-full rounded-full bg-white/70" />
-        <div className="mt-2 h-2 w-4/5 rounded-full bg-white/70" />
-        <div className="mt-2 h-2 w-3/5 rounded-full bg-white/55" />
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="h-20 rounded-xl bg-white/90 shadow-sm" />
-          <div className="h-20 rounded-xl bg-white/70 shadow-sm" />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
+      <div className="max-w-[280px]">
+        <div className="h-2.5 w-16 rounded-full bg-white/95" />
+        <div className="mt-5 h-5 w-[70%] rounded-lg bg-white" />
+        <div className="mt-4 space-y-2.5">
+          <div className="h-2 w-full rounded-full bg-white/75" />
+          <div className="h-2 w-[85%] rounded-full bg-white/70" />
+          <div className="h-2 w-[60%] rounded-full bg-white/55" />
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-4">
+          <div className="h-[72px] rounded-xl bg-white shadow-sm" />
+          <div className="h-[72px] rounded-xl bg-white/85 shadow-sm" />
         </div>
       </div>
     </div>
   );
 
   return (
-    <div>
+    <div className="min-w-0 font-sans">
       <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
         {!embedded ? (
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2.5">
             <p className="text-[11px] text-muted-foreground">
               {panelOpen ? "Panel open" : "Launcher closed"}
             </p>
@@ -335,9 +339,9 @@ export function CustomizationPreview({ agent, customization }) {
                 type="button"
                 onClick={() => setPanelOpen(true)}
                 className={cn(
-                  "rounded px-2 py-1 transition-colors",
+                  "rounded px-2.5 py-1 transition-colors",
                   panelOpen
-                    ? "bg-[#0d7377] text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -347,9 +351,9 @@ export function CustomizationPreview({ agent, customization }) {
                 type="button"
                 onClick={() => setPanelOpen(false)}
                 className={cn(
-                  "rounded px-2 py-1 transition-colors",
+                  "rounded px-2.5 py-1 transition-colors",
                   !panelOpen
-                    ? "bg-[#0d7377] text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -359,14 +363,14 @@ export function CustomizationPreview({ agent, customization }) {
           </div>
         ) : null}
 
-        <div className="relative min-h-[480px] bg-[#e8eef3]">
+        <div className="relative isolate min-h-[480px] overflow-hidden bg-[#e8eef3]">
           {siteBody}
           {embedded ? (
-            <div className="relative z-10 flex min-h-[480px] p-3 sm:p-4">
+            <div className="relative z-10 flex min-h-[480px] p-4 sm:p-5">
               <ChatWindow {...windowProps} className="max-w-none flex-1" />
             </div>
           ) : panelOpen ? (
-            <div className="relative z-10 flex min-h-[480px] items-center justify-center p-4 sm:p-6">
+            <div className="relative z-10 flex min-h-[480px] items-center justify-center p-5 sm:p-6">
               {openPanel}
             </div>
           ) : (

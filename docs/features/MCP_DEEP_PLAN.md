@@ -1,8 +1,42 @@
 # M01 — MCP Tools: simple deep plan (approve before build)
 
-**Status:** 📋 Planning — **awaiting your approval** (no implement until you say go)  
-**Related:** F13 (backend shipped) · F14 Confirm (HTTP only) · Botpress Tools → MCP UX (your screenshots)  
-**Rule:** One phase → test → next. **Security first.**
+**Status:** 📋 Planning — **updated Aug 31, 2026** (O01 Orchestrator shipped; Anthropic `mcp-builder` skill installed)  
+**Related:** F13 (backend shipped) · F14 Confirm (HTTP only) · O01 Capability Registry · Botpress Tools → MCP UX  
+**Rule:** One phase → test → next. **Security first.**  
+**Invariant:** Do **not** put MCP business rules inside Orchestrator — MCP stays a **capability** invoked via registry / `invoke-tool`.
+
+**Skill (installed):** [`.agents/skills/mcp-builder/`](../../.agents/skills/mcp-builder/SKILL.md) — Anthropic guide for **building MCP servers** (not for replacing Aide’s MCP **client** UX).
+
+---
+
+# Part A0 — Anthropic `mcp-builder` skill vs this plan (decision)
+
+## Two different jobs
+
+
+| | Anthropic **mcp-builder** skill | Aide **MCP_DEEP_PLAN** (this doc) |
+|--|--------------------------------|-----------------------------------|
+| **Who you are** | **MCP server author** (expose tools for any client) | **MCP client / product** (owner connects servers; agent calls tools) |
+| **Focus** | Tool naming, schemas, annotations, pagination, evals, FastMCP / TS SDK | Catalog UX, probe/save, confirm WRITE, SSRF, registry → Orchestrator |
+| **Primary code** | New/remote MCP servers; improve `/api/demo/mcp` | `McpServersPanel`, `mcp.service`, `capabilities/registry` |
+
+## Will this skill make Aide’s MCP “builder” better?
+
+**Yes — partially (targeted), not as a replacement for UX-1.**
+
+| Area | Use skill? | Why |
+|------|------------|-----|
+| **Aide demo MCP** (`/api/demo/mcp`) | ✅ **Yes** | Skill’s best practices (names, annotations, actionable errors, focused results) make our first-party demo a better LLM tool surface |
+| **Future Aide-hosted MCP addons** | ✅ **Yes** | If we ever ship a real first-party MCP server, follow skill phases 1–4 |
+| **Owner Tools → MCP UI / catalog / OAuth** | ❌ **No** | Skill does not design Botpress-style client UX; UX-1 → M3 stay as planned |
+| **Orchestrator / CapabilityResult** | ❌ **Do not change** | Already O01; MCP results already adapt via `from-tool-step` / invoke |
+| **HTTP Actions editor** | ❌ **No** | Different surface (F11); skill is MCP-server-centric |
+
+**Product decision (locked for this update):**
+
+1. Keep ship order **UX-1 → UX-2 → R1 → M1 → …**  
+2. Add **Phase DS1** (demo-server quality) using mcp-builder best practices — **after UX-1** so owners can use the better demo immediately.  
+3. Orchestrator layer **undisturbed** — only docs/runtime path references updated to `runTurn` + Capability Registry.
 
 ---
 
@@ -256,50 +290,42 @@ Agar provider sirf OAuth + dynamic registration support karta ho (Botpress error
 
 
 
-# Part D — Runtime flow (exact, files ke sath)
+# Part D — Runtime flow (exact, files ke sath) — **O01 aligned**
 
 ```
 Visitor / Studio message
         │
         ▼
-chat route → chat.service.js
+chat route → chat.service.js          ← CHANNEL
         │
         ▼
-tool-loop.js
-  • HTTP actions load
-  • MCP enabled tools load  ← mcp.service listEnabledMcpToolsForAgent
-  • OpenAI tools[] banate hain (MCP name: mcp_<server>_<tool>)
+prompt-builder + knowledge            ← AGENT
         │
         ▼
-Model tool_call decide karta hai
+lib/orchestrator runTurn()            ← ORCHESTRATOR (generic)
         │
         ▼
-invokeOneTool()
+Capability Registry                   ← CAPABILITY
+  • builtins (request_handoff, …)
+  • HTTP AgentAction rows
+  • MCP enabled tools (listEnabledMcpToolsForAgent)
+        │
+        ▼
+invoke-tool.js
   • args validate
   • policy (READ ok / WRITE needs APPROVED confirm)
-  • agar MCP → callMcpTool() in lib/mcp/client.js
+  • MCP → callMcpTool() in lib/mcp/client.js   ← still Domain/transport
         │
         ▼
 Remote MCP (ya /api/demo/mcp)
   initialize → tools/call
         │
         ▼
-Result → model → final answer
+CapabilityResult → forModel → loop / TurnResult
 (+ ToolRun row with mcpToolId)
 ```
 
-**Owner connect flow (target after UX-1):**
-
-```
-Tools → MCP
-  → Add demo OR catalog card OR Custom
-  → Name + URL + Auth
-  → Test connection (tools/list)     ← fail = mat save / clear error
-  → Save server (frozenHost set)
-  → Tool list: enable READ tools
-  → Studio: “what time is it?” (demo)
-  → See tool call in answer
-```
+**Owner connect flow (target after UX-1):** unchanged — Tools → MCP → Test → Save → enable READ → Studio.
 
 ---
 
@@ -343,6 +369,7 @@ Har phase ke baad **test**, phir agla.
 5. Tool toggles; WRITE tools UI pe “Needs confirm (soon)” + disable enable **or** allow enable but runtime deny (clear error)
 6. Empty state: “Add Aide demo MCP” one-click
 7. Short help: “Enable tools, then mention them in instructions if the agent never calls them”
+8. **O01 note:** Chat invoke already goes through Capability Registry + `runTurn` — UX-1 only unblocks owner wiring; **do not** reintroduce a second tool loop
 
 **Test gate**
 
@@ -351,8 +378,36 @@ Har phase ke baad **test**, phir agla.
 - [ ] Bad URL → SSRF / clear error  
 - [ ] Kill switch off → no MCP calls  
 - [ ] WRITE still cannot complete outbound call  
+- [ ] `npm run test:orchestrator` still green (no Orchestrator regression)
 
 **Exit:** Aap apne agent ko MCP se **READ** tools connect kar sakte ho.
+
+---
+
+## Phase DS1 — Demo MCP server quality (`mcp-builder` skill) ⭐
+
+**Goal:** Apply Anthropic mcp-builder best practices to **Aide’s first-party demo server** so Studio demos teach good tool shape (and match what we expect from external servers).
+
+**Depends on:** UX-1 (so owners can exercise the improved demo).  
+**Does not touch:** Orchestrator, registry contract, F14 HTTP confirm.
+
+**Build** (skill: `.agents/skills/mcp-builder/`)
+
+1. Tool naming: prefer `aide_demo_*` prefixes (skill: service prefix + snake_case) while keeping backward-compatible aliases **or** migrate names in one release with probe refresh  
+2. Add MCP tool **annotations** where protocol allows: `readOnlyHint` / `destructiveHint` / `idempotentHint` on list/call metadata  
+3. Actionable errors in JSON-RPC tool results (guide agent: “try timezone=UTC”) — no stack traces  
+4. Focused results: `get_demo_time` returns compact JSON + short markdown text content  
+5. Document demo tools in `docs/features/MCP_DEEP_PLAN.md` appendix + README snippet  
+6. Optional: MCP Inspector smoke note for `/api/demo/mcp`
+
+**Test gate**
+
+- [ ] Demo probe still lists tools  
+- [ ] Studio READ call works after rename/alias  
+- [ ] Error path returns `isError`-style helpful text, not internal dumps  
+- [ ] Orchestrator / F13 smokes green  
+
+**Exit:** Demo MCP is a **reference-quality** small server, not just a JSON-RPC stub.
 
 ---
 
@@ -386,22 +441,25 @@ Har phase ke baad **test**, phir agla.
 
 **Goal:** Dono configured hon to agent **ek best tool** choose kare; visitor ko **sirf poocha hua** jawab.
 
+**O01 alignment:** Arbitration lives at **Capability / prompt / registry ordering** — **not** new if/else trees inside `runTurn`. Prefer sorting descriptors + prompt rules; hard router only if LLM still double-calls.
+
 **Build**
 
 1. Optional `priority` (int) on `AgentAction` + `AgentMcpTool` (default 50)
-2. When exposing tools to the model: sort by priority; put low-priority / high-risk last
-3. Prompt rules (prompt-builder / tool-loop overlay):
+2. When exposing tools to the model: sort by priority; put low-priority / high-risk last (registry or `actionsToOpenAiTools` input order)
+3. Prompt rules (prompt-builder overlay — Agent layer):
   - Prefer **one** tool call per user question unless necessary  
   - If HTTP and MCP both fit, prefer higher priority, else lower latency history, else HTTP  
   - Answer **only** what the user asked; do not volunteer extra tool fields
-4. Soft: reduce max tool steps default for support chat
-5. Log which tool won (audit) for later tuning
+4. Soft: reduce max tool steps default for support chat (Orchestrator `maxSteps` already exists)
+5. Log which tool won via existing `orchestrator.turn` / ToolRun (no payloads)
 
 **Test gate**
 
 - [ ] Same intent, HTTP + MCP enabled → typically **one** call in studio  
 - [ ] Over-sharing fixture: fat tool JSON → reply omits unrelated fields  
 - [ ] Owner raises MCP priority → MCP preferred  
+- [ ] `runTurn` / stop-rules unchanged in behavior beyond tool order  
 
 **Exit:** Cost/speed/fine-tune knobs exist; security answer discipline on.
 
@@ -413,18 +471,21 @@ Har phase ke baad **test**, phir agla.
 
 **Goal:** F14 jaisa Confirm card MCP WRITE ke liye.
 
+**O01 alignment:** Confirm still maps to `CapabilityResult.status = needs_user` + `forClient.type = confirm` (same envelope). Invoke path stays `invoke-tool` — **no** Orchestrator policy fork.
+
 **Build**
 
 - `ActionConfirmation.mcpToolId` (XOR `actionId`)  
-- Tool-loop PENDING confirm for MCP  
+- PENDING confirm for MCP in `invoke-tool` (not a new orchestrator module)  
 - Same chat Confirm/Cancel UI  
-- Evidence list shows MCP tool name
+- Evidence list shows MCP tool name  
 
 **Test gate**
 
 - [ ] WRITE → Confirm → Approve → `tools/call`  
 - [ ] Deny → no call  
 - [ ] HTTP F14 regressions green  
+- [ ] Orchestrator stopReason `needs_user` still works  
 
 **Exit:** WRITE MCP enable karna safe.
 
@@ -485,10 +546,11 @@ Aapke liye **minimum path** (approve UX-1 ke baad):
 2. Tools → MCP → **Add Aide demo MCP**
 3. Enable `get_demo_time`
 4. Test studio: “What time is it?”
-5. Apna remote MCP: Custom URL + Bearer/Header agar chahiye
-6. WRITE tools: **M1 ke baad**
+5. Optional **DS1**: polish demo MCP with mcp-builder skill (names/annotations)
+6. Apna remote MCP: Custom URL + Bearer/Header agar chahiye
+7. WRITE tools: **M1 ke baad**
 
-Botpress jaisa GitHub one-click OAuth: **M3** — alag approve.
+Botpress jaisa GitHub one-click OAuth: **M3** — alag approve. Orchestrator (`runTurn`) **mat** chhoo.
 
 ---
 
@@ -501,13 +563,15 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve.
 | --- | ---------------- | ----------------------------------------------------------------- | --------- |
 | 1   | Pehla implement? | **UX-1** (tab + demo + custom READ)                               | Pending   |
 | 2   | Catalog          | **UX-2**: Custom + demo + **GitHub, Notion, Linear, Stripe** only | Pending   |
-| 3   | HTTP+MCP both on | **R1** arbitration + answer-only-asked                            | Pending   |
+| 3   | HTTP+MCP both on | **R1** arbitration + answer-only-asked (Agent/registry, not Orchestrator) | Pending   |
 | 4   | OAuth            | **M3** later                                                      | Pending   |
 | 5   | WRITE UI enable  | **M1** ke baad                                                    | Pending   |
 | 6   | 4 MCPs names OK? | GitHub / Notion / Linear / Stripe — change if you want            | Pending   |
+| 7   | mcp-builder skill | Use for **DS1 demo server** quality; not for client UX rewrite  | **Locked ✅** |
+| 8   | Orchestrator     | Leave O01 alone; MCP only via Capability Registry                 | **Locked ✅** |
 
 
-**Suggested ship order after approve:** UX-1 → UX-2 → R1 → M1 → …
+**Suggested ship order after approve:** UX-1 → **DS1** → UX-2 → R1 → M1 → …
 
 ---
 
@@ -515,8 +579,12 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve.
 
 # Part I — Progress
 
+- [x] O01 Orchestrator shipped — MCP invoke path documented  
+- [x] mcp-builder skill installed under `.agents/skills/mcp-builder/`  
+- [x] Decision 7–8 locked (skill + Orchestrator)  
 - [ ] Decisions 1–6 locked  
 - [ ] UX-1 approved + done + tested  
+- [ ] DS1 (demo MCP quality via skill) …  
 - [ ] UX-2 (4 common) …  
 - [ ] R1 (pick best tool + tight answers) …  
 - [ ] M1 …  
@@ -534,15 +602,19 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve.
 
 | Path                                           | Role                    |
 | ---------------------------------------------- | ----------------------- |
+| `.agents/skills/mcp-builder/`                  | Anthropic MCP **server** skill |
 | `components/customization/McpServersPanel.jsx` | UI (unmounted)          |
 | `components/customization/ActionsForm.jsx`     | MCP = Coming soon       |
 | `lib/mcp/client.js`                            | list/call               |
 | `lib/services/mcp.service.js`                  | CRUD + execute          |
-| `lib/actions/tool-loop.js`                     | Chat invoke + WRITE gap |
-| `app/api/demo/mcp/route.js`                    | Demo server             |
+| `lib/capabilities/registry.js`                 | MCP + HTTP + builtins   |
+| `lib/actions/invoke-tool.js`                   | Chat invoke + WRITE gap |
+| `lib/orchestrator/`                            | `runTurn` (do not fork for MCP) |
+| `app/api/demo/mcp/route.js`                    | Demo server (DS1 target)|
 | `docs/features/F13_TOOLS_HUB.md`               | Shipped backend story   |
+| `docs/features/ORCHESTRATOR_LAYER_PLAN.md`     | O01 done                |
 
 
 ---
 
-*Approve UX-1 (or full sequence) in chat — phir implement. Is doc ke baghair OAuth/catalog fake nahi lagayenge.*
+*Approve UX-1 (or full sequence) in chat — phir implement. Is doc ke baghair OAuth/catalog fake nahi lagayenge. Orchestrator PRs must not be reopened for MCP UX.*

@@ -1,13 +1,6 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const TONE = {
@@ -18,6 +11,7 @@ const TONE = {
   warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
 };
 
+/** Compact KPI cell for the dashboard insights strip. */
 export function MetricCard({
   label,
   value,
@@ -26,13 +20,60 @@ export function MetricCard({
   tone = "default",
   icon: Icon,
   className,
+  compact = false,
 }) {
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex min-w-0 flex-col gap-2 rounded-xl px-3.5 py-3.5 sm:px-4 sm:py-4",
+          className
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-[11px] font-medium text-muted-foreground">
+            {label}
+          </p>
+          {Icon ? (
+            <span
+              className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-md",
+                TONE[tone] || TONE.default
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+            </span>
+          ) : null}
+        </div>
+        <div className="min-h-7">
+          {loading ? (
+            <Skeleton className="h-6 w-14" aria-hidden />
+          ) : (
+            <p className="truncate font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              {value}
+            </p>
+          )}
+        </div>
+        {hint ? (
+          <p className="truncate text-[10px] text-muted-foreground">{hint}</p>
+        ) : (
+          <span className="h-3.5" aria-hidden />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <Card className={cn("shadow-none", className)}>
-      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-        <CardDescription className="min-w-0 truncate text-xs font-medium text-muted-foreground">
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-4 shadow-none",
+        className
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 truncate text-xs font-medium text-muted-foreground">
           {label}
-        </CardDescription>
+        </p>
         {Icon ? (
           <span
             className={cn(
@@ -43,22 +84,19 @@ export function MetricCard({
             <Icon className="size-4" aria-hidden />
           </span>
         ) : null}
-      </CardHeader>
-      <CardContent>
-        {/* Fixed value + hint slots avoid layout shift when skeleton → content */}
-        <div className="flex min-h-[2.75rem] items-end">
-          {loading ? (
-            <Skeleton className="h-8 w-20" aria-hidden />
-          ) : (
-            <CardTitle className="truncate font-heading text-2xl font-semibold leading-none tracking-tight sm:text-[1.7rem]">
-              {value}
-            </CardTitle>
-          )}
-        </div>
-        <p className="mt-2 min-h-4 text-[11px] text-muted-foreground">
-          {loading ? "\u00a0" : hint || ""}
-        </p>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="mt-3 flex min-h-[2.5rem] items-end">
+        {loading ? (
+          <Skeleton className="h-8 w-20" aria-hidden />
+        ) : (
+          <p className="truncate font-[family-name:var(--font-display)] text-2xl font-semibold leading-none tracking-tight">
+            {value}
+          </p>
+        )}
+      </div>
+      <p className="mt-2 min-h-4 text-[11px] text-muted-foreground">
+        {loading ? "\u00a0" : hint || ""}
+      </p>
+    </div>
   );
 }

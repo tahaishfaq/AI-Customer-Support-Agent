@@ -286,6 +286,12 @@ Customer order status poochta hai — FAQ mein nahi hota ya purana hota hai. Bot
 
 **Detail:** [`features/F11_AGENT_ACTIONS.md`](features/F11_AGENT_ACTIONS.md) · `npm run test:f11` · `test:f11r` · `test:f11-ux2`–`ux4`
 
+### O01 — Orchestrator layer (runtime)
+
+Chat ab **5-layer** model follow karta hai: Channel → Agent → **Orchestrator** (`runTurn`) → Capability Registry → Domain. HTTP/MCP/builtins ek contract pe; policy LLM ke bahar.
+
+**Detail:** [`features/ORCHESTRATOR_LAYER_PLAN.md`](features/ORCHESTRATOR_LAYER_PLAN.md) · `npm run test:orchestrator`
+
 ---
 
 ## F12 — Human desk (handoff)

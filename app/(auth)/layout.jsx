@@ -1,24 +1,44 @@
 import Link from "next/link";
-import { AuthVisualPanel } from "@/components/auth/AuthVisualPanel";
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="flex min-h-0 flex-col bg-background px-4 py-6 sm:min-h-screen sm:px-6 sm:py-8 lg:px-10">
-        <div className="mb-6 sm:mb-8 lg:mb-12">
-          <Link
-            href="/"
-            className="font-[family-name:var(--font-display)] text-lg font-semibold text-primary"
-          >
-            Aide
-          </Link>
-        </div>
-        <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center pb-6 sm:pb-10">
-          {/* Stable height on sm+ so login ↔ register does not jump; mobile flows naturally */}
-          <div className="min-h-0 sm:min-h-[560px] lg:min-h-[620px]">{children}</div>
-        </div>
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-x-hidden px-4 py-10 sm:px-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `
+            linear-gradient(
+              125deg,
+              color-mix(in oklch, var(--color-primary) 14%, white) 0%,
+              color-mix(in oklch, var(--color-primary) 6%, #faf9f7) 40%,
+              #ffffff 100%
+            )
+          `,
+        }}
+      />
+      <div
+        aria-hidden
+        className="landing-hero-atmosphere pointer-events-none absolute inset-0 overflow-hidden opacity-60"
+      >
+        <span className="landing-hero-orb landing-hero-orb-a" />
+        <span className="landing-hero-orb landing-hero-orb-b" />
       </div>
-      <AuthVisualPanel />
+
+      <div className="relative z-10 flex w-full max-w-[420px] flex-col items-center">
+        <Link
+          href="/"
+          className="landing-display mb-8 text-[1.35rem] text-[var(--landing-ink)] sm:mb-10"
+        >
+          Aide
+        </Link>
+        {children}
+        <p className="mt-8 text-center text-[12px] text-[var(--landing-muted)]">
+          <Link href="/" className="hover:text-[var(--landing-ink)]">
+            ← Back to home
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -85,8 +85,8 @@ export function EmbedPreview({ placement, children }) {
           <FakeWebsite />
           <div
             className={cn(
-              "absolute bottom-4 z-10",
-              isLeft ? "left-4" : "right-4"
+              "absolute bottom-6 z-10",
+              isLeft ? "left-6" : "right-6"
             )}
           >
             {children}
