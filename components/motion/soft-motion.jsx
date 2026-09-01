@@ -33,17 +33,19 @@ const staggerChildVariants = {
   },
 };
 
-const MOTION_TAGS = {
-  div: motion.div,
-  section: motion.section,
-  ul: motion.ul,
-  li: motion.li,
-  article: motion.article,
-};
-
-function resolveMotion(as) {
-  if (typeof as === "string") return MOTION_TAGS[as] || motion.div;
-  return as || motion.div;
+function MotionTag({ as = "div", children, ...props }) {
+  switch (as) {
+    case "section":
+      return <motion.section {...props}>{children}</motion.section>;
+    case "ul":
+      return <motion.ul {...props}>{children}</motion.ul>;
+    case "li":
+      return <motion.li {...props}>{children}</motion.li>;
+    case "article":
+      return <motion.article {...props}>{children}</motion.article>;
+    default:
+      return <motion.div {...props}>{children}</motion.div>;
+  }
 }
 
 /** Hook for composing motion props without wrapping extra DOM. */
@@ -76,7 +78,7 @@ export function useSoftMotion() {
 
 /**
  * Single fade-up enter. Use for chart cards and one-off panels.
- * @param {"div"|"section"|"ul"|"li"|"article"|React.ElementType} [as]
+ * @param {"div"|"section"|"ul"|"li"|"article"} [as]
  * @param {number} [delay]
  */
 export function SoftFade({
@@ -87,10 +89,10 @@ export function SoftFade({
   ...props
 }) {
   const reduce = useReducedMotion();
-  const Comp = resolveMotion(as);
 
   return (
-    <Comp
+    <MotionTag
+      as={as}
       className={className}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -102,30 +104,28 @@ export function SoftFade({
       {...props}
     >
       {children}
-    </Comp>
+    </MotionTag>
   );
 }
 
 /** Parent for staggered children (KPI grid, inbox list). */
 export function SoftStagger({ as = "div", children, className, ...props }) {
   const { staggerParentProps } = useSoftMotion();
-  const Comp = resolveMotion(as);
 
   return (
-    <Comp className={className} {...staggerParentProps} {...props}>
+    <MotionTag as={as} className={className} {...staggerParentProps} {...props}>
       {children}
-    </Comp>
+    </MotionTag>
   );
 }
 
 /** Child of SoftStagger — one KPI or list row. */
 export function SoftStaggerItem({ as = "div", children, className, ...props }) {
   const { staggerChildProps } = useSoftMotion();
-  const Comp = resolveMotion(as);
 
   return (
-    <Comp className={className} {...staggerChildProps} {...props}>
+    <MotionTag as={as} className={className} {...staggerChildProps} {...props}>
       {children}
-    </Comp>
+    </MotionTag>
   );
 }

@@ -257,13 +257,6 @@ export function ActionsForm({
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (!pendingCreateForm) return;
-    openCreateFromSlot(pendingCreateForm);
-    onPendingCreateConsumed?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when parent hands a pack slot
-  }, [pendingCreateForm]);
-
   function patchForm(partial) {
     setForm((prev) => ({ ...prev, ...partial }));
   }
@@ -306,6 +299,13 @@ export function ActionsForm({
     setEditorOpen(true);
     setTab("http");
   }
+
+  useEffect(() => {
+    if (!pendingCreateForm) return;
+    openCreateFromSlot(pendingCreateForm);
+    onPendingCreateConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when parent hands a pack slot
+  }, [pendingCreateForm]);
 
   function openEdit(action) {
     setEditingId(action.id);

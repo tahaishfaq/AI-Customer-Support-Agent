@@ -123,9 +123,12 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     showWaitingBanner,
   } = useEmbedDesk({ agent, conversationId, messages, setMessages });
   const hostUserRef = useRef(null);
-  hostUserRef.current = hostUser;
-  conversationIdRef.current = conversationId;
-  messagesRef.current = messages;
+
+  useLayoutEffect(() => {
+    hostUserRef.current = hostUser;
+    conversationIdRef.current = conversationId;
+    messagesRef.current = messages;
+  }, [hostUser, conversationId, messages]);
 
   useEffect(() => {
     if (!bubbleMode) return;
