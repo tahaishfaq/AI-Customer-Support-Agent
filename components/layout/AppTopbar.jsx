@@ -1,23 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { Fragment } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronRight, LogOut, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LogOut, Menu, PanelLeft } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useSidebar } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useAuthStore } from "@/store/auth-store";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 import { getBreadcrumbs } from "@/components/layout/nav";
 
 function initials(name) {
-  if (!name) return "H";
+  if (!name) return "A";
   return name
     .split(" ")
     .filter(Boolean)
@@ -26,7 +40,27 @@ function initials(name) {
     .join("");
 }
 
-export function AppTopbar({ onMenuClick }) {
+function NavMenuTrigger() {
+  const { toggleSidebar, isMobile, openMobile } = useSidebar();
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="-ml-1 size-9 shrink-0 text-muted-foreground md:size-8"
+      onClick={toggleSidebar}
+      aria-label={isMobile && openMobile ? "Close menu" : "Open menu"}
+      aria-expanded={isMobile ? openMobile : undefined}
+      aria-controls={isMobile ? "aide-mobile-sidebar" : undefined}
+    >
+      <Menu className="size-5 md:hidden" />
+      <PanelLeft className="hidden size-4 md:block" />
+    </Button>
+  );
+}
+
+export function AppTopbar() {
   const pathname = usePathname();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -41,86 +75,77 @@ export function AppTopbar({ onMenuClick }) {
   }
 
   return (
-    <header className="z-30 flex h-[var(--app-topbar-height)] shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 shadow-[var(--shadow-bar)] backdrop-blur-sm sm:px-5">
-      <div className="flex min-w-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0 text-[var(--color-text-secondary)] md:hidden"
-          onClick={onMenuClick}
-          aria-label="Open menu"
-        >
-          <Menu className="size-4" />
-        </Button>
+    <header className="z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm sm:px-5">
+      <NavMenuTrigger />
+      <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
 
-        <nav
-          aria-label="Breadcrumb"
-          className="flex min-w-0 items-center text-[13px]"
-        >
+      <Breadcrumb className="min-w-0 flex-1">
+        <BreadcrumbList className="flex-nowrap">
           {crumbs.map((crumb, index) => {
             const last = index === crumbs.length - 1;
             return (
-              <span
-                key={`${crumb.label}-${index}`}
-                className="flex min-w-0 items-center"
-              >
-                {index > 0 ? (
-                  <ChevronRight
-                    className="mx-1 size-3.5 shrink-0 text-[var(--color-muted)]"
-                    aria-hidden
-                  />
-                ) : null}
-                {last || !crumb.href ? (
-                  <span className="truncate font-medium text-[var(--color-text)]">
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <Link
-                    href={crumb.href}
-                    className="truncate text-[var(--color-muted)] hover:text-[var(--color-text)]"
-                  >
-                    {crumb.label}
-                  </Link>
-                )}
-              </span>
+              <Fragment key={`${crumb.label}-${index}`}>
+                {index > 0 ? <BreadcrumbSeparator /> : null}
+                <BreadcrumbItem className="min-w-0">
+                  {last || !crumb.href ? (
+                    <BreadcrumbPage className="truncate font-medium">
+                      {crumb.label}
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink
+                      render={<Link href={crumb.href} />}
+                      className="truncate"
+                    >
+                      {crumb.label}
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </Fragment>
             );
           })}
-        </nav>
-      </div>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <ThemeToggle className="text-muted-foreground" />
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+          className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Account menu"
         >
-          <span className="hidden max-w-[9rem] truncate text-[13px] text-[var(--color-text-secondary)] sm:block">
+          <span className="hidden max-w-[9rem] truncate text-sm text-muted-foreground sm:block">
             {user?.name}
           </span>
-          <span className="flex size-8 items-center justify-center rounded-full bg-[var(--color-primary)] text-[11px] font-semibold text-white">
-            {initials(user?.name)}
-          </span>
+          <Avatar size="sm">
+            <AvatarFallback className="bg-primary text-[11px] font-semibold text-primary-foreground">
+              {initials(user?.name)}
+            </AvatarFallback>
+          </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
-          <DropdownMenuLabel className="font-normal">
-            <p className="truncate text-sm font-medium text-[var(--color-text)]">
-              {user?.name || "Account"}
-            </p>
-            {user?.email ? (
-              <p className="truncate text-xs text-[var(--color-muted)]">
-                {user.email}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="font-normal">
+              <p className="truncate text-sm font-medium">
+                {user?.name || "Account"}
               </p>
-            ) : null}
-          </DropdownMenuLabel>
+              {user?.email ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  {user.email}
+                </p>
+              ) : null}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={handleLogout}
-            className="cursor-pointer"
-          >
-            <LogOut />
-            Log out
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={handleLogout}
+              className="cursor-pointer"
+            >
+              <LogOut data-icon="inline-start" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

@@ -4,26 +4,39 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 
+/** Avoid full-page skeleton when switching agent studio tabs. */
+const agentCache = new Map();
+
 export function useAgentStudio() {
   const params = useParams();
   const id = params?.id;
-  const [agent, setAgent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cached = id ? agentCache.get(id) : null;
+  const [agent, setAgent] = useState(cached ?? null);
+  const [loading, setLoading] = useState(Boolean(id) && !cached);
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
+    const hadCache = agentCache.has(id);
 
     async function load() {
-      setLoading(true);
+      if (!hadCache) {
+        setLoading(true);
+      }
       setError("");
       try {
         const data = await getAgent(id);
-        if (!cancelled) setAgent(data);
+        if (!cancelled) {
+          agentCache.set(id, data);
+          setAgent(data);
+        }
       } catch (err) {
-        if (!cancelled) setError(err.message || "Unable to load agent");
+        if (!cancelled && !agentCache.has(id)) {
+          setError(err.message || "Unable to load agent");
+          setAgent(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -38,8 +51,11 @@ export function useAgentStudio() {
   return {
     id,
     agent,
-    setAgent,
-    loading,
+    setAgent: (next) => {
+      if (id && next) agentCache.set(id, next);
+      setAgent(next);
+    },
+    loading: loading && !agent,
     error,
     deleteOpen,
     setDeleteOpen,

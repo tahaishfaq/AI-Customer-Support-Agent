@@ -1,11 +1,11 @@
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { withVerifyFullSsl } from "../lib/pg-connection.js";
+import { resolveTestBaseUrl } from "./lib/test-base-url.mjs";
+import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
-const BASE = (process.env.TEST_BASE_URL || "http://127.0.0.1:3000").replace(
-  /\/$/,
-  ""
-);
+const BASE = resolveTestBaseUrl();
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -97,12 +97,37 @@ async function api(jar, path, options = {}) {
   return fetch(`${BASE}${path}`, { ...options, headers });
 }
 
+async function registerUser(name, email, password) {
+  const res = await fetch(`${BASE}/api/auth/register`, {
+    method: "POST",
+    headers: uniqueTestIpHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      confirmPassword: password,
+    }),
+  });
+  const body = await json(res);
+  return { res, body };
+}
+
 async function main() {
   await waitForHealth();
 
-  const stamp = Date.now();
-  const email = `p0-product-${stamp}@hapy.test`;
+  if (/localhost|127\.0\.0\.1/i.test(BASE) && process.env.CI === "true") {
+    console.warn(
+      "WARN  TEST_BASE_URL is localhost in CI — prefer a Vercel preview URL (F03-E)."
+    );
+  }
+
+  // Unique per run so parallel PR smokes do not collide (F03-F).
+  const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+  const email = `p0-product-${stamp}@aide.test`;
+  const emailB = `p0-product-b-${stamp}@aide.test`;
   const password = "ProductSmoke1!";
+  const knowledgePhrase = "5 business days";
+  const emailsToClean = [email, emailB];
   const passed = [];
   const failed = [];
 
@@ -118,27 +143,35 @@ async function main() {
   }
 
   let jar;
+  let jarB;
   let agentId;
   let conversationId;
 
   try {
     await test("register", async () => {
-      const res = await fetch(`${BASE}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Product Smoke",
-          email,
-          password,
-          confirmPassword: password,
-        }),
-      });
-      const body = await json(res);
+      const { res, body } = await registerUser("Product Smoke", email, password);
       assert(
         res.status === 201,
         `register ${res.status} ${JSON.stringify(body)}`
       );
       assert(body?.user?.email === email, "register email");
+    });
+
+    await test("reserved admin email cannot register", async () => {
+      const adminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim();
+      if (!adminEmail) {
+        console.log("  skip (ADMIN_BOOTSTRAP_EMAIL unset)");
+        return;
+      }
+      const { res, body } = await registerUser(
+        "Should Fail",
+        adminEmail,
+        password
+      );
+      assert(
+        res.status === 409,
+        `reserved admin register expected 409, got ${res.status} ${JSON.stringify(body)}`
+      );
     });
 
     await test("login", async () => {
@@ -166,14 +199,15 @@ async function main() {
         body: JSON.stringify({
           name: "Refunds",
           type: "TEXT",
-          content: "Refunds are processed within 5 business days.",
+          content: `Refunds are processed within ${knowledgePhrase}.`,
         }),
       });
       const body = await json(res);
       assert(res.status === 201, `knowledge ${res.status} ${JSON.stringify(body)}`);
     });
 
-    await test("studio chat", async () => {
+    // One OpenAI call max for this smoke (F03-E).
+    await test("studio FAQ chat uses knowledge", async () => {
       const res = await api(jar, `/api/agents/${agentId}/chat`, {
         method: "POST",
         body: JSON.stringify({
@@ -185,20 +219,28 @@ async function main() {
       conversationId = body.conversationId;
       assert(conversationId, "conversationId");
       assert(body.message?.role === "ASSISTANT", "assistant reply");
+      const content = String(body.message?.content || "");
+      assert(content.length > 0, "assistant content");
       assert(
-        typeof body.message?.content === "string" && body.message.content.length > 0,
-        "assistant content"
+        /5\s*business\s*days|refund/i.test(content),
+        `assistant should reflect knowledge (got: ${content.slice(0, 120)})`
       );
     });
 
-    await test("conversation classified", async () => {
-      const res = await api(jar, `/api/conversations/${conversationId}`);
-      const body = await json(res);
+    await test("conversation persisted (+ classify lag ok)", async () => {
+      let body;
+      let res;
+      for (let i = 0; i < 8; i += 1) {
+        res = await api(jar, `/api/conversations/${conversationId}`);
+        body = await json(res);
+        if (res.status === 200 && body.category && body.sentiment) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
       assert(res.status === 200, `conversation ${res.status}`);
       const roles = (body.messages || []).map((m) => m.role);
       assert(roles.includes("USER"), "USER message");
       assert(roles.includes("ASSISTANT"), "ASSISTANT message");
-      assert(body.category, "category");
+      assert(body.category, "category (may lag after-return classify)");
       assert(body.sentiment, "sentiment");
     });
 
@@ -214,13 +256,34 @@ async function main() {
         "dashboard conversations"
       );
     });
+
+    await test("workspace isolation — other user 404 on agent", async () => {
+      const { res: reg, body: regBody } = await registerUser(
+        "Product Smoke B",
+        emailB,
+        password
+      );
+      assert(
+        reg.status === 201,
+        `register B ${reg.status} ${JSON.stringify(regBody)}`
+      );
+      jarB = await signIn(emailB, password);
+      const res = await api(jarB, `/api/agents/${agentId}`);
+      const body = await json(res);
+      assert(
+        res.status === 404 || res.status === 403,
+        `cross-user agent expected 404/403, got ${res.status} ${JSON.stringify(body)}`
+      );
+    });
   } finally {
     if (process.env.DATABASE_URL) {
       const pool = new Pool({
         connectionString: withVerifyFullSsl(process.env.DATABASE_URL),
       });
       try {
-        await pool.query(`DELETE FROM "User" WHERE email = $1`, [email]);
+        for (const e of emailsToClean) {
+          await pool.query(`DELETE FROM "User" WHERE email = $1`, [e]);
+        }
       } finally {
         await pool.end();
       }
@@ -228,14 +291,16 @@ async function main() {
   }
 
   console.log("\n--- product smoke ---");
+  console.log(`BASE ${BASE}`);
   console.log(`passed ${passed.length}  failed ${failed.length}`);
   if (failed.length) {
+    console.log("Failed steps:");
     for (const item of failed) console.log(` - ${item.name}: ${item.error}`);
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error("product smoke failed:", error.message || error);
+  console.error("\nproduct smoke FAILED:", error.message || error);
   process.exit(1);
 });

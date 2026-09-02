@@ -4,7 +4,7 @@ import { listRestoreRequests } from "@/lib/services/restore-request.service";
 
 export async function GET(request) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(request);
     if (authResult.error) return authResult.error;
 
     const status = request.nextUrl.searchParams.get("status") || "PENDING";

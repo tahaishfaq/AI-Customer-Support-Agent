@@ -1,16 +1,16 @@
-# Hapy — Week 3, intern leftovers, and named out-of-scope backlog
+# Aide — Week 3, intern leftovers, and named out-of-scope backlog
 
 **Who this is for:** after product Phases **0–11** and Admin **A0–A6**.  
-**Sources:** internship doc *Hapy — AI Customer Support & Customer Insights* §28 Optional Week 3, §29 Out of Scope, §30 Definition of Done; `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`; `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`; live app review (login/register/admin 404).  
+**Sources:** internship requirements `.docx` §28 Optional Week 3, §29 Out of Scope, §30 Definition of Done; live app.  
 **Rule from the internship doc:** Week 3 = *choose only a few engineering items*. *Do not expand the product horizontally.* Out-of-scope stays named here so it is planned, not forgotten — **do not start P3+ until this file is explicitly reopened.**
 
-**Competitor deep audits (Zendesk / Intercom / Botpress) + fusion roadmap:** [`AUDIT_ZENDESK_VS_HAPY.md`](AUDIT_ZENDESK_VS_HAPY.md) · [`AUDIT_INTERCOM_VS_HAPY.md`](AUDIT_INTERCOM_VS_HAPY.md) · [`AUDIT_BOTPRESS_VS_HAPY.md`](AUDIT_BOTPRESS_VS_HAPY.md) · [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
+**Start here for execution:** `[ROADMAP_NEXT.md](ROADMAP_NEXT.md)` · per-feature plans in `[features/](features/)` (F01–F12).  
+**Competitor audits:** `[AUDIT_ZENDESK_VS_HAPY.md](AUDIT_ZENDESK_VS_HAPY.md)` · `[AUDIT_INTERCOM_VS_HAPY.md](AUDIT_INTERCOM_VS_HAPY.md)` · `[AUDIT_BOTPRESS_VS_HAPY.md](AUDIT_BOTPRESS_VS_HAPY.md)`.  
+**Open ordered work:** `[OPEN_SEQUENCE.md](OPEN_SEQUENCE.md)`.
 
 This file is the **priority-ordered backlog**. Checkboxes are the work remaining, not history of Phases 0–11.
 
 ---
-
-
 
 ## Already shipped (do not re-plan as new product)
 
@@ -25,8 +25,6 @@ This file is the **priority-ordered backlog**. Checkboxes are the work remaining
 
 
 ---
-
-
 
 ## Priority map (read this first)
 
@@ -49,15 +47,11 @@ This file is the **priority-ordered backlog**. Checkboxes are the work remaining
 
 ---
 
-
-
 # P0 — Must finish intern Definition of Done + live quality
 
 Internship §30 still has items that are process/ops, not new screens. Browser pass on `/login` and `/register` found a concrete bug.
 
 ---
-
-
 
 ### P0-1 — Google sign-in stuck on “Loading Google…”
 
@@ -77,8 +71,6 @@ Internship §30 still has items that are process/ops, not new screens. Browser p
 **Code:** `GoogleSignInButton` retries GIS + layout, times out only if the GIS script never loads, and never leaves infinite Loading. Local verify on `/login` + `/register` (deploy is P0-2).
 
 ---
-
-
 
 ### P0-2 — Production / Vercel smoke
 
@@ -101,15 +93,13 @@ Internship §30 still has items that are process/ops, not new screens. Browser p
 
 **Done when:** written smoke notes (pass/fail) against the live URL. Do not mark done from localhost only.
 
-**Blocked:** needs Vercel access. Checklist: [`docs/VERCEL_SMOKE.md`](VERCEL_SMOKE.md).
+**Blocked:** needs Vercel access. Use README → Go-live smoke against the live URL.
 
 ---
 
-
-
 ### P0-3 — Automated tests + CI (Week 3 item, treated as P0)
 
-Internship Week 3 lists *Automated tests* and *CI/CD*. Admin has `scripts/test-a0.mjs` + `scripts/test-admin-v1.mjs`. Product happy path is not in CI.
+Internship Week 3 lists *Automated tests* and *CI/CD*. **F03 shipped:** lint always; contract smokes; product + bugfix + admin HTTP smoke when GitHub secrets exist (`TEST_BASE_URL` prefer preview). See `[features/F03_PRODUCTION_TESTING_CI.md](features/F03_PRODUCTION_TESTING_CI.md)`.
 
 **Depth:**
 
@@ -123,8 +113,6 @@ Internship Week 3 lists *Automated tests* and *CI/CD*. Admin has `scripts/test-a
 
 ---
 
-
-
 ### P0-4 — README, repo hygiene, final demo
 
 Internship §30–31: README complete, GitHub organized, reviewed by both interns, final presentation.
@@ -136,13 +124,11 @@ Internship §30–31: README complete, GitHub organized, reviewed by both intern
 - 8–12 slide / 5-minute demo: problem → agent + knowledge → chat → insights → embed → admin inspect (optional).
 - Intern review checklist signed (process, not code).
 
-**Done when:** a stranger can clone + `.env.example` + run; demo script exists in `docs/` or README.
+**Done when:** a stranger can clone + `.env.example` + run; demo notes live in README (+ `/demo-slides.html`).
 
-**Code:** README clone path + env + workspaces + migrations list; [`docs/DEMO_SCRIPT.md`](DEMO_SCRIPT.md); [`docs/INTERN_REVIEW_CHECKLIST.md`](INTERN_REVIEW_CHECKLIST.md) (names/dates are process — fill when you review). `.env` stays gitignored.
+**Code:** README clone path + env + workspaces + migrations list; demo slides at `/demo-slides.html`. `.env` stays gitignored.
 
 ---
-
-
 
 ### P0-5 — Critical errors visible to the user (DoD)
 
@@ -152,8 +138,6 @@ Internship §30–31: README complete, GitHub organized, reviewed by both intern
 
 ---
 
-
-
 # P1 — Optional Week 3 (internship §28)
 
 Doc text: *If the team gets additional time: Engineering & Enhancement. Choose only a few.*
@@ -161,8 +145,6 @@ Doc text: *If the team gets additional time: Engineering & Enhancement. Choose o
 Do **not** implement this entire band. After P0, **pick two or three IDs**. The rest stay unchecked.
 
 ---
-
-
 
 ### W3-1 — Better knowledge retrieval *(Week 3 list; overlaps OOS vector DB)*
 
@@ -178,8 +160,6 @@ Do **not** implement this entire band. After P0, **pick two or three IDs**. The 
 
 ---
 
-
-
 ### W3-2 — RAG / embeddings
 
 **Name in internship Week 3 *and* §29 Out of Scope (“Complex vector database infrastructure”).**
@@ -187,8 +167,6 @@ Do **not** implement this entire band. After P0, **pick two or three IDs**. The 
 Treat as **P3-RAG**, not P1. See below.
 
 ---
-
-
 
 ### W3-3 — Better AI prompts
 
@@ -203,8 +181,6 @@ Treat as **P3-RAG**, not P1. See below.
 
 ---
 
-
-
 ### W3-4 — Logging
 
 **Depth:** structured logs for chat, classify, crawl, public ping, admin audit already in DB. Add request id, agent id, duration; never log raw PII/message bodies in production by default. Optional request-id header.
@@ -212,8 +188,6 @@ Treat as **P3-RAG**, not P1. See below.
 **Done when:** one failed chat can be found in Vercel logs without the customer transcript dumped.
 
 ---
-
-
 
 ### W3-5 — Performance optimization
 
@@ -229,15 +203,11 @@ Treat as **P3-RAG**, not P1. See below.
 
 ---
 
-
-
 ### W3-6 — Better analytics
 
 Product `/analytics` and admin dashboard `/admin` **exist**. P1 only if a **named gap** is filed (e.g. export CSV, date compare). Do not rebuild charts for Week 3 credit.
 
 ---
-
-
 
 ### W3-7 — UI/UX polish + responsive (DoD: application is responsive)
 
@@ -252,15 +222,11 @@ Product `/analytics` and admin dashboard `/admin` **exist**. P1 only if a **name
 
 ---
 
-
-
 ### W3-8 — CI/CD
 
 Covered under **P0-3**. Extra: preview deploys, `migrate deploy` in release, not `migrate dev` on Vercel.
 
 ---
-
-
 
 # P2 — Small gaps on shipped product (not new modules)
 
@@ -277,8 +243,6 @@ Do these only if they bite users. Not internship Week 3 “new features.”
 
 ---
 
-
-
 # P3 — Named out-of-scope (deep plan, do not start)
 
 Each item is named so it is **planned**, with why it is later, dependencies, and a future sketch. Starting any of these **is** horizontal expansion unless this section is explicitly opened.
@@ -286,8 +250,6 @@ Each item is named so it is **planned**, with why it is later, dependencies, and
 Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
-
-
 
 ## P3-BILLING — Billing, Stripe, subscriptions
 
@@ -312,8 +274,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-TEAMS — Team management + advanced RBAC
 
 **Internship:** ❌ Team management, ❌ Advanced RBAC, ❌ Multi-tenant SaaS  
@@ -335,8 +295,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-ADMIN-STAFF — More than one platform admin / staff RBAC
 
 **Product:** **P-O8**  
@@ -347,8 +305,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 **Future sketch:** invite second ADMIN or SUPPORT/READONLY; drop unique admin index; audit every grant. High political/abuse cost.
 
 ---
-
-
 
 ## P3-IMPERSONATE — Admin act-as-user (writes)
 
@@ -362,8 +318,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 **Do not** add `?admin=1` on product APIs.
 
 ---
-
-
 
 ## P3-CHANNELS — WhatsApp / Slack / Discord / mobile app
 
@@ -379,8 +333,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-DESK — Human desk / live handoff
 
 **Product:** **P-O3**  
@@ -392,18 +344,14 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-FLOWS — Flow canvas / visual bot builder
 
 **Product:** **P-O1**  
 **Admin:** **O7**
 
-**Why later:** never-MVP; Hapy is prompt + knowledge, not Botpress Studio flows.
+**Why later:** never-MVP; Aide is prompt + knowledge, not Botpress Studio flows.
 
 ---
-
-
 
 ## P3-RAG — Vector RAG / embeddings / “better retrieval” as a platform
 
@@ -418,8 +366,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-LLM — Custom LLM training / fine-tune / model garden
 
 **Internship:** ❌ Custom LLM training, ❌ Fine-tuning, ❌ Advanced ML models  
@@ -431,8 +377,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 **Future sketch:** model picker per agent (optional post-MVP in fullstack plan) is **smaller** than fine-tune — if opened, treat as **P3-MODEL-PICKER** under product extras, still not fine-tune.
 
 ---
-
-
 
 ## P3-CRAWL-WEB — Open-web / competitor / global crawler console
 
@@ -448,8 +392,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-SSO — Customer SSO / SAML / SCIM
 
 **Product:** **P-O11**  
@@ -459,8 +401,6 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-RESIDENCY — Multi-region / residency / SIEM / partners
 
 **Admin:** **O11**
@@ -469,11 +409,9 @@ Crosswalk: internship §29 ↔ product `P-O*` ↔ admin `O*`.
 
 ---
 
-
-
 ## P3-PRODUCT-EXTRAS — Fullstack “optional post-MVP” (not intern Week 3)
 
-From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain).
+Named post-MVP product extras (not intern Week 3): Streaming · Citations · Model picker · Headless/SPA crawl · extra origins (blog subdomain).
 
 **Depth (when opened, one at a time):**
 
@@ -489,8 +427,6 @@ From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citati
 
 ---
 
-
-
 # Never (do not plan a build)
 
 - Training **on private customer conversations/knowledge**
@@ -500,33 +436,25 @@ From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citati
 
 ---
 
-
-
 ## Master checklist (mark when a band is actually started)
-
-
 
 ### P0
 
 - [x] P0-1 Google button *(code done; confirm locally on /login + /register)*
-- [x] P0-2 Vercel smoke *(product pass 2026-08-20; admin login on live still fail — see docs/VERCEL_SMOKE.md)*
-- [x] P0-3 Tests + CI *(lint always; HTTP smoke skips without GitHub secrets)*
-- [x] P0-4 README + demo *(interns still fill the review checklist)*
+- [x] P0-2 Vercel smoke *(product pass 2026-08-20; re-check admin login on live if needed)*
+- [x] P0-3 Tests + CI *(F03: lint + contracts always; HTTP smoke when secrets; unique emails / isolation / knowledge phrase)*
+- [x] P0-4 README + demo
 - [x] P0-5 Critical errors
-
-
 
 ### P1 (tick only what you chose)
 
-- [ ] W3-1 Stuffing retrieval (not vector)
-- [ ] W3-3 Prompts
-- [ ] W3-4 Logging
-- [ ] W3-5 Performance
-- [ ] W3-6 Analytics gap (only if named)
-- [ ] W3-7 UI/responsive
+- [x] W3-1 Stuffing retrieval (not vector) — ✅ fair pack + WEB cite · `[P01_WEEK3_PLAN.md](features/P01_WEEK3_PLAN.md)`
+- [x] W3-3 Prompts — ✅ grounding cite + classify smoke
+- [x] W3-7 UI/responsive — ✅ 375px contracts
+- [x] W3-4 Logging
+- [x] W3-5 Performance
+- [x] W3-6 Analytics gap (only if named)
 - [x] W3-8 CI (done in P0-3)
-
-
 
 ### P3 (leave unchecked until explicitly opened)
 
@@ -535,28 +463,27 @@ From `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)`: Streaming · Citati
 - [ ] P3-ADMIN-STAFF
 - [ ] P3-IMPERSONATE
 - [ ] P3-CHANNELS
-- [ ] P3-DESK
+- [x] P3-DESK
 - [ ] P3-FLOWS
 - [ ] P3-RAG
 - [ ] P3-LLM
-- [ ] P3-CRAWL-WEB
+- [x] P3-CRAWL-WEB
 - [ ] P3-SSO
 - [ ] P3-RESIDENCY
 - [ ] P3-PRODUCT-EXTRAS (split when opened)
 
 ---
 
-
-
 ## Related docs
 
 
-| File                                                   | Role                                   |
-| ------------------------------------------------------ | -------------------------------------- |
-| Internship `.docx` §28–31                              | Original Week 3 / OOS / DoD wording    |
-| This file                                              | **Priority backlog + named OOS depth** |
-| `[NEXTJS_FULLSTACK_PLAN.md](NEXTJS_FULLSTACK_PLAN.md)` | Phases 0–11 + product P-O*             |
-| `[ADMIN_SAAS_PLAN.md](ADMIN_SAAS_PLAN.md)`             | Admin A0–A6 + O1+                      |
-| `[docs/data-pipeline.md](data-pipeline.md)`            | Classify / analytics pipeline          |
+| File                                   | Role                                     |
+| -------------------------------------- | ---------------------------------------- |
+| Internship `.docx`                     | Requirements (§28–31 Week 3 / OOS / DoD) |
+| `[ROADMAP_NEXT.md](ROADMAP_NEXT.md)`   | **This-week order + analysis**           |
+| `[features/](features/)`               | Individual feature plans F01–F12         |
+| This file                              | Priority backlog + named OOS             |
+| `[OPEN_SEQUENCE.md](OPEN_SEQUENCE.md)` | Ordered remaining work                   |
+| Audits Zendesk / Intercom / Botpress   | Competitor deep dives                    |
 
 

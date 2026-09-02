@@ -5,24 +5,40 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
+  Headphones,
   Home,
   MessageSquare,
-  MessagesSquare,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { useDeskWaitingCount } from "@/hooks/use-desk-waiting-count";
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
 import {
   MONITOR_NAV,
   PRIMARY_NAV,
   isNavActive,
 } from "@/components/layout/nav";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 const ICONS = {
   "/dashboard": Home,
   "/agents": Bot,
   "/chat": MessageSquare,
-  "/conversations": MessagesSquare,
+  "/inbox": Headphones,
   "/analytics": BarChart3,
 };
 
@@ -36,84 +52,94 @@ function initials(name) {
     .join("");
 }
 
-function NavLink({ item, onNavigate }) {
+function NavItems({ items, badgeForHref }) {
   const pathname = usePathname();
-  const active = isNavActive(pathname, item.href);
-  const Icon = ICONS[item.href];
+  const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      className={cn(
-        "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors",
-        active
-          ? "bg-[var(--sidebar-accent)] font-medium text-[var(--color-primary)]"
-          : "font-normal text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-      )}
-    >
-      {active ? (
-        <span
-          aria-hidden
-          className="absolute inset-y-1.5 left-0 w-[2px] rounded-full bg-[var(--color-primary)]"
-        />
-      ) : null}
-      {Icon ? (
-        <Icon
-          className={cn(
-            "size-[16px] shrink-0",
-            active ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]"
-          )}
-        />
-      ) : null}
-      {item.label}
-    </Link>
+    <SidebarMenu>
+      {items.map((item) => {
+        const Icon = ICONS[item.href];
+        const active = isNavActive(pathname, item.href);
+        const badge = badgeForHref?.(item.href) ?? 0;
+
+        return (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              render={<Link href={item.href} />}
+              isActive={active}
+              tooltip={item.label}
+              onClick={() => {
+                if (isMobile) setOpenMobile(false);
+              }}
+            >
+              {Icon ? <Icon /> : null}
+              <span>{item.label}</span>
+            </SidebarMenuButton>
+            {badge > 0 ? (
+              <SidebarMenuBadge className="rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                {badge > 9 ? "9+" : badge}
+              </SidebarMenuBadge>
+            ) : null}
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
   );
 }
 
-export function AppSidebar({ onNavigate }) {
+export function AppSidebar() {
   const user = useAuthStore((s) => s.user);
+  const deskWaiting = useDeskWaitingCount();
 
   return (
-    <div className="flex h-full flex-col bg-[var(--color-surface)]">
-      <div className="flex h-[var(--app-topbar-height)] items-center border-b border-[var(--color-border)] px-3.5">
-        <WorkspaceSwitcher />
-      </div>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <WorkspaceSwitcher />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-2.5 py-3">
-        <div className="space-y-px">
-          {PRIMARY_NAV.map((item) => (
-            <NavLink key={item.href} item={item} onNavigate={onNavigate} />
-          ))}
-        </div>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <NavItems items={PRIMARY_NAV} />
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-        <div>
-          <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            Monitor
-          </p>
-          <div className="space-y-px">
-            {MONITOR_NAV.map((item) => (
-              <NavLink key={item.href} item={item} onNavigate={onNavigate} />
-            ))}
+        <SidebarGroup>
+          <SidebarGroupLabel>Monitor</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavItems
+              items={MONITOR_NAV}
+              badgeForHref={(href) =>
+                href === "/inbox" ? deskWaiting : 0
+              }
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <div className="flex items-center gap-2.5 overflow-hidden px-1 py-0.5 transition-[gap,padding] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0">
+          <Avatar size="sm" className="shrink-0">
+            <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+              {initials(user?.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1 overflow-hidden opacity-100 transition-[opacity,width,flex-basis] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:opacity-0">
+            <p className="truncate text-sm font-medium leading-tight">
+              {user?.name || "Account"}
+            </p>
+            <p className="truncate text-[11px] leading-tight text-muted-foreground">
+              {user?.email || "Signed in"}
+            </p>
           </div>
         </div>
-      </nav>
-
-      <div className="border-t border-[var(--color-border)] px-3 py-2.5">
-        <div className="flex items-center gap-2.5 rounded-md px-1 py-1">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[10px] font-semibold text-[var(--color-primary)]">
-            {initials(user?.name)}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium leading-tight text-[var(--color-text)]">
-              {user?.name || "Account"}
-            </span>
-            <span className="block truncate text-[11px] leading-tight text-[var(--color-muted)]">
-              {user?.email || "Signed in"}
-            </span>
-          </span>
-        </div>
-      </div>
-    </div>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }

@@ -32,7 +32,7 @@ export default function ConversationLegacyRedirectPage() {
   }, [id, router]);
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <p className="text-sm text-[var(--color-muted)]">Opening conversation…</p>
     </main>
   );

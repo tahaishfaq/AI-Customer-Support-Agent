@@ -20,9 +20,10 @@ jobs:
       - run: npm run lint
 
   smoke:
-    name: HTTP smoke
+    name: Shipped smoke
     needs: lint
     runs-on: ubuntu-latest
+    # Single job — F01–F09 + crawl schedule contracts, then optional live HTTP.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,8 +32,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - name: Product + admin smoke (skip if secrets missing)
+      - name: Shipped contract smokes (no secrets)
+        run: npm run test:shipped
+      - name: Orchestrator contract (O0–O5)
+        run: npm run test:orchestrator
+      - name: Product + admin + bugfix HTTP smoke
         env:
+          CI: "true"
           TEST_BASE_URL: ${{ secrets.TEST_BASE_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -40,11 +46,18 @@ jobs:
           ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
         run: |
           if [ -z "$TEST_BASE_URL" ] || [ -z "$DATABASE_URL" ] || [ -z "$OPENAI_API_KEY" ]; then
-            echo "Skipping HTTP smoke: set GitHub secrets TEST_BASE_URL, DATABASE_URL, OPENAI_API_KEY (and admin bootstrap for test:admin)."
-            echo "See README → CI."
+            echo "Skipping HTTP smoke: missing secrets."
+            echo "Required: TEST_BASE_URL (prefer Vercel preview), DATABASE_URL, OPENAI_API_KEY"
+            echo "Optional for admin: ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_PASSWORD"
+            echo "See README → CI. Skip is explicit — not a silent pass when secrets are set."
             exit 0
           fi
+          echo "Running HTTP smoke against: $TEST_BASE_URL"
+          if echo "$TEST_BASE_URL" | grep -Eqi 'localhost|127\.0\.0\.1'; then
+            echo "WARN: TEST_BASE_URL looks like localhost — prefer a Vercel preview URL for merge gates."
+          fi
           npm run test:product
+          npm run test:bugfix
           if [ -z "$ADMIN_BOOTSTRAP_EMAIL" ] || [ -z "$ADMIN_BOOTSTRAP_PASSWORD" ]; then
             echo "Skipping test:admin: ADMIN_BOOTSTRAP_EMAIL / PASSWORD not set."
             exit 0

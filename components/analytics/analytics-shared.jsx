@@ -12,13 +12,20 @@ import {
 } from "lucide-react";
 import { getDashboard } from "@/lib/api/analytics";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import {
+  SoftStagger,
+  SoftStaggerItem,
+} from "@/components/motion/soft-motion";
 import { cn } from "@/lib/utils";
 
 export const ANALYTICS_RANGES = [
+  { id: "1d", label: "Today" },
   { id: "7d", label: "Last 7 days" },
   { id: "30d", label: "Last 30 days" },
   { id: "all", label: "All time" },
 ];
+
+export const ANALYTICS_RANGE_IDS = ANALYTICS_RANGES.map((item) => item.id);
 
 export function formatResponseTime(ms) {
   if (ms == null || ms === 0) return "—";
@@ -46,19 +53,19 @@ function zeroHint(value) {
   return n === 0 || value === "0%" || value === "—" ? "No activity in range" : undefined;
 }
 
-export function RangeChips({ range, onChange }) {
+export function RangeChips({ range, onChange, className }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className={cn("flex flex-wrap gap-1.5", className)}>
       {ANALYTICS_RANGES.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-[12px] font-medium",
+            "rounded-md px-2.5 py-1.5 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-3 sm:py-1.5 sm:text-[12px]",
             range === item.id
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] ring-1 ring-[var(--color-border)] hover:text-[var(--color-text)]"
+              ? "bg-primary text-primary-foreground"
+              : "bg-card text-muted-foreground ring-1 ring-border hover:text-foreground"
           )}
         >
           {item.label}
@@ -72,69 +79,90 @@ export function AnalyticsKpiGrid({ overview, extra, loading }) {
   const hint = (value) => (loading ? undefined : zeroHint(value));
 
   return (
-    <section
+    <SoftStagger
+      as="section"
       className={cn(
         "grid gap-3 sm:grid-cols-2",
         extra ? "lg:grid-cols-4" : "lg:grid-cols-3"
       )}
     >
-      {extra}
-      <MetricCard
-        label="Total Conversations"
-        value={overview?.totalConversations ?? 0}
-        hint={hint(overview?.totalConversations ?? 0)}
-        loading={loading}
-        icon={MessagesSquare}
-      />
-      <MetricCard
-        label="Total Messages"
-        value={overview?.totalMessages ?? 0}
-        hint={hint(overview?.totalMessages ?? 0)}
-        loading={loading}
-        tone="info"
-        icon={MessageCircle}
-      />
-      <MetricCard
-        label="Avg Response Time"
-        value={formatResponseTime(overview?.averageResponseTimeMs)}
-        hint={hint(overview?.averageResponseTimeMs ?? 0)}
-        loading={loading}
-        tone="warning"
-        icon={Clock}
-      />
-      <MetricCard
-        label="Avg Conversation Length"
-        value={overview?.averageConversationLength ?? 0}
-        hint={hint(overview?.averageConversationLength ?? 0)}
-        loading={loading}
-        icon={Hash}
-      />
-      <MetricCard
-        label="Positive Sentiment"
-        value={formatPercent(overview?.positiveSentimentPercent)}
-        hint={hint(overview?.positiveSentimentPercent ?? 0)}
-        loading={loading}
-        tone="positive"
-        icon={Smile}
-      />
-      <MetricCard
-        label="Negative Sentiment"
-        value={formatPercent(overview?.negativeSentimentPercent)}
-        hint={hint(overview?.negativeSentimentPercent ?? 0)}
-        loading={loading}
-        tone="negative"
-        icon={Frown}
-      />
-    </section>
+      {extra ? <SoftStaggerItem>{extra}</SoftStaggerItem> : null}
+      <SoftStaggerItem>
+        <MetricCard
+          label="Total Conversations"
+          value={overview?.totalConversations ?? 0}
+          hint={hint(overview?.totalConversations ?? 0)}
+          loading={loading}
+          icon={MessagesSquare}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Total Messages"
+          value={overview?.totalMessages ?? 0}
+          hint={hint(overview?.totalMessages ?? 0)}
+          loading={loading}
+          tone="info"
+          icon={MessageCircle}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Avg Response Time"
+          value={formatResponseTime(overview?.averageResponseTimeMs)}
+          hint={hint(overview?.averageResponseTimeMs ?? 0)}
+          loading={loading}
+          tone="warning"
+          icon={Clock}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Avg Conversation Length"
+          value={overview?.averageConversationLength ?? 0}
+          hint={hint(overview?.averageConversationLength ?? 0)}
+          loading={loading}
+          icon={Hash}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Positive Sentiment"
+          value={formatPercent(overview?.positiveSentimentPercent)}
+          hint={hint(overview?.positiveSentimentPercent ?? 0)}
+          loading={loading}
+          tone="positive"
+          icon={Smile}
+        />
+      </SoftStaggerItem>
+      <SoftStaggerItem>
+        <MetricCard
+          label="Negative Sentiment"
+          value={formatPercent(overview?.negativeSentimentPercent)}
+          hint={hint(overview?.negativeSentimentPercent ?? 0)}
+          loading={loading}
+          tone="negative"
+          icon={Frown}
+        />
+      </SoftStaggerItem>
+    </SoftStagger>
   );
 }
 
-export function useAnalyticsDashboard({ agentId, range, loader }) {
+export function useAnalyticsDashboard({
+  agentId,
+  range,
+  loader,
+  enabled = true,
+  keepPrevious = true,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     let cancelled = false;
 
     async function load() {
@@ -147,6 +175,7 @@ export function useAnalyticsDashboard({ agentId, range, loader }) {
         if (!cancelled) setData(dashboard);
       } catch (err) {
         if (!cancelled) {
+          if (!keepPrevious) setData(null);
           setError(err.message || "Unable to load analytics");
         }
       } finally {
@@ -158,20 +187,34 @@ export function useAnalyticsDashboard({ agentId, range, loader }) {
     return () => {
       cancelled = true;
     };
-  }, [agentId, range, loader]);
+  }, [agentId, range, loader, enabled, keepPrevious, reloadKey]);
 
-  return { data, loading, error };
+  return {
+    data,
+    loading,
+    error,
+    reload: () => setReloadKey((k) => k + 1),
+  };
 }
 
-export function AnalyticsError({ error }) {
+export function AnalyticsError({ error, onRetry }) {
   if (!error) return null;
   return (
-    <p
-      className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3 text-sm text-[var(--color-danger)]"
+    <div
+      className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-4 py-3"
       role="alert"
     >
-      {error}
-    </p>
+      <p className="text-sm text-[var(--color-danger)]">{error}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-2 text-sm font-medium text-[var(--color-primary)] underline underline-offset-2"
+        >
+          Try again
+        </button>
+      ) : null}
+    </div>
   );
 }
 

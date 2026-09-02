@@ -47,3 +47,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.brandly-hapy-local.json
+.portfolio-hapy-local.json
+.pchat-hapy-local.json
+.adversarial-hapy-local.json
+.f00-b26-hapy-local.json

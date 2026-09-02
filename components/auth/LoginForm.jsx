@@ -9,11 +9,17 @@ import { apiFetch } from "@/lib/api-client";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { formatApiError } from "@/lib/utils/api-error";
-
-const fieldClass =
-  "h-12 w-full rounded-xl border border-[#e2e8f0] bg-white px-4 text-[15px] text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-60";
-
-const labelClass = "mb-2 block text-sm font-medium text-[#0f172a]";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 
 export function LoginForm() {
   const router = useRouter();
@@ -86,80 +92,72 @@ export function LoginForm() {
 
   if (suspended) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-xl border border-[#fecaca] bg-[#fef2f2] px-4 py-3">
-          <p className="text-sm font-medium text-[#991b1b]">
+      <div className="flex flex-col gap-4">
+        <Alert variant="destructive">
+          <AlertTitle>
             {restoreStatus === "REJECTED"
-              ? "This account is still suspended. Your restore request was rejected."
-              : "This account was disabled by an admin."}
-          </p>
-          <p className="mt-1 text-[13px] text-[#b91c1c]">
+              ? "Account still suspended"
+              : "Account disabled"}
+          </AlertTitle>
+          <AlertDescription>
             {restoreStatus === "REJECTED"
-              ? "You cannot sign in. You can send a new request below."
+              ? "Your restore request was rejected. You can send a new request below."
               : restoreStatus === "PENDING"
                 ? "Your request is waiting for an admin review."
-                : "You cannot sign in until the operator restores access. Send a short request below."}
-          </p>
-        </div>
+                : "You cannot sign in until an operator restores access."}
+          </AlertDescription>
+        </Alert>
 
         {appealSent ? (
-          <p className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-sm text-[#166534]">
-            Request sent. An admin will review it. You can update it by sending
-            again.
-          </p>
+          <Alert>
+            <AlertDescription>
+              Request sent. An admin will review it. You can update it by sending
+              again.
+            </AlertDescription>
+          </Alert>
         ) : (
-          <form onSubmit={submitAppeal} className="space-y-4">
-            <div>
-              <label htmlFor="email" className={labelClass}>
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="me@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={appealBusy}
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="appeal" className={labelClass}>
-                Message to admin
-              </label>
-              <textarea
-                id="appeal"
-                required
-                minLength={10}
-                maxLength={2000}
-                rows={4}
-                value={appeal}
-                onChange={(e) => setAppeal(e.target.value)}
-                disabled={appealBusy}
-                placeholder="Why should this account be restored?"
-                className="w-full rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-[15px] text-[#0f172a] outline-none placeholder:text-[#94a3b8] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-60"
-              />
-            </div>
-            {error ? (
-              <p className="text-sm text-[#dc2626]" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={appealBusy}
-              className="flex h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] text-[15px] font-medium text-white transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
-            >
-              {appealBusy ? "Sending…" : "Request access"}
-            </button>
+          <form onSubmit={submitAppeal}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="me@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={appealBusy}
+                  className="h-11"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="appeal">Message to admin</FieldLabel>
+                <Textarea
+                  id="appeal"
+                  required
+                  minLength={10}
+                  maxLength={2000}
+                  rows={4}
+                  value={appeal}
+                  onChange={(e) => setAppeal(e.target.value)}
+                  disabled={appealBusy}
+                  placeholder="Why should this account be restored?"
+                />
+              </Field>
+              {error ? <FieldError>{error}</FieldError> : null}
+              <Button type="submit" disabled={appealBusy} className="h-11 w-full">
+                {appealBusy ? "Sending…" : "Request access"}
+              </Button>
+            </FieldGroup>
           </form>
         )}
 
-        <button
+        <Button
           type="button"
-          className="w-full text-center text-sm font-medium text-[var(--color-primary)] underline underline-offset-2"
+          variant="link"
+          className="h-auto p-0"
           onClick={() => {
             setSuspended(false);
             setAppealSent(false);
@@ -168,13 +166,13 @@ export function LoginForm() {
           }}
         >
           Back to login
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <GoogleSignInButton
         text="signin_with"
         onSuccess={(user) => goHome(user)}
@@ -184,63 +182,58 @@ export function LoginForm() {
           else setError(message);
         }}
       />
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-[#e2e8f0]" />
-        <span className="text-xs text-[#64748b]">or</span>
-        <div className="h-px flex-1 bg-[#e2e8f0]" />
+
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <Separator className="flex-1" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className={labelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="me@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            className={fieldClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className={labelClass}>
-            Password
-          </label>
-          <PasswordInput
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="me@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="h-11"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <PasswordInput
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </Field>
 
-        {error ? (
-          <p className="text-sm text-[#dc2626]" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] text-[15px] font-medium text-white transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
-        >
-          {loading ? "Signing in…" : "Log in"}
-        </button>
+          <Button type="submit" disabled={loading} className="h-11 w-full">
+            {loading ? "Signing in…" : "Log in"}
+          </Button>
+        </FieldGroup>
       </form>
 
-      <p className="pt-2 text-center text-sm text-[#475569]">
+      <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+          className="font-medium text-primary underline underline-offset-2"
         >
           Create one
         </Link>

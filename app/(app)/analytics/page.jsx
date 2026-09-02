@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function AnalyticsPage() {
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title="Analytics"
         description="Workspace-wide insight across all of your agents — volume, sentiment, timing, and how each agent compares."

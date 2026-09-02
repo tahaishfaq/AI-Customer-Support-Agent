@@ -1,74 +1,83 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
+/** Selectable preview card (toggle / launcher / theme). */
 export function ChoiceCard({ selected, onClick, title, children, className }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border bg-white text-left transition-colors",
+        "flex flex-col overflow-hidden rounded-xl border bg-card text-left transition-colors",
         selected
-          ? "border-[var(--color-primary)] bg-[var(--color-primary)]/[0.04] ring-1 ring-[var(--color-primary)]"
-          : "border-[var(--color-border)] hover:border-[var(--color-primary)]/40",
+          ? "border-primary bg-accent/40 ring-1 ring-primary"
+          : "border-border hover:border-primary/40",
         className
       )}
     >
-      <div className="flex min-h-[88px] flex-1 items-center justify-center bg-[var(--color-bg)]/70 p-3">
+      <div className="flex min-h-[88px] flex-1 items-center justify-center bg-[#eef2f6] p-3 dark:bg-[#1e293b]">
         {children}
       </div>
-      <div className="border-t border-[var(--color-border)] px-3 py-2.5 text-center text-[13px] font-semibold text-[var(--color-text)]">
+      <div className="border-t border-border px-3 py-2.5 text-center text-sm font-semibold">
         {title}
       </div>
     </button>
   );
 }
 
+/** Grouped field surface — label + hint + controls. */
 export function FieldBlock({ label, hint, children, className }) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4",
-        className
-      )}
-    >
-      <div className="mb-3">
-        <p className="text-[13px] font-semibold text-[var(--color-text)]">{label}</p>
-        {hint ? (
-          <p className="mt-0.5 text-[12px] leading-snug text-[var(--color-muted)]">
-            {hint}
-          </p>
-        ) : null}
+    <Field className={cn("rounded-xl border border-border bg-muted/30 p-4", className)}>
+      <div className="mb-3 flex flex-col gap-0.5">
+        <FieldLabel className="text-sm font-semibold text-foreground">
+          {label}
+        </FieldLabel>
+        {hint ? <FieldDescription>{hint}</FieldDescription> : null}
       </div>
       {children}
-    </div>
+    </Field>
   );
 }
 
 export function FormSection({ title, children }) {
   return (
-    <section className="space-y-2.5">
+    <FieldSet className="gap-2.5">
       {title ? (
-        <p className="px-0.5 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-muted)] uppercase">
+        <FieldLegend
+          variant="label"
+          className="px-0.5 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase"
+        >
           {title}
-        </p>
+        </FieldLegend>
       ) : null}
-      <div className="space-y-3">{children}</div>
-    </section>
+      <FieldGroup className="gap-3">{children}</FieldGroup>
+    </FieldSet>
   );
 }
 
-export function MiniLabel({ children }) {
+export function MiniLabel({ children, htmlFor }) {
   return (
-    <p className="mb-1.5 text-[12px] font-medium text-[var(--color-muted)]">
+    <FieldLabel
+      htmlFor={htmlFor}
+      className="mb-1.5 text-xs font-medium text-foreground/80"
+    >
       {children}
-    </p>
+    </FieldLabel>
   );
 }
 
 export const fieldClass =
-  "h-11 rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+  "h-10 rounded-lg border-border bg-card shadow-none";
 
 export const areaClass =
-  "min-h-[88px] max-h-32 overflow-y-auto rounded-xl border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-none focus-visible:ring-[var(--color-primary)]/20";
+  "min-h-[88px] max-h-32 resize-none overflow-y-auto rounded-lg border-border bg-card shadow-none";

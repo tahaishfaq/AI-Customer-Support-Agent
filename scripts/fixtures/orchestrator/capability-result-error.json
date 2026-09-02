@@ -1,0 +1,11 @@
+{
+  "status": "error",
+  "code": "HTTP_ERROR",
+  "forModel": "The shop API returned an error. Ask the user to try again or offer human help.",
+  "forClient": { "type": "none" },
+  "meta": {
+    "capabilityId": "act_get_order_status",
+    "latencyMs": 800,
+    "httpStatus": 502
+  }
+}

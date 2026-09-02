@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import bcrypt from "bcrypt";
 import { withVerifyFullSsl } from "../lib/pg-connection.js";
+import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
 const BASE = process.env.TEST_BASE_URL || "http://127.0.0.1:3000";
 const ADMIN_EMAIL = process.env.ADMIN_BOOTSTRAP_EMAIL;
@@ -93,7 +94,7 @@ async function main() {
     connectionString: withVerifyFullSsl(process.env.DATABASE_URL),
   });
   const stamp = Date.now();
-  const testEmail = `admin-v1-${stamp}@hapy.test`;
+  const testEmail = `admin-v1-${stamp}@aide.test`;
   const testPass = "TestPass-admin-v1!";
   const hash = await bcrypt.hash(testPass, 10);
   const userId = `c${randomBytes(12).toString("hex")}`;
@@ -289,7 +290,16 @@ async function main() {
       assert(ag.status === 200, `agent ${ag.status}`);
       assert(agent.agent.id === agentId, "agent id");
       const docs = agent.agent.knowledge || [];
-      assert(docs.some((d) => d.content === knowledgeBody), "knowledge body missing");
+      assert(
+        docs.some(
+          (d) =>
+            d.name &&
+            (d.type === "TEXT" || d.type === "PDF" || d.type === "WEB") &&
+            d.content == null
+        ),
+        "inspect lists knowledge metadata without dumping full body"
+      );
+      assert(docs.length >= 1, "knowledge list present");
     });
 
     await test("analytics + conversations + thread", async () => {
@@ -418,10 +428,10 @@ async function main() {
       assert(offBody.settings.signupsEnabled === false, "signups false");
       const reg = await fetch(`${BASE}/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: uniqueTestIpHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           name: "Closed Signup",
-          email: `closed-${stamp}@hapy.test`,
+          email: `closed-${stamp}@aide.test`,
           password: "ClosedSignup1!",
           confirmPassword: "ClosedSignup1!",
         }),

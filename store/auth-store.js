@@ -38,29 +38,39 @@ function throwLoginError({
   google,
   signupsClosed,
   adminPasswordOnly,
+  adminNeedsSeed,
+  rateLimited,
 }) {
   const rejected = restoreStatus === "REJECTED";
   const err = new Error(
-    adminPasswordOnly
-      ? "Admins can only sign in with email and password."
-      : signupsClosed
-        ? "New signups are closed. Use an account that already exists."
-        : suspended
-          ? rejected
-            ? "This account is still suspended. Your restore request was rejected."
-            : "This account was disabled by an admin."
-          : google
-            ? "Google sign-in failed"
-            : "Invalid email or password"
+    rateLimited
+      ? "Too many admin login attempts. Wait about 15 minutes, then try email + password again."
+      : adminNeedsSeed
+        ? "Admin password is not set. Run npm run seed:admin against this database (same DATABASE_URL as the app)."
+        : adminPasswordOnly
+          ? "Admins sign in with email + password on /login — Google is not allowed for the operator account."
+          : signupsClosed
+            ? "Signups closed"
+            : suspended
+              ? rejected
+                ? "This account is still suspended. Your restore request was rejected."
+                : "This account was disabled by an admin."
+              : google
+                ? "Google sign-in failed"
+                : "Invalid email or password"
   );
-  err.status = 401;
-  err.code = adminPasswordOnly
-    ? "ADMIN_PASSWORD_ONLY"
-    : signupsClosed
-      ? "SIGNUPS_CLOSED"
-      : suspended
-        ? "SUSPENDED"
-        : "AUTH";
+  err.status = rateLimited ? 429 : 401;
+  err.code = rateLimited
+    ? "RATE_LIMITED"
+    : adminNeedsSeed
+      ? "ADMIN_NEEDS_SEED"
+      : adminPasswordOnly
+        ? "ADMIN_PASSWORD_ONLY"
+        : signupsClosed
+          ? "SIGNUPS_CLOSED"
+          : suspended
+            ? "SUSPENDED"
+            : "AUTH";
   err.restoreStatus = restoreStatus || null;
   if (email) err.email = email;
   throw err;
@@ -108,16 +118,30 @@ export const useAuthStore = create((set, get) => ({
     });
 
     if (result?.error) {
+      const rateLimited =
+        result.code === "too_many_attempts" ||
+        String(result.error || "").includes("too_many_attempts");
+      const adminNeedsSeed =
+        result.code === "admin_needs_seed" ||
+        String(result.error || "").includes("admin_needs_seed");
       let suspended =
         result.code === "account_suspended" ||
         String(result.error || "").includes("account_suspended");
       let restoreStatus = null;
-      const hint = await suspendedHint(email);
-      if (hint.suspended) {
-        suspended = true;
-        restoreStatus = hint.restoreStatus;
+      if (!adminNeedsSeed) {
+        const hint = await suspendedHint(email);
+        if (hint.suspended) {
+          suspended = true;
+          restoreStatus = hint.restoreStatus;
+        }
       }
-      throwLoginError({ suspended, restoreStatus, email });
+      throwLoginError({
+        suspended,
+        restoreStatus,
+        email,
+        rateLimited,
+        adminNeedsSeed,
+      });
     }
 
     const user = await get().hydrate();

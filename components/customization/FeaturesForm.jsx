@@ -6,43 +6,27 @@ import {
   FormSection,
   fieldClass,
 } from "@/components/customization/CustomizationFields";
-import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-function FeatureToggle({
-  label,
-  description,
-  checked,
-  onChange,
-  preview,
-}) {
+function FeatureToggle({ label, description, checked, onChange, preview }) {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4">
+    <div className="rounded-xl border border-border bg-muted/30 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-[var(--color-text)]">
-            {label}
-          </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-[var(--color-muted)]">
+          <p className="text-sm font-semibold text-foreground">{label}</p>
+          <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
             {description}
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={checked}
-          onClick={() => onChange(!checked)}
-          className={cn(
-            "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-            checked ? "bg-[var(--color-primary)]" : "bg-[var(--color-border)]"
-          )}
-        >
-          <span
-            className={cn(
-              "absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform",
-              checked && "translate-x-5"
-            )}
-          />
-        </button>
+        <Switch checked={checked} onCheckedChange={onChange} />
       </div>
       {preview ? <div className="mt-3">{preview}</div> : null}
     </div>
@@ -51,9 +35,7 @@ function FeatureToggle({
 
 function MiniBox({ children }) {
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-white p-3">
-      {children}
-    </div>
+    <div className="rounded-lg border border-border bg-card p-3">{children}</div>
   );
 }
 
@@ -67,21 +49,21 @@ export function FeaturesForm({ features, onChange }) {
       <FormSection title="Visitor tools">
         <FeatureToggle
           label="Message feedback"
-          description="Thumbs up/down on bot replies so visitors can rate answers."
+          description="Thumbs up/down on bot replies. A downvote can include a short reason you review on the agent page."
           checked={features.messageFeedback}
           onChange={(messageFeedback) => patch({ messageFeedback })}
           preview={
             <MiniBox>
               <div className="flex items-start gap-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-[10px] font-semibold text-white">
+                <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                   AI
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="rounded-2xl bg-[var(--color-bg)] px-3 py-2 text-[13px] text-[var(--color-text)]">
+                  <div className="rounded-2xl bg-muted px-3 py-2 text-sm text-foreground">
                     This is a message
                   </div>
                   {features.messageFeedback ? (
-                    <div className="mt-1.5 flex gap-1 text-[var(--color-muted)]">
+                    <div className="mt-1.5 flex gap-1 text-muted-foreground">
                       <ThumbsUp className="size-3.5" />
                       <ThumbsUp className="size-3.5 rotate-180" />
                     </div>
@@ -99,7 +81,7 @@ export function FeaturesForm({ features, onChange }) {
           onChange={(fileUpload) => patch({ fileUpload })}
           preview={
             <MiniBox>
-              <div className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 text-[13px] text-[var(--color-muted)]">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground">
                 <span className="flex-1">Type your message...</span>
                 {features.fileUpload ? (
                   <Paperclip className="size-4 shrink-0" />
@@ -117,8 +99,8 @@ export function FeaturesForm({ features, onChange }) {
           preview={
             features.notificationSound ? (
               <MiniBox>
-                <div className="flex items-center gap-2 text-[13px] text-[var(--color-muted)]">
-                  <Volume2 className="size-4 text-[var(--color-primary)]" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Volume2 className="size-4 text-primary" />
                   Sound on for new replies
                 </div>
               </MiniBox>
@@ -136,14 +118,14 @@ export function FeaturesForm({ features, onChange }) {
           preview={
             <MiniBox>
               <div className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <History className="size-4" />
                 </span>
                 <div>
-                  <p className="text-[13px] font-medium text-[var(--color-text)]">
+                  <p className="text-sm font-medium text-foreground">
                     Past chats
                   </p>
-                  <p className="text-[11px] text-[var(--color-muted)]">
+                  <p className="text-xs text-muted-foreground">
                     {features.conversationHistory
                       ? "History button visible in chat"
                       : "History hidden from visitors"}
@@ -156,21 +138,26 @@ export function FeaturesForm({ features, onChange }) {
 
         <FieldBlock
           label="Chat history reset"
-          hint="When to clear chat history stored in the browser."
+          hint="Refresh keeps the current chat. After 1 day the widget starts a new chat (older threads stay in history until this reset)."
         >
-          <select
+          <Select
             value={features.historyReset}
-            onChange={(e) => patch({ historyReset: e.target.value })}
-            className={cn(
-              fieldClass,
-              "w-full border border-[var(--color-border)] bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-            )}
+            onValueChange={(historyReset) => {
+              if (historyReset != null) patch({ historyReset });
+            }}
           >
-            <option value="never">Never</option>
-            <option value="session">End of session</option>
-            <option value="1d">After 1 day</option>
-            <option value="7d">After 7 days</option>
-          </select>
+            <SelectTrigger className={fieldClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="session">End of session</SelectItem>
+                <SelectItem value="1d">After 1 day</SelectItem>
+                <SelectItem value="7d">After 7 days</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </FieldBlock>
       </FormSection>
     </div>

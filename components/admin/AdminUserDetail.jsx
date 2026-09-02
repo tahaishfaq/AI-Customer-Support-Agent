@@ -124,10 +124,19 @@ export function AdminUserDetail() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `hapy-user-${payload.user.email || id}.json`;
+      a.download = `aide-user-${payload.user.email || id}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Export downloaded");
+      toast.success(
+        payload.truncated
+          ? "Export downloaded (truncated — see banner)"
+          : "Export downloaded"
+      );
+      if (payload.truncated) {
+        toast.message(
+          `Included up to ${payload.messageCap || 2000} messages per conversation`
+        );
+      }
     } catch (err) {
       toast.error(err.message || "Unable to export");
     } finally {
@@ -151,22 +160,22 @@ export function AdminUserDetail() {
 
   if (loading) {
     return (
-      <main className="hapy-page">
-        <Skeleton className="h-10 w-64 bg-[var(--color-border)]" />
-        <Skeleton className="mt-6 h-40 w-full bg-[var(--color-border)]" />
+      <main className="aide-page">
+        <Skeleton className="h-10 w-64 bg-muted" />
+        <Skeleton className="mt-6 h-40 w-full bg-muted" />
       </main>
     );
   }
 
   if (error || !user) {
     return (
-      <main className="hapy-page">
-        <p className="text-sm text-[var(--color-danger)]">
+      <main className="aide-page">
+        <p className="text-sm text-destructive">
           {error || "User not found"}
         </p>
         <Link
           href="/admin/users"
-          className="mt-3 inline-block text-sm font-medium text-[var(--color-primary)] underline"
+          className="mt-3 inline-block text-sm font-medium text-primary underline"
         >
           Back to users
         </Link>
@@ -179,7 +188,7 @@ export function AdminUserDetail() {
   const workspaces = user.workspaces || [];
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title={user.name}
         description={user.email}
@@ -250,12 +259,12 @@ export function AdminUserDetail() {
       </section>
 
       {user.restoreRequest ? (
-        <section className="mt-6 rounded-xl border border-[var(--color-border)] bg-white px-4 py-4">
+        <section className="mt-6 rounded-xl border border-border bg-card px-4 py-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-[var(--color-text)]">
+            <h2 className="text-sm font-semibold text-foreground">
               Access request
             </h2>
-            <span className="text-[11px] font-medium text-[var(--color-muted)]">
+            <span className="text-[11px] font-medium text-muted-foreground">
               {user.restoreRequest.status === "PENDING"
                 ? "Pending"
                 : user.restoreRequest.status === "REJECTED"
@@ -264,43 +273,43 @@ export function AdminUserDetail() {
               · {formatWhen(user.restoreRequest.createdAt)}
             </span>
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-[13px] text-[var(--color-text-secondary)]">
+          <p className="mt-2 whitespace-pre-wrap text-[13px] text-muted-foreground">
             {user.restoreRequest.message}
           </p>
         </section>
       ) : null}
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold text-[var(--color-text)]">
+        <h2 className="text-sm font-semibold text-foreground">
           Workspaces
         </h2>
         {workspaces.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-dashed border-[var(--color-border)] bg-white px-5 py-10 text-center text-sm text-[var(--color-muted)]">
+          <p className="mt-3 rounded-xl border border-dashed border-border bg-card px-5 py-10 text-center text-sm text-muted-foreground">
             No workspaces for this account.
           </p>
         ) : (
-          <ul className="mt-3 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+          <ul className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
             {workspaces.map((workspace) => (
               <li
                 key={workspace.id}
-                className="flex flex-col gap-1 border-b border-[var(--color-border)] px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-1 border-b border-border px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span>
-                  <span className="block text-[13px] font-medium text-[var(--color-text)]">
+                  <span className="block text-[13px] font-medium text-foreground">
                     {workspace.name}
                   </span>
-                  <span className="text-[12px] text-[var(--color-muted)]">
+                  <span className="text-[12px] text-muted-foreground">
                     {workspace.agentCount} agent
                     {workspace.agentCount === 1 ? "" : "s"}
                   </span>
                 </span>
                 <span className="flex flex-col items-start gap-1 sm:items-end">
-                  <span className="text-[11px] text-[var(--color-muted)]">
+                  <span className="text-[11px] text-muted-foreground">
                     Last activity {formatWhen(workspace.lastActivityAt)}
                   </span>
                   <Link
                     href={`/admin/users/${user.id}/workspaces/${workspace.id}`}
-                    className="text-[12px] font-medium text-[var(--color-primary)] hover:underline"
+                    className="text-[12px] font-medium text-primary hover:underline"
                   >
                     Inspect
                   </Link>
@@ -353,7 +362,7 @@ export function AdminUserDetail() {
             <DialogTitle>Permanently delete this user?</DialogTitle>
             <DialogDescription>
               This removes all workspaces, agents, knowledge, and conversations.
-              Type <span className="font-medium text-[var(--color-text)]">{user.email}</span>{" "}
+              Type <span className="font-medium text-foreground">{user.email}</span>{" "}
               to confirm.
             </DialogDescription>
           </DialogHeader>
@@ -362,7 +371,7 @@ export function AdminUserDetail() {
             onChange={(e) => setDeleteEmail(e.target.value)}
             placeholder={user.email}
             autoComplete="off"
-            className="h-10 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm outline-none focus:border-[var(--color-danger)] focus:ring-2 focus:ring-[var(--color-danger)]/20"
+            className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/20"
           />
           <DialogFooter>
             <Button
@@ -393,9 +402,9 @@ export function AdminUserDetail() {
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-3">
-      <p className="text-[11px] font-medium text-[var(--color-muted)]">{label}</p>
-      <p className={cn("mt-1 text-sm font-medium text-[var(--color-text)]")}>
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-sm font-medium text-foreground")}>
         {value}
       </p>
     </div>

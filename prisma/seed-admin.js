@@ -11,7 +11,7 @@ import { withVerifyFullSsl } from "../lib/pg-connection.js";
 async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-  const name = process.env.ADMIN_BOOTSTRAP_NAME?.trim() || "Hapy Admin";
+  const name = process.env.ADMIN_BOOTSTRAP_NAME?.trim() || "Aide Admin";
 
   if (!email || !password) {
     throw new Error(
@@ -83,6 +83,20 @@ async function main() {
     if (count.rows[0].n !== 1) {
       throw new Error(`Expected exactly 1 ADMIN, found ${count.rows[0].n}`);
     }
+
+    // F06-G: persist reserved email so missing env cannot reopen Google signup.
+    await pool.query(
+      `INSERT INTO "PlatformSettings" (
+         id, "signupsEnabled", "maintenanceMode", "globalEmbedKill",
+         "maxWorkspacesPerUser", "maxAgentsPerWorkspace", "reservedAdminEmail", "updatedAt"
+       )
+       VALUES ('global', true, false, false, 10, 25, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         "reservedAdminEmail" = EXCLUDED."reservedAdminEmail",
+         "updatedAt" = NOW()`,
+      [email]
+    );
+    console.log(`PlatformSettings.reservedAdminEmail = ${email}`);
   } finally {
     await pool.end();
   }

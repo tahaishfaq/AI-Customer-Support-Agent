@@ -1,79 +1,64 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, FlaskConical } from "lucide-react";
+import { ArrowRight, FlaskConical } from "lucide-react";
 import { AgentStatusBadge } from "@/components/agents/AgentCard";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-function monogram(name) {
-  if (!name) return "A";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
-
-export function HomeAgentCard({ agent, conversationCount = 0, messageCount = 0 }) {
+export function HomeAgentCard({
+  agent,
+  conversationCount = 0,
+  messageCount = 0,
+}) {
   return (
-    <article
-      className={cn(
-        "flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]",
-        "transition-colors hover:border-[var(--color-primary)]/35"
-      )}
-    >
-      <Link href={`/agents/${agent.id}`} className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-sm font-semibold text-[var(--color-primary)]">
-          {monogram(agent.name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-[15px] font-semibold text-[var(--color-text)]">
-              {agent.name}
-            </h3>
-            <AgentStatusBadge agent={agent} className="bg-[var(--color-bg)]" />
-          </div>
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+    <article className="flex h-full flex-col rounded-xl border border-border/80 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/20">
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link
+            href={`/agents/${agent.id}`}
+            className="block truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-tight text-foreground hover:text-primary"
+          >
+            {agent.name}
+          </Link>
+          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">
             {agent.description || "No description yet"}
           </p>
         </div>
-      </Link>
+        <AgentStatusBadge agent={agent} className="shrink-0" />
+      </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
         <div>
-          <p className="text-[11px] text-[var(--color-muted)]">Conversations</p>
-          <p className="mt-0.5 text-lg font-semibold text-[var(--color-text)]">
+          <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+            Conversations
+          </p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">
             {conversationCount}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-[var(--color-muted)]">Messages</p>
-          <p className="mt-0.5 text-lg font-semibold text-[var(--color-text)]">
+          <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+            Messages
+          </p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">
             {messageCount}
           </p>
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-auto flex items-center gap-2 pt-4">
+        <Link
+          href={`/agents/${agent.id}`}
+          className={cn(buttonVariants({ size: "sm" }), "gap-1")}
+        >
+          Open
+          <ArrowRight className="size-3.5" />
+        </Link>
         <Link
           href={`/agents/${agent.id}/test`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
         >
           <FlaskConical className="size-3.5" />
           Test
-        </Link>
-        <Link
-          href={`/agents/${agent.id}/knowledge`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-        >
-          <BookOpen className="size-3.5" />
-          Knowledge
-        </Link>
-        <Link
-          href={`/agents/${agent.id}/analytics`}
-          className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)]"
-        >
-          <BarChart3 className="size-3.5" />
-          Analytics
         </Link>
       </div>
     </article>

@@ -7,13 +7,16 @@ import { cn } from "@/lib/utils";
 
 export default function AgentsPage() {
   return (
-    <main className="hapy-page">
+    <div className="aide-page">
       <PageHeader
-        title="Agents"
+        title="All agents"
         description="Create and manage your support assistants."
         actions={
-          <Link href="/agents/new" className={cn(buttonVariants(), "gap-1.5")}>
-            <Plus className="size-3.5" />
+          <Link
+            href="/agents/new"
+            className={cn(buttonVariants(), "rounded-full gap-1.5")}
+          >
+            <Plus data-icon="inline-start" />
             New agent
           </Link>
         }
@@ -21,6 +24,6 @@ export default function AgentsPage() {
       <div className="mt-6">
         <AgentList />
       </div>
-    </main>
+    </div>
   );
 }

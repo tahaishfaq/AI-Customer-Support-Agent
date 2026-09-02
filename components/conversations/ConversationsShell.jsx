@@ -37,6 +37,7 @@ export function ConversationsShell({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   const fetchList = listFn || listConversations;
   const inboxHref = inboxBase || `/agents/${agentId}/conversations`;
@@ -71,7 +72,7 @@ export function ConversationsShell({
     return () => {
       cancelled = true;
     };
-  }, [agentId, fetchList]);
+  }, [agentId, fetchList, reloadKey]);
 
   async function loadMore() {
     setLoadingMore(true);
@@ -159,7 +160,16 @@ export function ConversationsShell({
         </div>
 
         {error ? (
-          <p className="px-4 py-2 text-[12px] text-[var(--color-danger)]">{error}</p>
+          <div className="px-4 py-2" role="alert">
+            <p className="text-[12px] text-[var(--color-danger)]">{error}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="mt-1 text-[12px] font-medium text-[var(--color-primary)] underline"
+            >
+              Try again
+            </button>
+          </div>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto">

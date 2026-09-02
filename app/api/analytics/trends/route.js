@@ -8,7 +8,7 @@ import {
 
 export async function GET(request) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
 
     const agentId = request.nextUrl.searchParams.get("agentId") || undefined;
@@ -23,6 +23,6 @@ export async function GET(request) {
     });
     return NextResponse.json(trends, { status: 200 });
   } catch (error) {
-    return handleAnalyticsError("GET /api/analytics/trends", error);
+    return handleAnalyticsError("GET /api/analytics/trends", error, request);
   }
 }

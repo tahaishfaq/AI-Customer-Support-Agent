@@ -23,8 +23,14 @@ export function AdminShell({ children }) {
   }, [menuOpen]);
 
   return (
-    <div className="flex h-dvh max-h-dvh overflow-hidden bg-[var(--color-bg)]">
-      <aside className="hidden h-full w-[248px] shrink-0 overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)] md:block">
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
+      <a
+        href="#aide-admin-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-md"
+      >
+        Skip to main content
+      </a>
+      <aside className="hidden h-full w-[248px] shrink-0 overflow-hidden border-r border-border bg-card md:block">
         <AdminSidebar />
       </aside>
 
@@ -36,7 +42,7 @@ export function AdminShell({ children }) {
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           />
-          <aside className="relative h-full w-[248px] overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)]">
+          <aside className="relative h-full w-[248px] overflow-hidden border-r border-border bg-card">
             <AdminSidebar onNavigate={() => setMenuOpen(false)} />
           </aside>
         </div>
@@ -44,7 +50,12 @@ export function AdminShell({ children }) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AdminTopbar onMenuClick={() => setMenuOpen(true)} />
-        <div className="animate-page-in flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div
+          id="aide-admin-main"
+          key={pathname}
+          tabIndex={-1}
+          className="animate-page-in flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none"
+        >
           {children}
         </div>
       </div>

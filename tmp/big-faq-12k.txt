@@ -1,0 +1,84 @@
+Acme Shop — Large FAQ (F08-D test)
+
+[Block 1] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 2] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 3] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 4] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 5] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 6] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 7] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 8] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 9] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 10] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 11] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 12] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 13] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 14] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 15] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 16] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 17] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 18] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 19] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 20] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 21] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 22] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 23] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 24] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 25] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 26] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 27] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 28] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 29] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 30] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 31] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 32] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 33] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 34] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 35] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 36] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 37] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 38] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 39] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 40] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+
+[Block 41] Acme Shop FAQ section. Shipping takes 3-5 days. Returns need order id. Support email is help@acme.example. Store hours Mon-Fri 9-5. We sell shoes, bags, and accessories. Loyalty points expire after 12 months. Gift cards are non-refundable. International shipping is available to selected countries.
+

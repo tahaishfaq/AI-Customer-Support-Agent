@@ -4,11 +4,10 @@
  */
 import "dotenv/config";
 import { randomUUID } from "node:crypto";
+import { resolveTestBaseUrl } from "./lib/test-base-url.mjs";
+import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
-const BASE = (process.env.TEST_BASE_URL || "http://127.0.0.1:3000").replace(
-  /\/$/,
-  ""
-);
+const BASE = resolveTestBaseUrl();
 const ADMIN_EMAIL = process.env.ADMIN_BOOTSTRAP_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
@@ -131,7 +130,7 @@ async function loadAgent(jar, agentId) {
 async function main() {
   await waitForHealth();
   const stamp = Date.now();
-  const email = `fix-reg-${stamp}@hapy.test`;
+  const email = `fix-reg-${stamp}@aide.test`;
   const password = "FixRegression1!";
   let jar;
   let agentId;
@@ -183,7 +182,7 @@ async function main() {
   await test("register + login", async () => {
     const reg = await fetch(`${BASE}/api/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: uniqueTestIpHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         name: "Fix Reg",
         email,

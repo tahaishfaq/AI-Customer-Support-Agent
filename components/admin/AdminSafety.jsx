@@ -18,12 +18,12 @@ function Toggle({ on, disabled, onChange }) {
       onClick={() => onChange(!on)}
       className={cn(
         "relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50",
-        on ? "bg-[var(--color-primary)]" : "bg-[var(--color-border)]"
+        on ? "bg-primary" : "bg-muted"
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform",
+          "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform dark:bg-zinc-100",
           on ? "left-[22px]" : "left-0.5"
         )}
       />
@@ -33,10 +33,10 @@ function Toggle({ on, disabled, onChange }) {
 
 function Row({ title, hint, children }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-[var(--color-border)] px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-border px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 sm:max-w-md">
-        <p className="text-sm font-medium text-[var(--color-text)]">{title}</p>
-        <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">{hint}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">{hint}</p>
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -46,8 +46,8 @@ function Row({ title, hint, children }) {
 export function AdminSafety() {
   const [settings, setSettings] = useState(null);
   const [draftCaps, setDraftCaps] = useState({
-    maxWorkspacesPerUser: 20,
-    maxAgentsPerWorkspace: 0,
+    maxWorkspacesPerUser: 10,
+    maxAgentsPerWorkspace: 25,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,25 +99,25 @@ export function AdminSafety() {
 
   if (loading) {
     return (
-      <main className="hapy-page">
-        <Skeleton className="h-10 w-48 bg-[var(--color-border)]" />
-        <Skeleton className="mt-6 h-48 w-full bg-[var(--color-border)]" />
+      <main className="aide-page">
+        <Skeleton className="h-10 w-48 bg-muted" />
+        <Skeleton className="mt-6 h-48 w-full bg-muted" />
       </main>
     );
   }
 
   return (
-    <main className="hapy-page">
+    <main className="aide-page">
       <PageHeader
         title="Safety"
         description="Signups, maintenance, public embed kill, and creation caps."
       />
 
       {error ? (
-        <p className="mt-4 text-sm text-[var(--color-danger)]">{error}</p>
+        <p className="mt-4 text-sm text-destructive">{error}</p>
       ) : null}
 
-      <section className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
+      <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <Row
           title="Allow new signups"
           hint="When off, email register and first-time Google sign-in are blocked."
@@ -150,17 +150,18 @@ export function AdminSafety() {
         </Row>
       </section>
 
-      <section className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
+      <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="px-4 py-4">
-          <p className="text-sm font-medium text-[var(--color-text)]">
+          <p className="text-sm font-medium text-foreground">
             Soft caps
           </p>
-          <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">
-            0 means unlimited. Existing items are not deleted if you lower a cap.
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Cost brakes. 0 means unlimited. Suggested: ~10 workspaces / ~25 agents.
+            Existing items are not deleted if you lower a cap.
           </p>
         </div>
-        <div className="grid gap-4 border-t border-[var(--color-border)] px-4 py-4 sm:grid-cols-2">
-          <label className="block text-[13px] font-medium text-[var(--color-text-secondary)]">
+        <div className="grid gap-4 border-t border-border px-4 py-4 sm:grid-cols-2">
+          <label className="block text-[13px] font-medium text-muted-foreground">
             Max workspaces per user
             <input
               type="number"
@@ -173,10 +174,10 @@ export function AdminSafety() {
                   maxWorkspacesPerUser: e.target.value,
                 }))
               }
-              className="mt-1.5 h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-sm outline-none focus:border-[var(--color-primary)]"
+              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </label>
-          <label className="block text-[13px] font-medium text-[var(--color-text-secondary)]">
+          <label className="block text-[13px] font-medium text-muted-foreground">
             Max agents per workspace
             <input
               type="number"
@@ -189,11 +190,11 @@ export function AdminSafety() {
                   maxAgentsPerWorkspace: e.target.value,
                 }))
               }
-              className="mt-1.5 h-10 w-full rounded-lg border border-[var(--color-border)] px-3 text-sm outline-none focus:border-[var(--color-primary)]"
+              className="mt-1.5 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </label>
         </div>
-        <div className="border-t border-[var(--color-border)] px-4 py-3">
+        <div className="border-t border-border px-4 py-3">
           <Button
             type="button"
             size="sm"

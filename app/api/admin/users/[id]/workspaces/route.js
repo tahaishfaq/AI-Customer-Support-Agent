@@ -4,7 +4,7 @@ import { listWorkspacesForUser } from "@/lib/services/admin-users.service";
 
 export async function GET(_request, { params }) {
   try {
-    const authResult = await requireAdmin();
+    const authResult = await requireAdmin(_request);
     if (authResult.error) return authResult.error;
 
     const { id } = await params;

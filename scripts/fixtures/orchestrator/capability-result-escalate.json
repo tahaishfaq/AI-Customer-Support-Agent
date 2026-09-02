@@ -1,0 +1,10 @@
+{
+  "status": "escalate",
+  "code": "HANDOFF",
+  "forModel": "A human agent will continue this conversation.",
+  "forClient": { "type": "handoff", "payload": { "reason": "user_requested" } },
+  "meta": {
+    "capabilityId": "builtin_request_handoff",
+    "latencyMs": 5
+  }
+}

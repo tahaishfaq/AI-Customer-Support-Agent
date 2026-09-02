@@ -4,6 +4,13 @@ const nextConfig = {
   reactCompiler: true,
   serverExternalPackages: ["pg", "bcrypt", "@prisma/client", "@prisma/adapter-pg"],
   devIndicators: false,
+  // Allow ngrok (and similar tunnels) to load /_next/* in development —
+  // without this, login/auth JS is blocked and the form looks broken.
+  allowedDevOrigins: [
+    "album-wielder-kinsman.ngrok-free.dev",
+    "*.ngrok-free.dev",
+    "*.ngrok-free.app",
+  ],
   async headers() {
     return [
       {

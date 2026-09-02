@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { mergeCustomization } from "@/lib/customization/defaults";
@@ -10,8 +9,13 @@ import {
 } from "@/lib/utils/chat-attachments";
 import { uploadChatAttachment } from "@/lib/utils/cloudinary-chat";
 import { originFromRequest } from "@/lib/utils/request-origin";
+import { jsonError, jsonOk } from "@/lib/api/error-response";
+import { resolveRequestId } from "@/lib/observability/request-id";
+import { safeLogError } from "@/lib/observability/safe-log";
 
 export async function POST(request, { params }) {
+  const requestId = resolveRequestId(request);
+
   try {
     const { publicKey } = await params;
     const limited = rateLimit(`pub-file:${publicKey}:${clientIp(request)}`, {
@@ -19,9 +23,12 @@ export async function POST(request, { params }) {
       windowMs: 60_000,
     });
     if (!limited.ok) {
-      return NextResponse.json(
-        { error: { message: "Too many uploads. Try again shortly.", details: {} } },
-        { status: 429 }
+      return jsonError(
+        request,
+        429,
+        "Too many uploads. Try again shortly.",
+        {},
+        { "Retry-After": String(limited.retryAfterSec) }
       );
     }
 
@@ -29,43 +36,23 @@ export async function POST(request, { params }) {
       origin: originFromRequest(request),
     });
     if (!agent) {
-      return NextResponse.json(
-        { error: { message: "Agent not found", details: {} } },
-        { status: 404 }
-      );
+      return jsonError(request, 404, "Agent not found");
     }
     if (!mergeCustomization(agent.customization).features.fileUpload) {
-      return NextResponse.json(
-        { error: { message: "File upload is disabled for this agent", details: {} } },
-        { status: 403 }
-      );
+      return jsonError(request, 403, "File upload is disabled for this agent");
     }
 
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            details: { file: "A file is required" },
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(request, 400, "Validation failed", {
+        file: "A file is required",
+      });
     }
     if (file.size > CHAT_UPLOAD_MAX_BYTES) {
-      return NextResponse.json(
-        {
-          error: {
-            message: "Validation failed",
-            details: {
-              file: `File must be ${formatChatUploadLimit()} or smaller`,
-            },
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(request, 400, "Validation failed", {
+        file: `File must be ${formatChatUploadLimit()} or smaller`,
+      });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -80,25 +67,29 @@ export async function POST(request, { params }) {
       fileUrl: uploaded.fileUrl,
       kind: uploaded.kind,
     });
-    return NextResponse.json(
+    return jsonOk(
+      request,
       {
         ...uploaded,
         extracted: Boolean(extracted),
         message: buildAttachmentMessage({ ...uploaded, extracted }),
       },
-      { status: 201 }
+      201
     );
   } catch (error) {
     if (error.status) {
-      return NextResponse.json(
-        { error: { message: error.message, details: error.details || {} } },
-        { status: error.status }
+      return jsonError(
+        request,
+        error.status,
+        error.message,
+        error.details || {}
       );
     }
-    console.error("POST /api/public/agents/[publicKey]/files", error);
-    return NextResponse.json(
-      { error: { message: "Unable to upload file", details: {} } },
-      { status: 500 }
-    );
+    safeLogError("POST /api/public/agents/[publicKey]/files", {
+      requestId,
+      route: "public-files",
+      status: 500,
+    });
+    return jsonError(request, 500, "Unable to upload file");
   }
 }

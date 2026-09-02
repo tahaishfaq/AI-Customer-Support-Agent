@@ -11,7 +11,8 @@ export async function POST(request, context) {
   if (!limited.ok) {
     return tooManyRequests(
       limited,
-      "Too many sign-in attempts. Try again shortly."
+      "Too many sign-in attempts. Try again shortly.",
+      request
     );
   }
   return handlers.POST(request, context);

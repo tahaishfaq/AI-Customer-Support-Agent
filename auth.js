@@ -8,7 +8,7 @@ import { comparePassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
 import { ensureDefaultWorkspace } from "@/lib/services/workspace.service";
 import { isRateLimited, rateLimit } from "@/lib/rate-limit";
-import { isReservedAdminEmail } from "@/lib/admin-email";
+import { isProtectedAdminEmail } from "@/lib/admin-email";
 
 class AccountSuspendedError extends CredentialsSignin {
   code = "account_suspended";
@@ -22,9 +22,17 @@ class AdminPasswordOnlyError extends CredentialsSignin {
   code = "admin_password_only";
 }
 
-function rejectAdminGoogle(user) {
+class AdminNeedsSeedError extends CredentialsSignin {
+  code = "admin_needs_seed";
+}
+
+class TooManyAttemptsError extends CredentialsSignin {
+  code = "too_many_attempts";
+}
+
+async function rejectAdminGoogle(user) {
   if (!user) return;
-  if (user.role === "ADMIN" || isReservedAdminEmail(user.email)) {
+  if (user.role === "ADMIN" || (await isProtectedAdminEmail(user.email))) {
     throw new AdminPasswordOnlyError();
   }
 }
@@ -60,19 +68,24 @@ const providers = [
       if (!email || !password) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });
-      const adminLogin =
-        isReservedAdminEmail(email) || user?.role === "ADMIN";
+      const protectedAdmin = await isProtectedAdminEmail(email);
+      const adminLogin = protectedAdmin || user?.role === "ADMIN";
       const adminLimitKey = `admin-login:${email}`;
       const adminLimitOpts = { limit: 5, windowMs: 15 * 60_000 };
 
       // Count failed guesses only; block before hashing when the window is full.
       if (adminLogin) {
         const limited = isRateLimited(adminLimitKey, adminLimitOpts);
-        if (!limited.ok) return null;
+        if (!limited.ok) throw new TooManyAttemptsError();
+      }
+
+      // Reserved / ADMIN email without password → ops must run seed:admin (F06-B).
+      if (adminLogin && !user?.passwordHash) {
+        rateLimit(adminLimitKey, adminLimitOpts);
+        throw new AdminNeedsSeedError();
       }
 
       if (!user?.passwordHash) {
-        if (adminLogin) rateLimit(adminLimitKey, adminLimitOpts);
         return null;
       }
 
@@ -130,14 +143,16 @@ const providers = [
       const name = payload.name || email.split("@")[0];
       const image = payload.picture || null;
 
-      if (isReservedAdminEmail(email)) throw new AdminPasswordOnlyError();
+      if (await isProtectedAdminEmail(email)) {
+        throw new AdminPasswordOnlyError();
+      }
 
       let user = await prisma.user.findUnique({ where: { googleId } });
-      rejectAdminGoogle(user);
+      await rejectAdminGoogle(user);
 
       if (!user) {
         user = await prisma.user.findUnique({ where: { email } });
-        rejectAdminGoogle(user);
+        await rejectAdminGoogle(user);
         if (user) {
           user = await prisma.user.update({
             where: { id: user.id },
@@ -206,13 +221,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const provider = account?.provider;
       if (provider === "google" || provider === "google-id-token") {
         const email = user?.email?.toLowerCase();
-        if (isReservedAdminEmail(email)) return false;
+        if (await isProtectedAdminEmail(email)) return false;
         if (user?.id) {
           const row = await prisma.user.findUnique({
             where: { id: user.id },
             select: { role: true, email: true },
           });
-          if (row?.role === "ADMIN" || isReservedAdminEmail(row?.email)) {
+          if (
+            row?.role === "ADMIN" ||
+            (await isProtectedAdminEmail(row?.email))
+          ) {
             return false;
           }
         }

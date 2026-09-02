@@ -1,18 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Loader2, Palette, Rocket, SlidersHorizontal, UserRound } from "lucide-react";
+import {
+  Building2,
+  Cable,
+  Check,
+  Palette,
+  Rocket,
+  SlidersHorizontal,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { updateAgent } from "@/lib/api/agents";
 import { resolveCustomization } from "@/lib/customization/defaults";
 import { useUrlTab } from "@/hooks/use-url-tab";
+import { ActionsForm } from "@/components/customization/ActionsForm";
 import { AppearanceForm } from "@/components/customization/AppearanceForm";
 import { CustomizationPreview } from "@/components/customization/CustomizationPreview";
 import { DeployForm } from "@/components/customization/DeployForm";
 import { FeaturesForm } from "@/components/customization/FeaturesForm";
 import { IdentityForm } from "@/components/customization/IdentityForm";
+import { UniversalBusinessWizard } from "@/components/customization/UniversalBusinessWizard";
 
 const SECTIONS = [
   {
@@ -33,7 +53,7 @@ const SECTIONS = [
     id: "deploy",
     label: "Deploy",
     title: "Deploy Settings",
-    description: "Embed code, launcher, and proactive message.",
+    description: "Embed code, launcher, crawl schedule, and proactive message.",
     icon: Rocket,
   },
   {
@@ -42,6 +62,21 @@ const SECTIONS = [
     title: "Agent Features",
     description: "Feedback, uploads, history, and sound.",
     icon: SlidersHorizontal,
+  },
+  {
+    id: "packs",
+    label: "Packs",
+    title: "Business packs",
+    description:
+      "Start from a vertical template — install guest + account starter tools.",
+    icon: Building2,
+  },
+  {
+    id: "actions",
+    label: "Tools",
+    title: "",
+    description: "",
+    icon: Cable,
   },
 ];
 
@@ -54,7 +89,9 @@ export function CustomizationStudio({ agent, onAgentChange }) {
     JSON.stringify(resolveCustomization(agent))
   );
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [publicKey, setPublicKey] = useState(agent.publicKey);
+  const [pendingToolForm, setPendingToolForm] = useState(null);
   const section = SECTIONS.find((s) => s.id === sectionId) || SECTIONS[0];
   const dirty = JSON.stringify(draft) !== saved;
 
@@ -76,6 +113,8 @@ export function CustomizationStudio({ agent, onAgentChange }) {
       const next = resolveCustomization(updated);
       setDraft(next);
       setSaved(JSON.stringify(next));
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 900);
       toast.success("Customization saved");
     } catch (err) {
       const detail = Object.values(err.details || {}).find(Boolean);
@@ -90,122 +129,171 @@ export function CustomizationStudio({ agent, onAgentChange }) {
   }
 
   return (
-    <div className="hapy-card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] px-5 py-4">
-        <div className="min-w-0">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--color-text)]">
-            Customization
-          </h2>
-          <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">
-            Style the chat widget. Preview updates as you edit — save to keep it.
-          </p>
+    <Card className="overflow-hidden shadow-none">
+      <CardHeader className="border-b">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex flex-col gap-1">
+            <CardTitle className="font-heading text-lg">Customization</CardTitle>
+            <CardDescription>
+              Style the chat widget. Preview updates as you edit — save to keep
+              it.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={dirty ? "secondary" : "outline"}
+              className={cn(
+                "rounded-full transition-colors",
+                justSaved && "animate-save-flash border-primary/40 text-primary"
+              )}
+            >
+              {dirty ? "Unsaved changes" : "Saved"}
+            </Badge>
+            <Button
+              type="button"
+              size="sm"
+              className={cn(
+                "rounded-full transition-transform",
+                justSaved && "animate-save-flash"
+              )}
+              onClick={handleSave}
+              disabled={saving || !dirty}
+            >
+              {saving ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Check data-icon="inline-start" />
+                  Save
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-medium",
-              dirty
-                ? "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
-                : "bg-[var(--color-success)]/10 text-[var(--color-success)]"
-            )}
-          >
-            {dirty ? "Unsaved changes" : "Saved"}
-          </span>
-          <Button type="button" size="sm" onClick={handleSave} disabled={saving || !dirty}>
-            {saving ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Check className="size-3.5" />
-                Save
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      </CardHeader>
 
-      <div className="grid min-h-0 lg:grid-cols-[200px_minmax(0,1fr)_minmax(280px,360px)]">
+      <div className="grid min-h-0 lg:grid-cols-[200px_minmax(0,1fr)_minmax(320px,400px)]">
         <nav
-          className="flex gap-1 overflow-x-auto border-b border-[var(--color-border)] bg-[var(--color-bg)]/50 p-2 lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0"
+          className="flex gap-1 overflow-x-auto border-b border-border bg-muted/30 p-2 lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0"
           aria-label="Customization sections"
         >
           {SECTIONS.map((item) => {
             const active = item.id === sectionId;
             const Icon = item.icon;
             return (
-              <button
+              <Button
                 key={item.id}
                 type="button"
+                variant={active ? "secondary" : "ghost"}
+                size="sm"
                 onClick={() => setSectionId(item.id)}
                 className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors",
-                  active
-                    ? "bg-white text-[var(--color-primary)] shadow-sm ring-1 ring-[var(--color-border)]"
-                    : "text-[var(--color-muted)] hover:bg-white/70 hover:text-[var(--color-text)]"
+                  "justify-start",
+                  active && "bg-card shadow-sm ring-1 ring-border"
                 )}
               >
-                <Icon className="size-3.5 shrink-0" />
+                <Icon data-icon="inline-start" />
                 {item.label}
-              </button>
+              </Button>
             );
           })}
         </nav>
 
-        <section className="min-w-0 border-b border-[var(--color-border)] lg:border-b-0 lg:border-r">
-          <div className="border-b border-[var(--color-border)] px-5 py-3.5">
-            <h3 className="text-sm font-semibold text-[var(--color-text)]">
-              {section.title}
-            </h3>
-            <p className="mt-0.5 text-[12px] text-[var(--color-muted)]">
-              {section.description}
-            </p>
-          </div>
-          <div className="max-h-[min(68dvh,740px)] overflow-y-auto px-5 py-5">
-            {sectionId === "identity" ? (
-              <IdentityForm
-                agentId={agent.id}
-                identity={draft.identity}
-                onChange={(identity) => patchSection("identity", identity)}
-              />
-            ) : null}
-            {sectionId === "appearance" ? (
-              <AppearanceForm
-                appearance={draft.appearance}
-                onChange={(appearance) => patchSection("appearance", appearance)}
-              />
-            ) : null}
-            {sectionId === "deploy" ? (
-              <DeployForm
-                agentId={agent.id}
-                publicKey={publicKey}
-                deploy={draft.deploy}
-                identity={draft.identity}
-                onChange={(deploy) => patchSection("deploy", deploy)}
-                onPublicKeyChange={(nextKey) => {
-                  setPublicKey(nextKey);
-                  onAgentChange?.({ ...agent, publicKey: nextKey });
-                }}
-              />
-            ) : null}
-            {sectionId === "features" ? (
-              <FeaturesForm
-                features={draft.features}
-                onChange={(features) => patchSection("features", features)}
-              />
-            ) : null}
-          </div>
+        <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
+          {section.title || section.description ? (
+            <div className="flex flex-col gap-0.5 border-b border-border px-5 py-3.5">
+              {section.title ? (
+                <h3 className="text-sm font-semibold">{section.title}</h3>
+              ) : null}
+              {section.description ? (
+                <p className="text-xs text-muted-foreground">
+                  {section.description}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <ScrollArea className="h-[min(68dvh,740px)]">
+            <div key={sectionId} className="animate-page-in px-5 py-5">
+              {sectionId === "identity" ? (
+                <IdentityForm
+                  agentId={agent.id}
+                  identity={draft.identity}
+                  onChange={(identity) => patchSection("identity", identity)}
+                />
+              ) : null}
+              {sectionId === "appearance" ? (
+                <AppearanceForm
+                  appearance={draft.appearance}
+                  deploy={draft.deploy}
+                  onChange={(appearance) =>
+                    patchSection("appearance", appearance)
+                  }
+                  onDeployChange={(deploy) => patchSection("deploy", deploy)}
+                />
+              ) : null}
+              {sectionId === "deploy" ? (
+                <DeployForm
+                  agentId={agent.id}
+                  publicKey={publicKey}
+                  deploy={draft.deploy}
+                  identity={draft.identity}
+                  crawlRecrawlHours={agent.crawlRecrawlHours ?? 0}
+                  siteCrawledAt={agent.siteCrawledAt}
+                  siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
+                  hasWebKnowledge={Boolean(agent.siteKnowledgeOrigin)}
+                  onCrawlScheduleChange={(hours) => {
+                    onAgentChange?.({ ...agent, crawlRecrawlHours: hours });
+                  }}
+                  onChange={(deploy) => patchSection("deploy", deploy)}
+                  onPublicKeyChange={(nextKey) => {
+                    setPublicKey(nextKey);
+                    onAgentChange?.({ ...agent, publicKey: nextKey });
+                  }}
+                />
+              ) : null}
+              {sectionId === "features" ? (
+                <FeaturesForm
+                  features={draft.features}
+                  onChange={(features) => patchSection("features", features)}
+                />
+              ) : null}
+              {sectionId === "packs" ? (
+                <UniversalBusinessWizard
+                  agentId={agent.id}
+                  onInstalled={() => setSectionId("actions")}
+                  onOpenSlot={(form) => {
+                    setPendingToolForm(form);
+                    setSectionId("actions");
+                  }}
+                />
+              ) : null}
+              {sectionId === "actions" ? (
+                <ActionsForm
+                  agentId={agent.id}
+                  agentName={agent.name}
+                  siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
+                  actionsEnabled={agent.actionsEnabled !== false}
+                  pendingCreateForm={pendingToolForm}
+                  onPendingCreateConsumed={() => setPendingToolForm(null)}
+                  onActionsEnabledChange={(actionsEnabled) => {
+                    onAgentChange?.({ ...agent, actionsEnabled });
+                  }}
+                />
+              ) : null}
+            </div>
+          </ScrollArea>
         </section>
 
-        <aside className="self-start bg-[var(--color-bg)]/40 p-4">
-          <p className="mb-2 text-[12px] font-medium text-[var(--color-muted)]">
+        <aside className="min-w-0 self-start overflow-hidden bg-muted/30 p-4 lg:sticky lg:top-4">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">
             Live preview
           </p>
           <CustomizationPreview agent={agent} customization={draft} />
         </aside>
       </div>
-    </div>
+    </Card>
   );
 }

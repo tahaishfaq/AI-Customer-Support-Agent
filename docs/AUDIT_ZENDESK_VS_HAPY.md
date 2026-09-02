@@ -1,7 +1,7 @@
-# Deep audit — Zendesk AI Agents vs Hapy
+# Deep audit — Zendesk AI Agents vs Aide
 
 **Sources (2026-08-20):** [Zendesk.com](https://www.zendesk.com/), [AI Agents product](https://www.zendesk.com/service/ai/ai-agents/), [Resolution Platform / agentic AI blogs](https://www.zendesk.com/blog/zendesk-insights/innovation/enter-your-resolution-era-with-zendesks-agentic-ai/), [What are AI agents](https://www.zendesk.com/blog/ai/workflow-automation/what-are-ai-agents/).  
-**Hapy baseline:** Phases 0–11 + Admin A0–A6; chat = prompt-stuff knowledge + OpenAI + post-chat classify (`lib/services/chat.service.js`).  
+**Aide baseline:** Phases 0–11 + Admin A0–A6; chat = prompt-stuff knowledge + OpenAI + post-chat classify (`lib/services/chat.service.js`).  
 **Demo / video:** Zendesk homepage “View demo” + **AI Masterclass 2026** on-demand workshops (not a single public YouTube walkthrough of the full agent stack — sales/demo gated). Product page shows an interactive **chain-of-thought** mock (search knowledge → retrieve order → verify eligibility → confirm items).
 
 ---
@@ -79,9 +79,9 @@ Channel message
 
 ---
 
-## 3. Hapy today (same lenses)
+## 3. Aide today (same lenses)
 
-| Lens | Zendesk | Hapy now |
+| Lens | Zendesk | Aide now |
 |------|---------|----------|
 | Product shape | Full helpdesk + AI workforce | Workspace agent studio + embed + insights |
 | Knowledge | Multi-source RAG + connectors + content ops | TEXT / PDF / one-time WEB origin crawl; **prompt stuffing** (~12k chars) |
@@ -94,14 +94,14 @@ Channel message
 | Learning | Resolution Learning Loop + QA | Classify + analytics; message feedback field exists |
 | Humans | Copilot + inbox + WFM | Admin **inspect** only (no customer desk) |
 
-Hapy’s strength vs Zendesk: **simplicity, ownership of knowledge, workspace isolation, origin-locked embed, operator admin without impersonation.**  
-Hapy’s gap: **cannot “resolve”** (refund, update order) — only **answer**.
+Aide’s strength vs Zendesk: **simplicity, ownership of knowledge, workspace isolation, origin-locked embed, operator admin without impersonation.**  
+Aide’s gap: **cannot “resolve”** (refund, update order) — only **answer**.
 
 ---
 
 ## 4. Gap severity (what “their level” means)
 
-| Capability | Gap size | Maps to Hapy backlog |
+| Capability | Gap size | Maps to Aide backlog |
 |------------|----------|----------------------|
 | Vector / conversational RAG | Large | **P3-RAG**; soft start **W3-1** stuffing |
 | Tool / actions (orders, CRM) | Huge | New — treat as future **P3-ACTIONS** (not opened) |
@@ -115,7 +115,7 @@ Hapy’s gap: **cannot “resolve”** (refund, update order) — only **answer*
 
 ---
 
-## 5. How Hapy can approach Zendesk-level *architecture* without becoming Zendesk
+## 5. How Aide can approach Zendesk-level *architecture* without becoming Zendesk
 
 ### Phase A — Week 3 / P1 (allowed, no horizontal explosion)
 
@@ -140,7 +140,7 @@ Hapy’s gap: **cannot “resolve”** (refund, update order) — only **answer*
 
 ## 6. Success metrics if chasing Zendesk-like *outcomes*
 
-| Metric | Zendesk-class | Hapy-realistic target |
+| Metric | Zendesk-class | Aide-realistic target |
 |--------|---------------|------------------------|
 | Autonomous resolution | High % with tools | N/A until actions exist; measure **deflection** (answered without human) |
 | Hallucination | Low via RAG + checks | Refuse-when-unsure + citations |
@@ -152,8 +152,8 @@ Hapy’s gap: **cannot “resolve”** (refund, update order) — only **answer*
 ## 7. Verdict
 
 Zendesk = **resolution OS** (plan → retrieve → act → learn) inside a helpdesk.  
-Hapy = **knowledge-grounded support agent + insights + embed lock + admin inspect**.
+Aide = **knowledge-grounded support agent + insights + embed lock + admin inspect**.
 
 To reach *architectural* parity on the AI path: **RAG → tools → guarded procedures → handoff**, in that order, mapped to **W3-1 then P3-RAG then desk/actions** — not a Zendesk clone.
 
-**Related:** fusion roadmap in [`FUSION_PLAN_HAPY_UNIQUE.md`](FUSION_PLAN_HAPY_UNIQUE.md).
+**Related:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md) · [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md).

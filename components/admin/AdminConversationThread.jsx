@@ -44,17 +44,17 @@ export function AdminConversationThread() {
     <AdminConversationsInbox selectedId={conversationId}>
       {loading ? (
         <div className="flex h-full flex-col p-6">
-          <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
-          <Skeleton className="mt-6 h-16 w-2/3 bg-[var(--color-border)]" />
+          <Skeleton className="h-8 w-48 bg-muted" />
+          <Skeleton className="mt-6 h-16 w-2/3 bg-muted" />
         </div>
       ) : error || !conversation || conversation.agentId !== agentId ? (
         <div className="flex h-full flex-col items-center justify-center px-6">
-          <p className="text-sm text-[var(--color-danger)]">
+          <p className="text-sm text-destructive">
             {error || "Conversation not found for this agent"}
           </p>
           <Link
             href={inboxHref}
-            className="mt-3 text-sm font-medium text-[var(--color-primary)] underline"
+            className="mt-3 text-sm font-medium text-primary underline"
           >
             Back to inbox
           </Link>

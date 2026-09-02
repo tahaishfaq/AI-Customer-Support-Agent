@@ -2,28 +2,40 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { homePathForRole } from "@/lib/auth-home";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { formatApiError } from "@/lib/utils/api-error";
-
-const fieldClass =
-  "h-12 w-full rounded-xl border border-[#e2e8f0] bg-white px-4 text-[15px] text-[#0f172a] outline-none transition placeholder:text-[#94a3b8] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 disabled:opacity-60";
-
-const labelClass = "mb-2 block text-sm font-medium text-[#0f172a]";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const register = useAuthStore((s) => s.register);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [signupsEnabled, setSignupsEnabled] = useState(true);
+
+  useEffect(() => {
+    const preset = searchParams.get("email");
+    if (preset) setEmail(preset);
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,13 +55,14 @@ export function RegisterForm() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+    setFieldErrors({});
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setFieldErrors({ password: "At least 8 characters" });
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords must match");
+      setFieldErrors({ confirmPassword: "Passwords must match" });
       return;
     }
 
@@ -64,7 +77,11 @@ export function RegisterForm() {
       router.push(homePathForRole(user?.role));
       router.refresh();
     } catch (err) {
-      setError(formatApiError(err, "Unable to register"));
+      if (err.details && Object.keys(err.details).length) {
+        setFieldErrors(err.details);
+      } else {
+        setError(formatApiError(err, "Unable to register"));
+      }
     } finally {
       setLoading(false);
     }
@@ -77,116 +94,118 @@ export function RegisterForm() {
 
   if (!signupsEnabled) {
     return (
-      <div className="space-y-4">
-        <p className="rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#475569]">
-          New signups are closed. If you already have an account, log in.
-        </p>
-        <p className="text-center text-sm text-[#475569]">
+      <Alert>
+        <AlertDescription>
+          Signups closed.{" "}
           <Link
             href="/login"
-            className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+            className="font-medium text-primary underline underline-offset-2"
           >
             Log in
           </Link>
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <GoogleSignInButton
         text="signup_with"
         onSuccess={(user) => goHome(user)}
         onError={(message) => setError(message)}
       />
 
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-[#e2e8f0]" />
-        <span className="text-xs text-[#64748b]">or</span>
-        <div className="h-px flex-1 bg-[#e2e8f0]" />
+      <div className="flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <Separator className="flex-1" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className={labelClass}>
-            Name
-          </label>
-          <input
-            id="name"
-            autoComplete="name"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            disabled={loading}
-            className={fieldClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className={labelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="me@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            className={fieldClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className={labelClass}>
-            Password
-          </label>
-          <PasswordInput
-            id="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            disabled={loading}
-          />
-        </div>
-        <div>
-          <label htmlFor="confirmPassword" className={labelClass}>
-            Confirm password
-          </label>
-          <PasswordInput
-            id="confirmPassword"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <FieldGroup>
+          <Field data-invalid={Boolean(fieldErrors.name) || undefined}>
+            <FieldLabel htmlFor="name">Name</FieldLabel>
+            <Input
+              id="name"
+              autoComplete="name"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              disabled={loading}
+              className="h-11"
+            />
+            {fieldErrors.name ? (
+              <FieldError>{fieldErrors.name}</FieldError>
+            ) : null}
+          </Field>
+          <Field data-invalid={Boolean(fieldErrors.email) || undefined}>
+            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="me@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="h-11"
+            />
+            {fieldErrors.email ? (
+              <FieldError>{fieldErrors.email}</FieldError>
+            ) : null}
+          </Field>
+          <Field data-invalid={Boolean(fieldErrors.password) || undefined}>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <PasswordInput
+              id="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              disabled={loading}
+            />
+            {fieldErrors.password ? (
+              <FieldError>{fieldErrors.password}</FieldError>
+            ) : null}
+          </Field>
+          <Field
+            data-invalid={Boolean(fieldErrors.confirmPassword) || undefined}
+          >
+            <FieldLabel htmlFor="confirmPassword">Confirm password</FieldLabel>
+            <PasswordInput
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+            {fieldErrors.confirmPassword ? (
+              <FieldError>{fieldErrors.confirmPassword}</FieldError>
+            ) : null}
+          </Field>
 
-        {error ? (
-          <p className="text-sm text-[#dc2626]" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] text-[15px] font-medium text-white transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
-        >
-          {loading ? "Creating account…" : "Register"}
-        </button>
+          <Button type="submit" disabled={loading} className="h-11 w-full">
+            {loading ? "Creating account…" : "Register"}
+          </Button>
+        </FieldGroup>
       </form>
 
-      <p className="text-center text-sm text-[#475569]">
+      <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+          className="font-medium text-primary underline underline-offset-2"
         >
           Log in
         </Link>
