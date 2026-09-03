@@ -162,7 +162,7 @@ export function IdentityForm({ agentId, identity, onChange }) {
                 id="identity-footer"
                 value={identity.footer}
                 onChange={(e) => patch({ footer: e.target.value })}
-                placeholder="by Aide"
+                placeholder="by AIDE"
                 className={fieldClass}
               />
             </div>

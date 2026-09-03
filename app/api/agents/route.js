@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { requireProductAccess } from "@/lib/require-product";
 import {
   createAgentForUser,
   listAgentsForUser,
@@ -27,7 +28,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireProductAccess(request);
     if (authResult.error) return authResult.error;
 
     let body;
@@ -58,9 +59,17 @@ export async function POST(request) {
       );
     }
 
-    const agent = await createAgentForUser(authResult.user.id, parsed.data);
+    const agent = await createAgentForUser(authResult.user.id, parsed.data, {
+      role: authResult.user.role,
+    });
     return NextResponse.json(agent, { status: 201 });
   } catch (error) {
+    if (error.status) {
+      return NextResponse.json(
+        { error: { message: error.message, details: error.details || {} } },
+        { status: error.status }
+      );
+    }
     console.error("POST /api/agents", error);
     return NextResponse.json(
       { error: { message: "Unable to create agent", details: {} } },

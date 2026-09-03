@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { selectionChipActive, selectionChipClass } from "@/lib/ui/selection-chip";
 
 const ACTION_FILTERS = [
   { id: "", label: "All" },
@@ -390,11 +391,9 @@ export function AdminAuditLog() {
               key={item.id || "all"}
               type="button"
               onClick={() => replaceParams({ action: item.id, page: "" })}
-              className={cn(
-                "rounded-md px-2.5 py-1.5 text-[12px] font-medium",
-                action === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
+              className={selectionChipClass(
+                action === item.id,
+                "rounded-md px-2.5 py-1.5 text-[12px] font-medium"
               )}
             >
               {item.label}
@@ -489,10 +488,10 @@ export function AdminAuditLog() {
                       replaceParams({ page: item === 1 ? "" : String(item) })
                     }
                     className={cn(
-                      "h-8 min-w-8 rounded-lg px-2 text-[12px] font-medium ring-1",
+                      "h-8 min-w-8 rounded-lg px-2 text-[12px] font-medium",
                       item === page
-                        ? "bg-primary text-primary-foreground ring-primary"
-                        : "bg-card text-foreground ring-border"
+                        ? selectionChipActive
+                        : "border border-border bg-transparent text-foreground hover:border-primary/25"
                     )}
                   >
                     {item}

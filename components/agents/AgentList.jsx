@@ -79,7 +79,10 @@ export function AgentList() {
         action={
           <Link
             href="/agents/new"
-            className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "rounded-full"
+            )}
           >
             <Plus data-icon="inline-start" />
             New agent

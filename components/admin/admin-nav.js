@@ -6,6 +6,7 @@ export const ADMIN_NAV_GROUPS = [
       { href: "/admin", label: "Dashboard", exact: true, icon: "dashboard" },
       { href: "/admin/users", label: "Users", icon: "users" },
       { href: "/admin/requests", label: "Requests", icon: "requests" },
+      { href: "/admin/billing", label: "Billing", icon: "billing" },
     ],
   },
   {
@@ -14,6 +15,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { href: "/admin/safety", label: "Safety", icon: "safety" },
       { href: "/admin/audit", label: "Audit", icon: "audit" },
+      { href: "/admin/billing/requests", label: "Custom plans", icon: "billingRequests" },
     ],
   },
 ];

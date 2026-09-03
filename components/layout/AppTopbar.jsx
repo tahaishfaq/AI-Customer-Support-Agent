@@ -75,7 +75,7 @@ export function AppTopbar() {
   }
 
   return (
-    <header className="z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm sm:px-5">
+    <header className="z-30 flex h-12 shrink-0 items-center gap-1.5 border-b border-border bg-card/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4 md:px-5">
       <NavMenuTrigger />
       <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
 
@@ -113,7 +113,7 @@ export function AppTopbar() {
           className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Account menu"
         >
-          <span className="hidden max-w-[9rem] truncate text-sm text-muted-foreground sm:block">
+          <span className="hidden max-w-[5.5rem] truncate text-sm text-muted-foreground md:block lg:max-w-[9rem]">
             {user?.name}
           </span>
           <Avatar size="sm">

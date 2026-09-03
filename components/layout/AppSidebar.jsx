@@ -5,19 +5,20 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
+  CreditCard,
   Headphones,
   Home,
   MessageSquare,
 } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
 import { useDeskWaitingCount } from "@/hooks/use-desk-waiting-count";
+import { ConversationQuotaSidebar } from "@/components/billing/ConversationQuotaShell";
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
 import {
   MONITOR_NAV,
   PRIMARY_NAV,
+  ACCOUNT_NAV,
   isNavActive,
 } from "@/components/layout/nav";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -40,17 +41,9 @@ const ICONS = {
   "/chat": MessageSquare,
   "/inbox": Headphones,
   "/analytics": BarChart3,
+  "/billing/plans": CreditCard,
+  "/settings/billing": CreditCard,
 };
-
-function initials(name) {
-  if (!name) return "H";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
 
 function NavItems({ items, badgeForHref }) {
   const pathname = usePathname();
@@ -89,7 +82,6 @@ function NavItems({ items, badgeForHref }) {
 }
 
 export function AppSidebar() {
-  const user = useAuthStore((s) => s.user);
   const deskWaiting = useDeskWaitingCount();
 
   return (
@@ -120,24 +112,17 @@ export function AppSidebar() {
             />
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavItems items={ACCOUNT_NAV} />
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <div className="flex items-center gap-2.5 overflow-hidden px-1 py-0.5 transition-[gap,padding] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0">
-          <Avatar size="sm" className="shrink-0">
-            <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
-              {initials(user?.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1 overflow-hidden opacity-100 transition-[opacity,width,flex-basis] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:opacity-0">
-            <p className="truncate text-sm font-medium leading-tight">
-              {user?.name || "Account"}
-            </p>
-            <p className="truncate text-[11px] leading-tight text-muted-foreground">
-              {user?.email || "Signed in"}
-            </p>
-          </div>
-        </div>
+      <SidebarFooter className="mt-auto shrink-0 border-t border-sidebar-border px-2 pt-2 pb-3">
+        <ConversationQuotaSidebar />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

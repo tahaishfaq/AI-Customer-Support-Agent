@@ -1,121 +1,139 @@
-import {
-  Check,
-} from "lucide-react";
+import { BarChart3, Bot, Workflow } from "lucide-react";
 import { FeatureLiveChat } from "@/components/landing/FeatureLiveChat";
 import { FeatureLiveActions } from "@/components/landing/FeatureLiveActions";
+import { FeatureLiveInsights } from "@/components/landing/FeatureLiveInsights";
 import { LandingReveal } from "@/components/landing/LandingReveal";
-import { LandingSectionIntro } from "@/components/landing/LandingSectionIntro";
-
-const SCENE =
-  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1400&q=80";
+import { cn } from "@/lib/utils";
 
 const FEATURES = [
   {
+    index: "01",
     eyebrow: "Customer support",
     title: "Resolve tickets, automatically.",
-    body: "Agents triage, draft, and close conversations the moment they land — pulling from your knowledge base and tools to answer with full context.",
+    body: "Agents triage, draft, and close conversations the moment they land — grounded in your knowledge and tools.",
     points: [
       "Embed chat on your site or app",
-      "Knowledge-grounded replies with citations",
-      "Hand-off to humans with full context",
+      "Replies with citations",
+      "Hand-off with full context",
     ],
     visual: "support",
+    icon: Bot,
   },
   {
+    index: "02",
     eyebrow: "Knowledge & actions",
     title: "Teach once. Act safely.",
-    body: "Replace brittle macros and one-off scripts with knowledge plus allowlisted actions that branch, confirm, and recover — configured in minutes.",
+    body: "Replace brittle macros with knowledge plus allowlisted actions that confirm, branch, and recover.",
     points: [
-      "FAQ and PDF knowledge retrieve",
+      "FAQ and PDF retrieve",
       "Owner-configured HTTP tools",
-      "Confirm and identity gates for write actions",
+      "Confirm gates for write actions",
     ],
     visual: "actions",
+    icon: Workflow,
   },
   {
+    index: "03",
     eyebrow: "Data & insights",
     title: "See what your agents do.",
-    body: "Every conversation, action, and outcome becomes structured signal. Track resolution, topics, and where to improve — in one dashboard.",
+    body: "Every conversation becomes structured signal — resolution, topics, and where to improve.",
     points: [
-      "Real-time sentiment and topic trends",
+      "Sentiment and topic trends",
       "Conversation history you own",
-      "Studio test before you go live",
+      "Studio test before go-live",
     ],
     visual: "insights",
+    icon: BarChart3,
+    dark: true,
   },
 ];
 
-function InsightsMock() {
-  const stats = [
-    { label: "Sentiment", value: "71% +" },
-    { label: "Top topic", value: "Shipping" },
-    { label: "Avg reply", value: "2.3s" },
-    { label: "Handoffs", value: "12 today" },
-  ];
+function FeatureVisual({ type, dark }) {
+  const isInsights = type === "insights";
+  const isChat = type === "support";
 
   return (
-    <div className="grid w-full max-w-[19.5rem] grid-cols-2 gap-2.5">
-      {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="rounded-2xl border border-white/70 bg-white/95 px-3.5 py-3.5 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md"
-        >
-          <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--landing-muted)] uppercase">
-            {stat.label}
-          </p>
-          <p className="mt-2 text-[15px] font-semibold tracking-tight text-[var(--landing-ink)]">
-            {stat.value}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function FeatureVisual({ type }) {
-  return (
-    <div className="relative min-h-[17rem] overflow-hidden sm:min-h-[20rem] lg:min-h-[22rem]">
-      <img
-        src={SCENE}
-        alt=""
-        className="absolute inset-0 size-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/25 via-transparent to-black/35" />
-      <div className="relative flex h-full min-h-[17rem] items-center justify-center p-6 sm:min-h-[20rem] sm:p-8 lg:min-h-[22rem]">
-        {type === "actions" ? (
-          <FeatureLiveActions />
-        ) : type === "insights" ? (
-          <InsightsMock />
-        ) : (
-          <FeatureLiveChat />
-        )}
-      </div>
+    <div
+      className={cn(
+        "flex w-full items-center justify-center",
+        isInsights
+          ? "min-h-[18rem] p-4 sm:min-h-[20rem] sm:p-6 lg:p-8"
+          : isChat
+            ? "h-[24rem] p-6 sm:h-[26rem] sm:p-8"
+            : "min-h-[13rem] p-6 sm:min-h-[15rem] sm:p-8",
+        dark && "text-white"
+      )}
+    >
+      {type === "actions" ? (
+        <FeatureLiveActions />
+      ) : type === "insights" ? (
+        <FeatureLiveInsights />
+      ) : (
+        <FeatureLiveChat />
+      )}
     </div>
   );
 }
 
 function FeatureCopy({ feature }) {
+  const Icon = feature.icon;
+  const dark = feature.dark;
+
   return (
-    <div className="flex h-full flex-col justify-center bg-[#f3f1ee] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-      <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--landing-muted)] uppercase">
-        {feature.eyebrow}
+    <div className="flex h-full flex-col justify-center">
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "flex size-10 items-center justify-center rounded-xl",
+            dark
+              ? "bg-white/10 text-white"
+              : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+          )}
+        >
+          <Icon className="size-5" strokeWidth={1.75} />
+        </span>
+        <span
+          className={cn(
+            "text-[11px] font-semibold tracking-[0.14em] uppercase",
+            dark ? "text-white/60" : "text-[var(--landing-muted)]"
+          )}
+        >
+          {feature.eyebrow}
+        </span>
+      </div>
+
+      <p className="mt-6 text-[12px] font-semibold tracking-[0.2em] text-[var(--color-primary)]">
+        {feature.index}
       </p>
-      <h3 className="landing-display mt-3 max-w-[18ch] text-[1.65rem] leading-[1.2] text-[var(--landing-ink)] sm:text-[1.9rem] lg:text-[2.05rem]">
+
+      <h3
+        className={cn(
+          "landing-display mt-3 text-[1.75rem] leading-[1.2] sm:text-[2rem]",
+          dark ? "text-white" : "text-[var(--landing-ink)]"
+        )}
+      >
         {feature.title}
       </h3>
-      <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[var(--landing-muted)] sm:text-[15px]">
+      <p
+        className={cn(
+          "mt-4 max-w-md text-[15px] leading-relaxed",
+          dark ? "text-white/70" : "text-[var(--landing-muted)]"
+        )}
+      >
         {feature.body}
       </p>
-      <ul className="mt-7 space-y-3.5">
+
+      <ul className="mt-6 space-y-2.5">
         {feature.points.map((point) => (
           <li
             key={point}
-            className="flex items-start gap-3 text-[13px] leading-snug text-[var(--landing-ink)] sm:text-[14px]"
+            className={cn(
+              "flex items-start gap-2.5 text-[14px] leading-snug",
+              dark ? "text-white/90" : "text-[var(--landing-ink)]"
+            )}
           >
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-white">
-              <Check className="size-3 stroke-[3]" />
-            </span>
-            <span className="min-w-0">{point}</span>
+            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
+            <span>{point}</span>
           </li>
         ))}
       </ul>
@@ -123,48 +141,101 @@ function FeatureCopy({ feature }) {
   );
 }
 
+function DarkPanelBackdrop() {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-[var(--color-primary)]/35 blur-3xl"
+      />
+    </>
+  );
+}
+
+function GridCell({ children, className, dark = false }) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden px-6 py-10 sm:px-8 sm:py-12 lg:px-10",
+        dark ? "landing-dot-cell-dark" : "landing-dot-cell",
+        className
+      )}
+    >
+      {dark ? <DarkPanelBackdrop /> : null}
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
 export function LandingFeatures() {
+  const [f1, f2, f3] = FEATURES;
+
   return (
     <section
       id="features"
-      className="scroll-mt-24 bg-white px-6 py-20 sm:px-8 sm:py-28"
+      className="landing-section landing-section-grid bg-white py-0"
     >
-      <div className="mx-auto max-w-6xl">
-        <LandingSectionIntro
-          eyebrow="Features"
-          title="AI support platform that works for you."
-          description="Purpose-built capabilities that eliminate manual work across your support operation."
-          titleClassName="mt-4 text-[2rem] leading-[1.15] sm:text-4xl md:text-[2.85rem]"
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2">
+          {/* Intro — full width */}
+          <GridCell className="col-span-1 lg:col-span-2">
+            <LandingReveal fadeOnly className="max-w-2xl">
+              <p className="text-[12px] font-semibold tracking-[0.14em] text-[var(--color-primary)] uppercase">
+                Features
+              </p>
+              <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--landing-muted)] sm:text-base">
+                Three core capabilities — chat, actions, and insights — built to
+                work together from day one.
+              </p>
+            </LandingReveal>
+          </GridCell>
 
-        <div className="relative mt-14 sm:mt-16">
-          {FEATURES.map((feature, index) => {
-            const reversed = index % 2 === 1;
-            const top = `calc(5.5rem + ${index * 1.25}rem)`;
+          {/* 01 — copy | visual */}
+          <GridCell className="landing-dot-r-lg">
+            <LandingReveal fadeOnly delay={60}>
+              <FeatureCopy feature={f1} />
+            </LandingReveal>
+          </GridCell>
+          <GridCell className="bg-[#f7f5f2]">
+            <LandingReveal fadeOnly delay={80}>
+              <FeatureVisual type={f1.visual} />
+            </LandingReveal>
+          </GridCell>
 
-            return (
-              <LandingReveal
-                key={feature.title}
-                delay={index * 35}
-                className="landing-feature-sticky sticky mb-5 sm:mb-6"
-                style={{ top, zIndex: index + 1 }}
-              >
-                <article className="landing-feature-card overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-[#f3f1ee] shadow-[0_28px_70px_-32px_rgba(20,16,12,0.42)]">
-                  <div
-                    className={`grid lg:grid-cols-2 ${
-                      reversed ? "lg:[&>*:first-child]:order-2" : ""
-                    }`}
-                  >
-                    <FeatureCopy feature={feature} />
-                    <FeatureVisual type={feature.visual} />
-                  </div>
-                </article>
-              </LandingReveal>
-            );
-          })}
-        </div>
+          {/* 02 — visual | copy */}
+          <GridCell className="order-4 bg-[#f7f5f2] lg:order-none landing-dot-r-lg">
+            <LandingReveal fadeOnly delay={100}>
+              <FeatureVisual type={f2.visual} />
+            </LandingReveal>
+          </GridCell>
+          <GridCell className="order-3 lg:order-none">
+            <LandingReveal fadeOnly delay={120}>
+              <FeatureCopy feature={f2} />
+            </LandingReveal>
+          </GridCell>
 
-        <div className="h-20 sm:h-28" aria-hidden />
+          {/* 03 — copy | visual (dark) */}
+          <GridCell dark className="bg-[var(--landing-ink)] landing-dot-cell-none-lg landing-dot-r-lg-light">
+            <LandingReveal fadeOnly delay={140}>
+              <FeatureCopy feature={f3} />
+            </LandingReveal>
+          </GridCell>
+          <GridCell
+            dark
+            className="landing-dot-cell-none bg-[var(--landing-ink)]"
+          >
+            <LandingReveal fadeOnly delay={160}>
+              <FeatureVisual type={f3.visual} dark />
+            </LandingReveal>
+          </GridCell>
       </div>
     </section>
   );

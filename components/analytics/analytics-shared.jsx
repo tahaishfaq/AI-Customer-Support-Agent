@@ -17,6 +17,7 @@ import {
   SoftStaggerItem,
 } from "@/components/motion/soft-motion";
 import { cn } from "@/lib/utils";
+import { selectionChipClass } from "@/lib/ui/selection-chip";
 
 export const ANALYTICS_RANGES = [
   { id: "1d", label: "Today" },
@@ -61,11 +62,9 @@ export function RangeChips({ range, onChange, className }) {
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
-          className={cn(
-            "rounded-md px-2.5 py-1.5 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-3 sm:py-1.5 sm:text-[12px]",
-            range === item.id
-              ? "bg-primary text-primary-foreground"
-              : "bg-card text-muted-foreground ring-1 ring-border hover:text-foreground"
+          className={selectionChipClass(
+            range === item.id,
+            "rounded-md px-2.5 py-1.5 text-[11px] font-medium sm:px-3 sm:py-1.5 sm:text-[12px]"
           )}
         >
           {item.label}

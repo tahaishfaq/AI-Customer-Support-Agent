@@ -17,6 +17,11 @@ import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatHistoryPanel } from "@/components/chat/ChatHistoryPanel";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import {
+  ConversationLimitNotice,
+  isConversationLimitError,
+} from "@/components/billing/BillingPlansUsage";
+import { refreshConversationQuota } from "@/hooks/use-conversation-quota";
+import {
   EMBED_PLACEMENTS,
   EmbedPreview,
   PlacementSwitcher,
@@ -54,6 +59,7 @@ export function ChatWorkspace() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
   const [lastFailedText, setLastFailedText] = useState("");
   const [placement, setPlacement] = useState("bottom-right");
   const [widgetOpen, setWidgetOpen] = useState(true);
@@ -154,6 +160,7 @@ export function ChatWorkspace() {
     if (!agentId || sending) return;
     setSending(true);
     setError("");
+    setLimitReached(false);
     setLastFailedText("");
 
     const optimisticId = `local-user-${Date.now()}`;
@@ -195,6 +202,7 @@ export function ChatWorkspace() {
         ];
       });
       setHistoryKey((k) => k + 1);
+      refreshConversationQuota();
       if (customization.features.notificationSound) {
         playNotificationBeep();
       }
@@ -205,7 +213,10 @@ export function ChatWorkspace() {
       setSending(false);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      const limit = isConversationLimitError(err);
+      setLimitReached(limit);
       setError(err.message || "Unable to send message");
+      if (limit) refreshConversationQuota();
       setLastFailedText(text);
       setSending(false);
     }
@@ -347,8 +358,12 @@ export function ChatWorkspace() {
       {error ? (
         <div className="mx-3 mb-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-[12px] text-[var(--color-danger)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p>{error}</p>
-            {lastFailedText ? (
+            {limitReached ? (
+              <ConversationLimitNotice message={error} />
+            ) : (
+              <p>{error}</p>
+            )}
+            {lastFailedText && !limitReached ? (
               <Button
                 type="button"
                 variant="outline"

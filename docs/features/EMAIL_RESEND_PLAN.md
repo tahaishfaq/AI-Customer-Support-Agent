@@ -31,7 +31,7 @@ A single **server-side email layer** (`lib/email/`) used by auth, billing, and o
 ## Security invariants
 
 1. **`RESEND_API_KEY` server-only** — never `NEXT_PUBLIC_`.  
-2. **Rate limit** every endpoint that triggers email (register, forgot-password, resend-verify, custom-plan).  
+2. **Rate limit** every endpoint that triggers email (register, forgot-password, resend-verify, custom-plan, **landing contact**).  
 3. **Tokens:** store SHA-256 hash + expiry; single use; constant-time compare.  
 4. **No account enumeration** — forgot-password and verify-resend return same success copy whether email exists.  
 5. **Links** use `AUTH_URL` / `NEXT_PUBLIC_APP_URL` canonical origin only.  
@@ -73,6 +73,8 @@ lib/email/
     login-alert.jsx      # optional
     otp.jsx              # 6-digit code variant
     custom-plan-admin.jsx
+    landing-contact-admin.jsx   # EM2 — homepage #contact form
+    landing-contact-ack.jsx     # EM2 — optional submitter ack
     payment-receipt.jsx  # B4+
     onboarding-day1.jsx  # EM3
   tokens.js              # createEmailToken, consumeEmailToken (shared)
@@ -140,6 +142,8 @@ Raw token returned **once** in API response / email link only. DB never stores p
 | `login_alert` | New device / IP login (optional) | User | EM3 optional |
 | `custom_plan_request_admin` | Custom plan form submitted | Admin (`BILLING_ADMIN_EMAIL`) | EM2 |
 | `custom_plan_request_ack` | Same form (auto-reply) | User | EM2 |
+| `landing_contact_admin` | Landing **Contact** form (`#contact` / `POST /api/contact`) | Admin (`BILLING_ADMIN_EMAIL` or `CONTACT_ADMIN_EMAIL`) | EM2 |
+| `landing_contact_ack` | Same form (auto-reply) | Submitter work email | EM2 |
 | `payment_receipt` | SafePay `subscription_payment:complete` | User | B4 |
 | `subscription_past_due` | Webhook `subscription:unpaid` | User | B4 |
 | `onboarding_day1` | Cron 24h after first ACTIVE sub | User | EM3 |
@@ -301,8 +305,14 @@ EMAIL_ONBOARDING_DRIP=1
 - Templates: `custom_plan_request_admin`, `custom_plan_request_ack`  
 - Wire from `POST /api/billing/custom-request`  
 - Admin notification on failed payment (optional stub for B4)  
+- **Landing contact form (already in UI):** wire `POST /api/contact`  
+  - UI: `components/landing/LandingContact.jsx` (`#contact` on homepage; replaced old CTA)  
+  - Route stub today: validates + rate-limits; logs only (`queued: false`, `deferred: true`)  
+  - On EM2: send `landing_contact_admin` → admin email; optional `landing_contact_ack` → submitter  
+  - Payload: `fullName`, `email`, `company?`, `message`  
+  - Reuse same security rules as custom-plan (rate limit, no client secrets, redact PII in logs)  
 
-**Depends on:** B0 `CustomPlanRequest` model  
+**Depends on:** B0 `CustomPlanRequest` model; EM0 `sendEmail`  
 
 **Test gate**
 
@@ -310,8 +320,10 @@ EMAIL_ONBOARDING_DRIP=1
 - [ ] User receives ack  
 - [ ] `emailSentAt` set on request row  
 - [ ] Rate limit blocks spam  
+- [ ] Landing contact form → admin email + optional submitter ack  
+- [ ] Contact rate limit blocks spam  
 
-**Exit:** Billing custom path operational.
+**Exit:** Billing custom path + landing contact email operational.
 
 ---
 

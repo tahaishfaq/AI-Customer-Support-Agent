@@ -902,7 +902,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
             )
           : fullPage
             ? "flex h-full min-h-0 flex-col bg-transparent"
-            : "flex h-dvh min-h-0 flex-col bg-transparent"
+          : "flex h-dvh min-h-0 flex-col bg-transparent"
       }
     >
       <ChatWidget

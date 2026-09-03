@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
-import { homePathForRole } from "@/lib/auth-home";
+import { resolveFastPostAuthPath } from "@/lib/api/auth";
 import { apiFetch } from "@/lib/api-client";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -21,32 +21,33 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 
-export function LoginForm() {
+export function LoginForm({
+  sessionExpired = false,
+  suspended: suspendedProp = false,
+  next = "",
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const login = useAuthStore((s) => s.login);
   const logout = useAuthStore((s) => s.logout);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [suspended, setSuspended] = useState(false);
+  const [suspended, setSuspended] = useState(suspendedProp);
   const [appeal, setAppeal] = useState("");
   const [appealSent, setAppealSent] = useState(false);
   const [appealBusy, setAppealBusy] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState(null);
+  const clearedRef = useRef(false);
 
-  useEffect(() => {
-    if (searchParams.get("suspended") !== "1") return;
-    logout();
-    setSuspended(true);
-    setRestoreStatus(null);
-    setError("");
-  }, [searchParams, logout]);
+  if (!clearedRef.current && (sessionExpired || suspendedProp)) {
+    clearedRef.current = true;
+    queueMicrotask(() => logout());
+  }
 
   function goHome(user) {
-    router.push(homePathForRole(user?.role));
-    router.refresh();
+    const dest = resolveFastPostAuthPath(user, next);
+    router.push(dest);
   }
 
   function markSuspended(status) {
@@ -173,6 +174,15 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      {sessionExpired ? (
+        <Alert>
+          <AlertTitle>Session expired</AlertTitle>
+          <AlertDescription>
+            Your previous sign-in is no longer valid. Sign in again to continue.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <GoogleSignInButton
         text="signin_with"
         onSuccess={(user) => goHome(user)}
@@ -185,7 +195,9 @@ export function LoginForm() {
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs text-muted-foreground">or</span>
+        <span className="text-[11px] tracking-[0.08em] text-[var(--landing-muted)] uppercase">
+          or
+        </span>
         <Separator className="flex-1" />
       </div>
 
@@ -229,11 +241,12 @@ export function LoginForm() {
         </FieldGroup>
       </form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-[var(--landing-muted)]">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-medium text-primary underline underline-offset-2"
+          prefetch
+          className="font-medium text-[var(--landing-ink)] underline underline-offset-2 transition-opacity hover:opacity-70"
         >
           Create one
         </Link>

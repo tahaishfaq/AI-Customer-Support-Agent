@@ -12,6 +12,8 @@ const PROTECTED_PREFIXES = [
   "/chat",
   "/conversations",
   "/analytics",
+  "/inbox",
+  "/settings",
 ];
 
 function isProtectedPath(pathname) {
@@ -22,6 +24,10 @@ function isProtectedPath(pathname) {
 
 function isAdminPath(pathname) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function isBillingPath(pathname) {
+  return pathname === "/billing" || pathname.startsWith("/billing/");
 }
 
 export async function proxy(request) {
@@ -47,14 +53,21 @@ export async function proxy(request) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (isBillingPath(pathname) && !isLoggedIn) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   if (isLoggedIn && PUBLIC_AUTH_PAGES.has(pathname)) {
     if (
       pathname === "/login" &&
-      request.nextUrl.searchParams.get("suspended")
+      (request.nextUrl.searchParams.get("suspended") ||
+        request.nextUrl.searchParams.get("session") === "expired")
     ) {
       return NextResponse.next();
     }
-    const dest = role === "ADMIN" ? "/admin" : "/dashboard";
+    const dest = role === "ADMIN" ? "/admin" : "/auth/continue";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 
@@ -76,6 +89,12 @@ export const config = {
     "/conversations/:path*",
     "/analytics",
     "/analytics/:path*",
+    "/inbox",
+    "/inbox/:path*",
+    "/billing",
+    "/billing/:path*",
+    "/settings",
+    "/settings/:path*",
     "/admin",
     "/admin/:path*",
   ],

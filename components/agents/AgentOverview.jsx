@@ -104,7 +104,7 @@ function SetupRow({ done, label, hint, href }) {
         className={cn(
           "flex size-5 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
           done
-            ? "bg-primary text-primary-foreground"
+            ? "border border-primary/40 bg-primary/10 text-primary"
             : "bg-muted text-muted-foreground ring-1 ring-border"
         )}
         aria-hidden={!done}
@@ -340,7 +340,9 @@ export function AgentOverview({
                 </div>
                 <CardAction>
                   {setupComplete ? (
-                    <Badge className="rounded-full">Ready to deploy</Badge>
+                    <Badge variant="primary" className="rounded-full">
+                      Ready to deploy
+                    </Badge>
                   ) : (
                     <Badge variant="secondary" className="rounded-full">
                       In progress

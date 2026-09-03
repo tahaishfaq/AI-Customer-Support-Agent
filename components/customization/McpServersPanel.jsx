@@ -88,7 +88,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
   function openCreate(demo = false) {
     setForm({
       ...EMPTY_FORM,
-      name: demo ? "Aide demo MCP" : "Custom MCP",
+      name: demo ? "AIDE demo MCP" : "Custom MCP",
       url: demo ? defaultDemoUrl() : "",
       authType: "NONE",
     });
@@ -214,7 +214,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
         <EmptyState
           icon={Plug}
           title="No MCP servers yet"
-          description="Add Aide’s demo MCP or a remote Streamable HTTP endpoint, then enable tools for Studio."
+          description="Add AIDE’s demo MCP or a remote Streamable HTTP endpoint, then enable tools for Studio."
           action={
             <Button type="button" size="sm" onClick={() => openCreate(true)}>
               <Plus data-icon="inline-start" />

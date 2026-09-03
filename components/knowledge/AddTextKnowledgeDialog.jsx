@@ -23,9 +23,9 @@ const EMPTY_PAIR = { question: "", answer: "" };
 function blankFaq() {
   return [
     {
-      question: "What services does Aide provide?",
+      question: "What services does AIDE provide?",
       answer:
-        "Aide provides custom software development, web applications, AI solutions and SaaS products.",
+        "AIDE provides custom software development, web applications, AI solutions and SaaS products.",
     },
   ];
 }
@@ -213,7 +213,7 @@ export function AddTextKnowledgeDialog({
                         }
                         disabled={loading}
                         className="mt-1.5"
-                        placeholder="What services does Aide provide?"
+                        placeholder="What services does AIDE provide?"
                       />
                     </div>
                     <div>
@@ -227,7 +227,7 @@ export function AddTextKnowledgeDialog({
                         disabled={loading}
                         rows={4}
                         className="mt-1.5 min-h-24 resize-none"
-                        placeholder="Aide provides custom software development, web applications, AI solutions and SaaS products."
+                        placeholder="AIDE provides custom software development, web applications, AI solutions and SaaS products."
                       />
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export function AddTextKnowledgeDialog({
                   onChange={(e) => setNotes(e.target.value)}
                   disabled={loading}
                   className="mt-1.5 h-full max-h-none min-h-[220px] flex-1 resize-none"
-                  placeholder="# About Aide Co&#10;&#10;- MVP Development&#10;- AI Integration"
+                  placeholder="# About AIDE Co&#10;&#10;- MVP Development&#10;- AI Integration"
                 />
               </div>
             )}

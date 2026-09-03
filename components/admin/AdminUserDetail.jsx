@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AdminConversationQuota } from "@/components/admin/AdminConversationQuota";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -258,6 +259,34 @@ export function AdminUserDetail() {
         <Info label="Last login" value={formatWhen(user.lastLoginAt)} />
       </section>
 
+      {user.conversations ? (
+        <AdminConversationQuota
+          quota={user.conversations}
+          className="mt-6"
+        />
+      ) : null}
+
+      {user.billing?.subscription ? (
+        <section className="aide-card mt-4 px-4 py-3.5">
+          <h2 className="text-sm font-semibold text-foreground">Subscription</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {user.billing.subscription.plan?.name || user.billing.planSlug}
+            </span>{" "}
+            · {user.billing.subscription.status}
+            {user.billing.subscription.checkoutReference ? (
+              <>
+                {" "}
+                · ref{" "}
+                <span className="font-mono text-xs">
+                  {user.billing.subscription.checkoutReference.slice(0, 8)}…
+                </span>
+              </>
+            ) : null}
+          </p>
+        </section>
+      ) : null}
+
       {user.restoreRequest ? (
         <section className="mt-6 rounded-xl border border-border bg-card px-4 py-4">
           <div className="flex items-center justify-between gap-2">
@@ -288,11 +317,11 @@ export function AdminUserDetail() {
             No workspaces for this account.
           </p>
         ) : (
-          <ul className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
+          <ul className="aide-card mt-3 overflow-hidden divide-y divide-border/60">
             {workspaces.map((workspace) => (
               <li
                 key={workspace.id}
-                className="flex flex-col gap-1 border-b border-border px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-1 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span>
                   <span className="block text-[13px] font-medium text-foreground">
@@ -402,7 +431,7 @@ export function AdminUserDetail() {
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
+    <div className="aide-card px-4 py-3">
       <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
       <p className={cn("mt-1 text-sm font-medium text-foreground")}>
         {value}

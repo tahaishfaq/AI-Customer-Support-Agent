@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
+import { ConversationQuotaBanner } from "@/components/billing/ConversationQuotaShell";
+import { BillingPastDueBanner } from "@/components/billing/BillingPastDueBanner";
 import {
   SidebarInset,
   SidebarProvider,
@@ -33,6 +35,8 @@ export function AppShell({ children }) {
       <AppSidebar />
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
         <AppTopbar />
+        <BillingPastDueBanner />
+        <ConversationQuotaBanner />
         <div
           id="aide-main"
           key={animKey}

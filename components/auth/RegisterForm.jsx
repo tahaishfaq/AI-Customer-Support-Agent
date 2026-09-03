@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
-import { homePathForRole } from "@/lib/auth-home";
+import { resolveFastPostAuthPath } from "@/lib/api/auth";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { formatApiError } from "@/lib/utils/api-error";
@@ -19,38 +19,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
-export function RegisterForm() {
+export function RegisterForm({
+  initialEmail = "",
+  signupsEnabled = true,
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const register = useAuthStore((s) => s.register);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [signupsEnabled, setSignupsEnabled] = useState(true);
-
-  useEffect(() => {
-    const preset = searchParams.get("email");
-    if (preset) setEmail(preset);
-  }, [searchParams]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/public/platform")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data?.signupsEnabled === false) {
-          setSignupsEnabled(false);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -74,8 +55,8 @@ export function RegisterForm() {
         password,
         confirmPassword,
       });
-      router.push(homePathForRole(user?.role));
-      router.refresh();
+      const dest = resolveFastPostAuthPath(user, "", { freshSignup: true });
+      router.push(dest);
     } catch (err) {
       if (err.details && Object.keys(err.details).length) {
         setFieldErrors(err.details);
@@ -88,8 +69,9 @@ export function RegisterForm() {
   }
 
   function goHome(user) {
-    router.push(homePathForRole(user?.role));
-    router.refresh();
+    // GIS (new or returning): /auth/continue picks onboarding | plans | dashboard.
+    const dest = resolveFastPostAuthPath(user);
+    router.push(dest);
   }
 
   if (!signupsEnabled) {
@@ -99,7 +81,8 @@ export function RegisterForm() {
           Signups closed.{" "}
           <Link
             href="/login"
-            className="font-medium text-primary underline underline-offset-2"
+            prefetch
+            className="font-medium text-[var(--landing-ink)] underline underline-offset-2"
           >
             Log in
           </Link>
@@ -118,7 +101,9 @@ export function RegisterForm() {
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs text-muted-foreground">or</span>
+        <span className="text-[11px] tracking-[0.08em] text-[var(--landing-muted)] uppercase">
+          or
+        </span>
         <Separator className="flex-1" />
       </div>
 
@@ -201,11 +186,12 @@ export function RegisterForm() {
         </FieldGroup>
       </form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-[var(--landing-muted)]">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-primary underline underline-offset-2"
+          prefetch
+          className="font-medium text-[var(--landing-ink)] underline underline-offset-2 transition-opacity hover:opacity-70"
         >
           Log in
         </Link>

@@ -1,196 +1,126 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useAuthStore } from "@/store/auth-store";
+import {
+  getGoogleGisStatus,
+  retryGoogleGisReady,
+  subscribeGoogleGisStatus,
+} from "@/lib/auth/google-gis";
 
-const SCRIPT_ID = "google-gsi-script";
-const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
-const GIS_TIMEOUT_MS = 8000;
-
-function ensureGisScript() {
-  let script = document.getElementById(SCRIPT_ID);
-  if (script) return script;
-
-  script = document.createElement("script");
-  script.id = SCRIPT_ID;
-  script.src = SCRIPT_SRC;
-  script.async = true;
-  script.defer = true;
-  document.body.appendChild(script);
-  return script;
+function useGoogleGisStatus() {
+  return useSyncExternalStore(
+    subscribeGoogleGisStatus,
+    getGoogleGisStatus,
+    () => "idle"
+  );
 }
 
-function gisReady() {
-  return Boolean(window.google?.accounts?.id);
-}
+/** Stable GIS callback — one initialize per client id (no flicker / GSI warnings). */
+const gisCredentialHandler = { current: null };
+let gisClientIdInitialized = "";
 
-function waitForGis() {
-  return new Promise((resolve, reject) => {
-    if (gisReady()) {
-      resolve();
-      return;
-    }
+function ensureGisInitialized(clientId) {
+  if (typeof window === "undefined" || !window.google?.accounts?.id) {
+    return false;
+  }
+  if (gisClientIdInitialized === clientId) return true;
 
-    const script = ensureGisScript();
-    let settled = false;
-    let pollId = 0;
-    let timeoutId = 0;
-
-    function done(ok) {
-      if (settled) return;
-      settled = true;
-      window.clearInterval(pollId);
-      window.clearTimeout(timeoutId);
-      script.removeEventListener("load", onLoad);
-      script.removeEventListener("error", onError);
-      if (ok) resolve();
-      else reject(new Error("Google Sign-In unavailable"));
-    }
-
-    function onLoad() {
-      if (gisReady()) done(true);
-    }
-
-    function onError() {
-      done(false);
-    }
-
-    script.addEventListener("load", onLoad);
-    script.addEventListener("error", onError);
-
-    pollId = window.setInterval(() => {
-      if (gisReady()) done(true);
-    }, 50);
-
-    timeoutId = window.setTimeout(() => done(false), GIS_TIMEOUT_MS);
-
-    if (gisReady()) done(true);
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (response) => {
+      void gisCredentialHandler.current?.(response);
+    },
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    use_fedcm_for_prompt: false,
   });
+  gisClientIdInitialized = clientId;
+  return true;
 }
 
+/**
+ * Google sign-in via GIS button (id-token → Auth.js google-id-token).
+ * No /api/auth/providers round-trip, no One Tap prompt, no /login bounce.
+ */
 export function GoogleSignInButton({
   onError,
   onSuccess,
   text = "continue_with",
 }) {
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
-  const containerRef = useRef(null);
-  const buttonRef = useRef(null);
+  const gisStatus = useGoogleGisStatus();
+  const hostRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
   const onErrorRef = useRef(onError);
   const onSuccessRef = useRef(onSuccess);
   const loginRef = useRef(loginWithGoogle);
-  const initializedRef = useRef(false);
-  const [phase, setPhase] = useState("loading");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    onErrorRef.current = onError;
-    onSuccessRef.current = onSuccess;
-    loginRef.current = loginWithGoogle;
-  }, [onError, onSuccess, loginWithGoogle]);
+  onErrorRef.current = onError;
+  onSuccessRef.current = onSuccess;
+  loginRef.current = loginWithGoogle;
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  function ensureInitialized() {
-    if (initializedRef.current || !clientId) return;
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: async (response) => {
-        if (!response.credential) {
-          onErrorRef.current?.("Google sign-in failed");
-          return;
-        }
-        setBusy(true);
-        try {
-          const user = await loginRef.current(response.credential);
-          onSuccessRef.current?.(user);
-        } catch (error) {
-          onErrorRef.current?.(
-            error.message || "Google sign-in failed",
-            error
-          );
-        } finally {
-          setBusy(false);
-        }
-      },
-      cancel_on_tap_outside: true,
-      use_fedcm_for_prompt: false,
-      auto_select: false,
-    });
-    initializedRef.current = true;
-  }
+  useLayoutEffect(() => {
+    if (!clientId) return;
+    if (gisStatus !== "ready") retryGoogleGisReady();
+  }, [clientId, gisStatus]);
 
-  function paintOfficialButton() {
-    if (!buttonRef.current || !containerRef.current) return false;
+  useEffect(() => {
+    gisCredentialHandler.current = async (response) => {
+      if (!response?.credential) {
+        onErrorRef.current?.("Google sign-in failed");
+        return;
+      }
+      setBusy(true);
+      try {
+        const user = await loginRef.current(response.credential);
+        onSuccessRef.current?.(user);
+      } catch (error) {
+        setBusy(false);
+        onErrorRef.current?.(error.message || "Google sign-in failed", error);
+      }
+      // Keep busy=true on success until navigation unmounts — avoids overlapping labels.
+    };
+    return () => {
+      gisCredentialHandler.current = null;
+    };
+  }, []);
 
-    const width = Math.min(
-      Math.floor(containerRef.current.offsetWidth || 360),
-      400
+  useEffect(() => {
+    if (busy || gisStatus !== "ready" || !clientId) return;
+    const host = hostRef.current;
+    if (!host || !window.google?.accounts?.id) return;
+    if (!ensureGisInitialized(clientId)) return;
+
+    host.innerHTML = "";
+    const width = Math.max(
+      240,
+      Math.floor(host.getBoundingClientRect().width) || 320
     );
-    if (width < 40) return false;
 
-    buttonRef.current.innerHTML = "";
-    window.google.accounts.id.renderButton(buttonRef.current, {
+    window.google.accounts.id.renderButton(host, {
+      type: "standard",
       theme: "outline",
       size: "large",
-      text,
+      text:
+        text === "signup_with"
+          ? "signup_with"
+          : text === "signin_with"
+            ? "signin_with"
+            : "continue_with",
       shape: "rectangular",
       logo_alignment: "left",
       width,
     });
-    return true;
-  }
-
-  useEffect(() => {
-    if (!clientId) return undefined;
-
-    let cancelled = false;
-
-    async function prepare() {
-      try {
-        await waitForGis();
-        if (cancelled) return;
-        ensureInitialized();
-
-        // Wait for layout so the container has a real width.
-        await new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        });
-        if (cancelled) return;
-
-        if (paintOfficialButton()) {
-          setPhase("ready");
-          return;
-        }
-
-        // Fallback if width not ready yet.
-        const observer = new ResizeObserver(() => {
-          if (cancelled) return;
-          if (paintOfficialButton()) {
-            setPhase("ready");
-            observer.disconnect();
-          }
-        });
-        if (containerRef.current) observer.observe(containerRef.current);
-
-        window.setTimeout(() => {
-          if (cancelled) return;
-          if (paintOfficialButton()) setPhase("ready");
-          else setPhase("error");
-          observer.disconnect();
-        }, 500);
-      } catch {
-        if (!cancelled) setPhase("error");
-      }
-    }
-
-    prepare();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clientId, text]);
+  }, [busy, gisStatus, clientId, text]);
 
   if (!clientId) {
     return (
@@ -200,50 +130,45 @@ export function GoogleSignInButton({
     );
   }
 
-  return (
-    <div ref={containerRef} className="relative w-full min-h-10">
-      {phase === "loading" ? (
-        <div
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-card text-sm text-muted-foreground"
-          aria-hidden
+  if (gisStatus === "error") {
+    return (
+      <div className="flex w-full flex-col gap-2 text-center">
+        <p className="text-sm text-muted-foreground">
+          Continue with Google unavailable. Use email instead.
+        </p>
+        <button
+          type="button"
+          className="text-sm font-medium text-primary underline underline-offset-2"
+          onClick={() => retryGoogleGisReady()}
         >
-          <Loader2 className="size-4 animate-spin" />
-          Loading Google…
-        </div>
-      ) : null}
+          Try Google again
+        </button>
+      </div>
+    );
+  }
 
-      {phase === "error" ? (
-        <div className="flex flex-col gap-2 text-center">
-          <p className="text-sm text-muted-foreground">
-            Continue with Google unavailable. Use email instead.
-          </p>
-          <button
-            type="button"
-            className="text-sm font-medium text-primary underline underline-offset-2"
-            onClick={() => {
-              setPhase("loading");
-              waitForGis()
-                .then(() => {
-                  ensureInitialized();
-                  if (paintOfficialButton()) setPhase("ready");
-                  else setPhase("error");
-                })
-                .catch(() => setPhase("error"));
-            }}
-          >
-            Try Google again
-          </button>
-        </div>
-      ) : null}
-
+  if (busy) {
+    return (
       <div
-        ref={buttonRef}
-        className={`flex min-h-10 w-full justify-center ${
-          phase === "ready" ? "" : "sr-only"
-        } ${busy ? "pointer-events-none opacity-60" : ""}`}
-        aria-busy={busy}
-        aria-label="Sign in with Google"
+        className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-border bg-white text-sm font-medium text-muted-foreground"
+        aria-busy="true"
+      >
+        Connecting…
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <div
+        ref={hostRef}
+        className="flex min-h-11 w-full justify-center overflow-hidden [& iframe]:!w-full"
       />
+      {gisStatus === "loading" || gisStatus === "idle" ? (
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Loading Google…
+        </p>
+      ) : null}
     </div>
   );
 }

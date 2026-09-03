@@ -17,11 +17,14 @@ import { listAgents } from "@/lib/api/agents";
 import { listConversations } from "@/lib/api/conversations";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { DashboardShortcuts } from "@/components/dashboard/DashboardShortcuts";
+import { ConversationQuotaMeter } from "@/components/billing/ConversationQuotaMeter";
+import { useConversationQuota } from "@/hooks/use-conversation-quota";
 import { HomeAgentCard } from "@/components/dashboard/HomeAgentCard";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OnboardingCrawlKick } from "@/components/billing/OnboardingCrawlKick";
 import { cn } from "@/lib/utils";
 
 function formatResponseTime(ms) {
@@ -61,6 +64,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const { quota, billing: billingStatus, loading: quotaLoading } =
+    useConversationQuota();
 
   useEffect(() => {
     let cancelled = false;
@@ -107,32 +112,46 @@ export default function DashboardPage() {
     return map;
   }, [conversations]);
 
-  const recent = conversations.slice(0, 8);
-  const featuredAgents = agents.slice(0, 6);
+  const recent = conversations.slice(0, 4);
+  const featuredAgents = agents.slice(0, 4);
   const kpiHint = (value) => (metricsLoading ? undefined : zeroHint(value));
 
   return (
-    <main className="aide-page space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-            {authLoading
-              ? "Workspace"
-              : firstName
-                ? `${firstName}'s workspace`
-                : "Aide workspace"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Conversations, sentiment, and agents in one place.
-          </p>
+    <main className="aide-page space-y-5 sm:space-y-6">
+      <OnboardingCrawlKick />
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              {authLoading
+                ? "Workspace"
+                : firstName
+                  ? `${firstName}'s workspace`
+                  : "AIDE workspace"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Conversations, sentiment, and agents in one place.
+            </p>
+          </div>
+          <Link
+            href="/agents/new"
+            className={cn(
+              buttonVariants(),
+              "shrink-0 gap-1.5 self-start sm:self-auto"
+            )}
+          >
+            <Plus className="size-3.5" />
+            New agent
+          </Link>
         </div>
-        <Link
-          href="/agents/new"
-          className={cn(buttonVariants(), "shrink-0 gap-1.5 self-start sm:self-auto")}
-        >
-          <Plus className="size-3.5" />
-          New agent
-        </Link>
+        {!quotaLoading && quota ? (
+          <ConversationQuotaMeter
+            quota={quota}
+            billing={billingStatus}
+            variant="strip"
+            className="md:hidden"
+          />
+        ) : null}
       </header>
 
       {error ? (
@@ -142,8 +161,7 @@ export default function DashboardPage() {
       ) : null}
 
       <section aria-label="Workspace insights" className="min-w-0">
-        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card">
-          <div className="grid divide-y divide-border/70 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             <MetricCard
               compact
               label="Conversations"
@@ -197,12 +215,11 @@ export default function DashboardPage() {
               icon={Hash}
             />
           </div>
-        </div>
       </section>
 
       <DashboardShortcuts />
 
-      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
         <section className="min-w-0">
           <div className="mb-3 flex h-7 items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">
@@ -222,7 +239,7 @@ export default function DashboardPage() {
           </div>
 
           {loading ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               <Skeleton className="h-44 rounded-xl" />
               <Skeleton className="h-44 rounded-xl" />
               <Skeleton className="h-44 rounded-xl" />
@@ -234,14 +251,17 @@ export default function DashboardPage() {
               action={
                 <Link
                   href="/agents/new"
-                  className={cn(buttonVariants({ size: "sm" }), "inline-flex")}
+                  className={cn(
+                    buttonVariants({ size: "sm" }),
+                    "inline-flex"
+                  )}
                 >
                   New agent
                 </Link>
               }
             />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               {featuredAgents.map((agent) => (
                 <HomeAgentCard
                   key={agent.id}
@@ -254,7 +274,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <aside className="min-w-0 lg:sticky lg:top-20">
+        <aside className="min-w-0 xl:sticky xl:top-20">
           <div className="mb-3 flex h-7 items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">
               Recent activity
@@ -267,7 +287,7 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/80 bg-card">
+          <div className="aide-card overflow-hidden">
             {loading ? (
               <div className="space-y-2 p-3">
                 <Skeleton className="h-12" />

@@ -10,6 +10,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { selectionChipClass } from "@/lib/ui/selection-chip";
 import { AvatarImage } from "@/components/ui/avatar-image";
 import {
   normalizeWidgetPosition,
@@ -18,7 +19,7 @@ import {
 import { monogram } from "@/components/conversations/format";
 
 function fontFamily(_font) {
-  return "var(--font-dm-sans), var(--font-sans), system-ui, sans-serif";
+  return "var(--font-dm-sans), var(--font-sans), sans-serif";
 }
 
 function Avatar({ src, label, sizeClass, primary, invert = false, size = 28 }) {
@@ -240,7 +241,7 @@ export function CustomizationPreview({ agent, customization }) {
 
   const label = identity.displayName?.trim() || agent?.name || "Agent";
   const placeholder = identity.messagePlaceholder || "Type your message...";
-  const footer = identity.footer || "by Aide";
+  const footer = identity.footer || "by AIDE";
   const primary = appearance.primaryColor || "#ea580c";
   const radius = Math.max(0, Math.min(28, appearance.cornerRadius ?? 16));
   const embedded = deploy.chatInterface === "embedded";
@@ -338,11 +339,9 @@ export function CustomizationPreview({ agent, customization }) {
               <button
                 type="button"
                 onClick={() => setPanelOpen(true)}
-                className={cn(
-                  "rounded px-2.5 py-1 transition-colors",
-                  panelOpen
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                className={selectionChipClass(
+                  panelOpen,
+                  "rounded px-2.5 py-1 text-[11px]"
                 )}
               >
                 Open
@@ -350,11 +349,9 @@ export function CustomizationPreview({ agent, customization }) {
               <button
                 type="button"
                 onClick={() => setPanelOpen(false)}
-                className={cn(
-                  "rounded px-2.5 py-1 transition-colors",
-                  !panelOpen
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                className={selectionChipClass(
+                  !panelOpen,
+                  "rounded px-2.5 py-1 text-[11px]"
                 )}
               >
                 Closed

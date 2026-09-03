@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { selectionChipClass } from "@/lib/ui/selection-chip";
 
 function formatWhen(value) {
   if (!value) return "";
@@ -115,11 +116,10 @@ export function AdminRestoreRequests() {
             key={item.id}
             type="button"
             onClick={() => setStatus(item.id)}
-            className={
-              status === item.id
-                ? "rounded-md bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground"
-                : "rounded-md bg-card px-3 py-1.5 text-[12px] font-medium text-muted-foreground ring-1 ring-border hover:text-foreground"
-            }
+            className={selectionChipClass(
+              status === item.id,
+              "rounded-md px-3 py-1.5 text-[12px] font-medium"
+            )}
           >
             {item.label}
           </button>

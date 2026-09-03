@@ -1,152 +1,224 @@
-import { Star } from "lucide-react";
+import { Quote, Star } from "lucide-react";
 import { LandingReveal } from "@/components/landing/LandingReveal";
-import { LandingSectionIntro } from "@/components/landing/LandingSectionIntro";
+import { cn } from "@/lib/utils";
 
-const FEATURED = {
-  quote:
-    "Aide helped us cut average ticket wait from hours to minutes — while our team spends time on the conversations that actually need a human.",
-  name: "Daniel Carter",
-  role: "Platform Engineer",
-  image:
-    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=1200&q=80",
-};
+const AVATARS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=96&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=96&q=80",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=96&q=80",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=96&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=96&q=80",
+];
 
-const CARDS = [
+const COLUMN_A = [
+  {
+    rating: "4.9",
+    quote:
+      "AIDE helped us cut average ticket wait from hours to minutes — while our team spends time on conversations that need a human.",
+    name: "Marcus Lee",
+    role: "COO",
+    image: AVATARS[0],
+  },
   {
     rating: "5.0",
     quote:
-      "We replaced a patchwork of macros and scripts with one Aide agent. Ops finally has one source of truth.",
+      "We replaced a patchwork of macros and scripts with one AIDE agent. Ops finally has one source of truth.",
     name: "Priya Shah",
     role: "Founder",
-    initials: "PS",
-    social: "in",
+    image: AVATARS[1],
   },
   {
-    rating: "5.0",
+    rating: "4.9",
     quote:
-      "Studio testing plus knowledge citations made us confident to embed on day one. Insights showed gaps we had never reported.",
+      "Studio testing plus knowledge citations made us confident to embed on day one.",
     name: "Jesse Leigh",
     role: "CEO & Founder",
-    initials: "JL",
-    social: "x",
+    image: AVATARS[2],
   },
+];
+
+const COLUMN_B = [
   {
     rating: "5.0",
     quote:
       "Set up in an afternoon, live by Friday. Six months in, the agent handles most inbound — and the desk isn’t burned out.",
     name: "Ethan Walker",
     role: "Head of Support",
-    initials: "EW",
-    social: "x",
+    image: AVATARS[3],
+  },
+  {
+    rating: "4.9",
+    quote:
+      "AIDE turned scattered support tools into a system we can measure, improve, and trust.",
+    name: "Sofia Ramirez",
+    role: "Product Lead",
+    image: AVATARS[4],
+  },
+  {
+    rating: "5.0",
+    quote:
+      "Insights showed gaps we had never reported. The desk finally sees what’s actually happening.",
+    name: "Daniel Mercer",
+    role: "Head of Operations",
+    image: AVATARS[1],
   },
 ];
 
-function SocialMark({ type }) {
-  if (type === "in") {
-    return (
-      <span className="text-[10px] font-bold tracking-tight text-[var(--landing-ink)]">
-        in
-      </span>
-    );
-  }
-  return (
-    <span className="text-[12px] font-semibold text-[var(--landing-ink)]">𝕏</span>
-  );
-}
-
 function ReviewCard({ card }) {
   return (
-    <article className="landing-reviews-card flex h-full flex-col rounded-[1.35rem] border border-black/[0.05] bg-[#f3f1ee] p-6 sm:p-7">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] text-[var(--color-primary)] uppercase">
-        {card.rating}
-        <Star className="size-3 fill-[var(--color-primary)] text-[var(--color-primary)]" />
-        Rating
+    <article className="landing-dot-frame flex flex-col bg-card p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <Quote
+          className="size-5 text-muted-foreground/50"
+          strokeWidth={1.5}
+          aria-hidden
+        />
+        <div className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-foreground">
+          {card.rating}
+          <Star className="size-3 fill-[var(--color-primary)] text-[var(--color-primary)]" />
+        </div>
       </div>
-      <p className="landing-display mt-5 flex-1 text-[1.1rem] leading-snug text-[var(--landing-ink)] sm:text-[1.2rem]">
+
+      <p className="mt-4 flex-1 text-[14px] leading-relaxed text-foreground sm:text-[15px]">
         “{card.quote}”
       </p>
-      <div className="mt-8 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-[var(--landing-ink)]">
-            {card.initials}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--landing-ink)]">
-              {card.name}
-            </p>
-            <p className="text-[10px] font-medium tracking-[0.1em] text-[var(--landing-muted)] uppercase">
-              {card.role}
-            </p>
-          </div>
+
+      <div className="mt-6 flex items-center gap-3">
+        <img
+          src={card.image}
+          alt=""
+          className="size-9 rounded-full object-cover"
+        />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">
+            {card.name}
+          </p>
+          <p className="text-[11px] text-muted-foreground">{card.role}</p>
         </div>
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white">
-          <SocialMark type={card.social} />
-        </span>
       </div>
     </article>
   );
 }
 
-export function LandingReviews() {
-  const loop = [...CARDS, ...CARDS];
+function VerticalMarquee({ cards, direction = "up", duration = "42s" }) {
+  const loop = [...cards, ...cards];
 
   return (
-    <section className="bg-[var(--landing-panel)] px-6 py-20 sm:px-8 sm:py-24">
-      <div className="mx-auto max-w-6xl">
-        <LandingSectionIntro
-          eyebrow="Reviews"
-          eyebrowClassName="text-[var(--color-primary)]"
-          title="Trusted by modern teams"
-          description="From early startups to multi-brand workspaces — here’s what teams say after shipping with Aide."
-        />
+    <div className="landing-reviews-col relative h-[28rem] overflow-hidden sm:h-[32rem] lg:h-[34rem]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-[var(--landing-panel)] to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-[var(--landing-panel)] to-transparent"
+      />
+      <div
+        className={cn(
+          "landing-reviews-v-marquee flex flex-col gap-4",
+          direction === "down"
+            ? "landing-reviews-v-marquee--down"
+            : "landing-reviews-v-marquee--up"
+        )}
+        style={{ animationDuration: duration }}
+      >
+        {loop.map((card, i) => (
+          <ReviewCard key={`${card.name}-${i}`} card={card} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        <LandingReveal delay={50}>
-          <figure className="mt-12 overflow-hidden rounded-[1.5rem] border border-black/[0.05] bg-[#efece7] sm:mt-14 lg:grid lg:grid-cols-2">
-          <div className="relative min-h-[18rem] sm:min-h-[22rem] lg:min-h-[26rem]">
-            <img
-              src={FEATURED.image}
-              alt=""
-              className="absolute inset-0 size-full object-cover object-[center_20%]"
+export function LandingReviews() {
+  return (
+    <section
+      id="reviews"
+      className="landing-section landing-section-grid bg-[var(--landing-panel)]"
+    >
+      <div className="landing-dot-b grid gap-6 px-5 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end lg:gap-10 lg:px-8">
+        <LandingReveal fadeOnly>
+          <p className="text-[12px] font-semibold tracking-[0.14em] text-[var(--color-primary)] uppercase">
+            Reviews
+          </p>
+          <h2 className="landing-display mt-3 max-w-xl text-3xl text-foreground sm:text-4xl md:text-[2.65rem] md:leading-[1.12]">
+            Trusted by teams who value{" "}
+            <span className="text-muted-foreground">structure</span>.
+          </h2>
+        </LandingReveal>
+        <LandingReveal fadeOnly delay={40} />
+      </div>
+
+      <div className="grid gap-5 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-6 lg:px-8 lg:py-12">
+        <LandingReveal fadeOnly delay={60}>
+          <aside className="landing-dot-frame relative flex h-full min-h-[28rem] flex-col overflow-hidden bg-[var(--landing-ink)] p-6 text-white sm:min-h-[32rem] sm:p-8 lg:min-h-[34rem]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.12]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px)",
+                backgroundSize: "28px 28px",
+              }}
             />
-          </div>
-          <figcaption className="flex flex-col justify-between px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-            <blockquote className="landing-display text-[1.35rem] leading-[1.3] text-[var(--landing-ink)] sm:text-[1.65rem] lg:text-[1.85rem]">
-              “{FEATURED.quote}”
-            </blockquote>
-            <div className="mt-10 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-[var(--landing-ink)]">
-                  {FEATURED.name}
-                </p>
-                <p className="mt-1 text-[11px] font-medium tracking-[0.12em] text-[var(--landing-muted)] uppercase">
-                  {FEATURED.role}
-                </p>
-              </div>
-              <span className="flex size-9 items-center justify-center rounded-full border border-black/10 bg-white text-[13px] font-semibold text-[var(--landing-ink)]">
-                𝕏
-              </span>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-[var(--color-primary)]/35 blur-3xl"
+            />
+
+            <div className="relative z-10">
+              <p className="landing-display text-[2.75rem] leading-none tracking-tight sm:text-[3.25rem]">
+                4.9
+                <span className="text-[1.35rem] text-white/50">/5</span>
+              </p>
+              <p className="mt-3 font-mono text-[11px] tracking-[0.08em] text-white/55 uppercase">
+                Average client satisfaction
+              </p>
             </div>
-          </figcaption>
-        </figure>
+
+            <div className="relative z-10 mt-auto space-y-5 pt-16">
+              <div className="flex items-center">
+                {AVATARS.map((src, i) => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt=""
+                    className={cn(
+                      "size-9 rounded-full border-2 border-[var(--landing-ink)] object-cover",
+                      i > 0 && "-ml-2.5"
+                    )}
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className="size-3.5 fill-[var(--color-primary)] text-[var(--color-primary)]"
+                  />
+                ))}
+                <span className="ml-1 text-[13px] font-medium text-white/85">
+                  200+ teams trust us
+                </span>
+              </div>
+
+              <p className="text-[14px] leading-relaxed text-white/65">
+                Over 200 teams rely on AIDE for grounded support agents.
+              </p>
+            </div>
+          </aside>
         </LandingReveal>
 
-        <LandingReveal delay={90}>
-        {/* Same width carousel — card size matches 3-col grid */}
-        <div className="landing-reviews-viewport relative mt-5 overflow-hidden sm:mt-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[var(--landing-panel)] to-transparent sm:w-10"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[var(--landing-panel)] to-transparent sm:w-10"
-          />
-          <div className="landing-reviews-marquee flex w-max gap-4 lg:gap-5">
-            {loop.map((card, i) => (
-              <ReviewCard key={`${card.name}-${i}`} card={card} />
-            ))}
+        <LandingReveal fadeOnly delay={90} className="min-w-0">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+            <VerticalMarquee cards={COLUMN_A} direction="up" duration="40s" />
+            <VerticalMarquee
+              cards={COLUMN_B}
+              direction="down"
+              duration="46s"
+            />
           </div>
-        </div>
         </LandingReveal>
       </div>
     </section>
