@@ -38,7 +38,7 @@ export function explainIssue(entry) {
     return "Credential issue — server refused to call the tool.";
   }
   if (code === "SSRF_BLOCKED" || status === "SSRF_BLOCKED") {
-    return "URL blocked by SSRF / frozen host — request never left Aide.";
+    return "URL blocked by SSRF / frozen host — request never left AIDE.";
   }
   if (code === "TIMEOUT" || status === "TIMEOUT") {
     return "Backend timed out — request may have been sent but no timely response.";

@@ -168,7 +168,7 @@ export function ConversationThread({
             <Link
               href={`/chat?agentId=${agentId}${conversation.id ? `&conversationId=${conversation.id}` : ""}`}
               className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
+                buttonVariants({ size: "sm" }),
                 "shrink-0"
               )}
             >
@@ -300,7 +300,7 @@ export function ConversationThread({
           </p>
           <Link
             href={`/chat?agentId=${agentId}&conversationId=${conversation.id}`}
-            className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+            className={cn(buttonVariants(), "w-full")}
           >
             Open in chat widget
           </Link>

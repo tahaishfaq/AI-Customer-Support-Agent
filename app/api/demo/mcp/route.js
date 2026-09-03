@@ -18,7 +18,7 @@ const TOOLS = [
   },
   {
     name: "create_demo_note",
-    description: "Create a demo note (WRITE — requires confirmation in Aide).",
+    description: "Create a demo note (WRITE — requires confirmation in AIDE).",
     inputSchema: {
       type: "object",
       properties: {

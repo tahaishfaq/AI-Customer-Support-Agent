@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getAdminWorkspace, getAdminWorkspaceDashboard } from "@/lib/api/admin";
 import { WorkspaceAnalytics } from "@/components/analytics/WorkspaceAnalytics";
+import { AdminConversationQuota } from "@/components/admin/AdminConversationQuota";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -100,6 +101,13 @@ export function AdminWorkspaceInspect() {
         description={`${workspace.user.email} · created ${formatWhen(workspace.createdAt)}`}
       />
 
+      {workspace.conversations ? (
+        <AdminConversationQuota
+          quota={workspace.conversations}
+          className="mt-6"
+        />
+      ) : null}
+
       <section className="mt-8">
         <h2 className="text-sm font-semibold text-foreground">Agents</h2>
         {agents.length === 0 ? (
@@ -112,7 +120,7 @@ export function AdminWorkspaceInspect() {
               <li key={agent.id}>
                 <Link
                   href={`/admin/users/${workspace.user.id}/workspaces/${workspace.id}/agents/${agent.id}`}
-                  className="block rounded-xl border border-border bg-card px-4 py-3.5 hover:bg-muted"
+                  className="aide-card block px-4 py-3.5 transition-shadow hover:shadow-md"
                 >
                   <span className="flex items-start justify-between gap-2">
                     <span className="min-w-0">

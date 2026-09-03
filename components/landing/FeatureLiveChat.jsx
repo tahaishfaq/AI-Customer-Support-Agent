@@ -104,22 +104,26 @@ export function FeatureLiveChat() {
   const sending = phase === "typingUser" && typedUser.length === scene.user.length;
 
   return (
-    <div className="w-full max-w-[19.5rem] overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md">
-      <div className="flex items-center justify-between border-b border-black/[0.06] px-3.5 py-2.5">
-        <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-[var(--landing-muted)]">
-          Aide
+    <div className="flex h-[22.5rem] w-full max-w-[19.5rem] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md">
+      <div className="flex shrink-0 items-center justify-between border-b border-black/[0.06] px-3.5 py-2.5">
+        <span className="inline-flex h-5 items-center rounded-full bg-black/[0.05] px-2 py-0.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/aide-logo.png" alt="AIDE" className="h-2.5 w-auto" />
         </span>
         <Globe className="size-3.5 text-[var(--landing-muted)]" />
       </div>
 
-      <div className="flex min-h-[11.5rem] flex-col justify-between gap-3 px-3.5 py-4">
-        <p className="text-[13px] font-medium leading-snug text-[var(--landing-ink)] transition-opacity duration-300">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-3.5 py-4">
+        <p className="shrink-0 text-[13px] font-medium leading-snug text-[var(--landing-ink)] transition-opacity duration-300">
           {scene.headline}
         </p>
 
-        <div className="space-y-2" aria-live="polite">
+        <div
+          className="flex min-h-0 flex-1 flex-col justify-end gap-2 overflow-hidden"
+          aria-live="polite"
+        >
           {showUser ? (
-            <div className="rounded-xl bg-[#f5f3f0] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--landing-ink)]">
+            <div className="shrink-0 rounded-xl bg-[#f5f3f0] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--landing-ink)]">
               <span className="text-[var(--landing-muted)]">Visitor · </span>
               {typedUser}
               {phase === "typingUser" ? (
@@ -127,34 +131,34 @@ export function FeatureLiveChat() {
               ) : null}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-black/[0.08] bg-[#faf9f7] px-3 py-2.5 text-[12px] text-[var(--landing-muted)]">
+            <div className="shrink-0 rounded-xl border border-dashed border-black/[0.08] bg-[#faf9f7] px-3 py-2.5 text-[12px] text-[var(--landing-muted)]">
               Ask anything…
             </div>
           )}
 
           {showTool ? (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] bg-white px-2.5 py-1 text-[10px] font-medium tracking-wide text-[var(--landing-muted)] uppercase">
+            <div className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-black/[0.06] bg-white px-2.5 py-1 text-[10px] font-medium tracking-wide text-[var(--landing-muted)] uppercase">
               <span className="size-1.5 rounded-full bg-[var(--color-primary)]" />
               {scene.tool}
             </div>
           ) : null}
 
           {showTypingAgent ? (
-            <div className="rounded-xl border border-black/[0.05] bg-white px-3 py-2.5 text-[12px] text-[var(--landing-muted)] shadow-sm">
-              Aide <TypingDots />
+            <div className="shrink-0 rounded-xl border border-black/[0.05] bg-white px-3 py-2.5 text-[12px] text-[var(--landing-muted)] shadow-sm">
+              AIDE <TypingDots />
             </div>
           ) : null}
 
           {showAgent ? (
-            <div className="rounded-xl border border-black/[0.05] bg-white px-3 py-2.5 text-[12px] leading-relaxed text-[var(--landing-ink)] shadow-sm">
-              <span className="font-medium text-[var(--color-primary)]">Aide · </span>
+            <div className="shrink-0 rounded-xl border border-black/[0.05] bg-white px-3 py-2.5 text-[12px] leading-relaxed text-[var(--landing-ink)] shadow-sm">
+              <span className="font-medium text-[var(--color-primary)]">AIDE · </span>
               {scene.agent}
             </div>
           ) : null}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-black/[0.06] px-3 py-2.5">
+      <div className="flex shrink-0 items-center gap-2 border-t border-black/[0.06] px-3 py-2.5">
         <Plus className="size-4 text-[var(--landing-muted)]" />
         <Settings2 className="size-4 text-[var(--landing-muted)]" />
         <Bell className="size-4 text-[var(--landing-muted)]" />

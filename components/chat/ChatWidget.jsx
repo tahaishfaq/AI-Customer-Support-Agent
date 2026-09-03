@@ -48,7 +48,7 @@ export function ChatWidget({
   const features = customization?.features || {};
 
   const displayName =
-    identity.displayName?.trim() || agent?.name || "Aide";
+    identity.displayName?.trim() || agent?.name || "AIDE";
   const showHistory =
     features.conversationHistory !== false &&
     typeof onHistoryToggle === "function";

@@ -10,6 +10,10 @@ export const MONITOR_NAV = [
   { href: "/analytics", label: "Analytics" },
 ];
 
+export const ACCOUNT_NAV = [
+  { href: "/settings/billing", label: "Plan & billing" },
+];
+
 export function isNavActive(pathname, href) {
   if (href === "/dashboard") {
     return pathname === "/dashboard";
@@ -18,7 +22,7 @@ export function isNavActive(pathname, href) {
 }
 
 export function getBreadcrumbs(pathname, { agentName } = {}) {
-  const workspace = { href: "/dashboard", label: "Aide" };
+  const workspace = { href: "/dashboard", label: "AIDE" };
   const agentLabel = agentName || "Agent";
 
   if (!pathname || pathname === "/dashboard") {
@@ -82,6 +86,18 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
       { href: "/inbox", label: "Human desk" },
       { label: "Thread" },
     ];
+  }
+
+  if (pathname === "/billing/plans") {
+    return [workspace, { label: "Change plan" }];
+  }
+
+  if (pathname === "/settings/billing") {
+    return [workspace, { label: "Plan & billing" }];
+  }
+
+  if (pathname.startsWith("/settings/")) {
+    return [workspace, { label: "Settings" }];
   }
 
   return [workspace, { label: "Home" }];

@@ -19,7 +19,7 @@ export default function NewAgentPage() {
         </p>
       </header>
 
-      <div className="mt-6 max-w-6xl">
+      <div className="mt-6">
         <AgentForm mode="create" />
       </div>
     </main>

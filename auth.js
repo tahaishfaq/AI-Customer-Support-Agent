@@ -8,7 +8,7 @@ import { comparePassword } from "@/lib/password";
 import { authConfig } from "@/auth.config";
 import { ensureDefaultWorkspace } from "@/lib/services/workspace.service";
 import { isRateLimited, rateLimit } from "@/lib/rate-limit";
-import { isProtectedAdminEmail } from "@/lib/admin-email";
+import { isProtectedAdminEmail, isReservedAdminEmail } from "@/lib/admin-email";
 
 class AccountSuspendedError extends CredentialsSignin {
   code = "account_suspended";
@@ -30,11 +30,19 @@ class TooManyAttemptsError extends CredentialsSignin {
   code = "too_many_attempts";
 }
 
-async function rejectAdminGoogle(user) {
+function rejectAdminGoogle(user) {
   if (!user) return;
-  if (user.role === "ADMIN" || (await isProtectedAdminEmail(user.email))) {
+  if (user.role === "ADMIN" || isReservedAdminEmail(user.email)) {
     throw new AdminPasswordOnlyError();
   }
+}
+
+let googleTokenClient;
+function getGoogleTokenClient(clientId) {
+  if (!googleTokenClient) {
+    googleTokenClient = new OAuth2Client(clientId);
+  }
+  return googleTokenClient;
 }
 
 function toAuthUser(user) {
@@ -123,7 +131,7 @@ const providers = [
 
       if (!clientId) return null;
 
-      const client = new OAuth2Client(clientId);
+      const client = getGoogleTokenClient(clientId);
       let ticket;
       try {
         ticket = await client.verifyIdToken({
@@ -143,16 +151,16 @@ const providers = [
       const name = payload.name || email.split("@")[0];
       const image = payload.picture || null;
 
-      if (await isProtectedAdminEmail(email)) {
+      if (isReservedAdminEmail(email)) {
         throw new AdminPasswordOnlyError();
       }
 
       let user = await prisma.user.findUnique({ where: { googleId } });
-      await rejectAdminGoogle(user);
+      rejectAdminGoogle(user);
 
       if (!user) {
         user = await prisma.user.findUnique({ where: { email } });
-        await rejectAdminGoogle(user);
+        rejectAdminGoogle(user);
         if (user) {
           user = await prisma.user.update({
             where: { id: user.id },
@@ -219,7 +227,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user, account }) {
       const provider = account?.provider;
-      if (provider === "google" || provider === "google-id-token") {
+      if (provider === "google-id-token") {
+        return true;
+      }
+      if (provider === "google") {
         const email = user?.email?.toLowerCase();
         if (await isProtectedAdminEmail(email)) return false;
         if (user?.id) {
@@ -239,22 +250,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async jwt({ token, user }) {
       if (user?.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            status: true,
-          },
-        });
-        token.sub = dbUser?.id || user.id;
-        token.name = dbUser?.name || user.name;
-        token.email = dbUser?.email || user.email;
-        token.role = dbUser?.role || user.role || "USER";
-        token.status = dbUser?.status || user.status || "ACTIVE";
+        if (user.status === "SUSPENDED") {
+          return null;
+        }
+        token.sub = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.role = user.role || "USER";
+        token.status = user.status || "ACTIVE";
+        return token;
       }
+
+      // Session refresh: trust JWT; server layouts re-check DB status.
       return token;
     },
   },

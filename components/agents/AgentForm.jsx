@@ -38,8 +38,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 const DEFAULTS = {
-  name: "Aide Support Assistant",
-  description: "AI assistant for answering Aide customer questions.",
+  name: "AIDE Support Assistant",
+  description: "AI assistant for answering AIDE customer questions.",
   systemPrompt: RECOMMENDED_ROLE_TEMPLATE,
   welcomeMessage: "Hi! How can I help you today?",
   answerStyle: "HYBRID",

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CreditCard,
   Inbox,
   LayoutDashboard,
   ScrollText,
@@ -18,11 +19,14 @@ import {
   isAdminNavActive,
 } from "@/components/admin/admin-nav";
 import { Badge } from "@/components/ui/badge";
+import { AideLogo } from "@/components/brand/AideLogo";
 
 const ICONS = {
   dashboard: LayoutDashboard,
   users: Users,
   requests: Inbox,
+  billing: CreditCard,
+  billingRequests: CreditCard,
   safety: Shield,
   audit: ScrollText,
 };
@@ -104,9 +108,10 @@ export function AdminSidebar({ onNavigate }) {
         <Link
           href="/admin"
           onClick={onNavigate}
-          className="min-w-0 truncate text-sm font-semibold tracking-tight text-primary"
+          className="inline-flex min-w-0 items-center text-primary"
+          aria-label="AIDE admin"
         >
-          Aide
+          <AideLogo size="sm" />
         </Link>
         <Badge variant="secondary" className="rounded-md text-[10px] uppercase">
           Admin

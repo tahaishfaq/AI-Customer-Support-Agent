@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { selectionChipClass } from "@/lib/ui/selection-chip";
 
 const PAGE_SIZE = 20;
 
@@ -146,11 +147,9 @@ export function ConversationsShell({
                 key={item.id || "all"}
                 type="button"
                 onClick={() => setSentiment(item.id)}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                  sentiment === item.id
-                    ? "bg-[var(--color-primary)] text-white"
-                    : "bg-[var(--color-bg)] text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                className={selectionChipClass(
+                  sentiment === item.id,
+                  "rounded-full px-2.5 py-1 text-[11px] font-medium"
                 )}
               >
                 {item.label}

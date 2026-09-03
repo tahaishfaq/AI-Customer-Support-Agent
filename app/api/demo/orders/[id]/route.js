@@ -24,14 +24,14 @@ const ORDERS = {
   "PCL-100": {
     id: "PCL-100",
     status: "Out for delivery",
-    carrier: "Aide Courier",
+    carrier: "AIDE Courier",
     eta: "Today 4–6pm",
     servicePoint: "Locker #12 — Main St",
   },
   "PCL-200": {
     id: "PCL-200",
     status: "Delivered",
-    carrier: "Aide Courier",
+    carrier: "AIDE Courier",
     eta: "Delivered yesterday",
     servicePoint: null,
   },

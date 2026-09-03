@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { requireProductAccess } from "@/lib/require-product";
 import {
   createWorkspaceForUser,
   listWorkspacesForUser,
@@ -39,7 +40,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireProductAccess(request);
     if (authResult.error) return authResult.error;
 
     let body;
@@ -72,7 +73,8 @@ export async function POST(request) {
 
     const workspace = await createWorkspaceForUser(
       authResult.user.id,
-      parsed.data
+      parsed.data,
+      { role: authResult.user.role }
     );
     return NextResponse.json(workspace, { status: 201 });
   } catch (error) {

@@ -4,6 +4,15 @@ const nextConfig = {
   reactCompiler: true,
   serverExternalPackages: ["pg", "bcrypt", "@prisma/client", "@prisma/adapter-pg"],
   devIndicators: false,
+  async redirects() {
+    return [
+      {
+        source: "/billingplans",
+        destination: "/billing/plans",
+        permanent: true,
+      },
+    ];
+  },
   // Allow ngrok (and similar tunnels) to load /_next/* in development —
   // without this, login/auth JS is blocked and the form looks broken.
   allowedDevOrigins: [

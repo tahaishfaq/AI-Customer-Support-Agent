@@ -168,14 +168,19 @@ export function AgentCard({ agent, onDeleted, layout = "grid" }) {
         >
           <Link
             href={`/agents/${agent.id}`}
-            className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
+            className={cn(
+              buttonVariants({ variant: "default", size: "sm" }),
+              "gap-1.5"
+            )}
           >
             Open
             <ArrowRight data-icon="inline-end" />
           </Link>
           <Link
             href={`/agents/${agent.id}/test`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            className={cn(
+              buttonVariants({ size: "sm" })
+            )}
           >
             Test
           </Link>

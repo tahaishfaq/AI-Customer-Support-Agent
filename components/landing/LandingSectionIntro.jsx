@@ -9,13 +9,15 @@ export function LandingSectionIntro({
   eyebrowClassName,
   titleClassName,
   className,
+  reveal = "slide",
 }) {
   const alignClass =
     align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl";
+  const fadeOnly = reveal === "fade";
 
   return (
     <div className={cn(alignClass, className)}>
-      <LandingReveal>
+      <LandingReveal fadeOnly={fadeOnly}>
         <p
           className={cn(
             "text-[12px] font-semibold tracking-[0.14em] uppercase",
@@ -25,7 +27,7 @@ export function LandingSectionIntro({
           {eyebrow}
         </p>
       </LandingReveal>
-      <LandingReveal delay={25}>
+      <LandingReveal delay={25} fadeOnly={fadeOnly}>
         <h2
           className={cn(
             "landing-display mt-3 text-3xl text-[var(--landing-ink)] sm:text-4xl md:text-[2.65rem] md:leading-[1.15]",
@@ -36,7 +38,7 @@ export function LandingSectionIntro({
         </h2>
       </LandingReveal>
       {description ? (
-        <LandingReveal delay={50}>
+        <LandingReveal delay={50} fadeOnly={fadeOnly}>
           <p className="mt-3 text-[15px] leading-relaxed text-[var(--landing-muted)] sm:mt-4 sm:text-base">
             {description}
           </p>

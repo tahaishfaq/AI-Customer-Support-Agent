@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { postAuthPathFromSession } from "@/lib/auth-home";
+import { getBillingSnapshot } from "@/lib/billing/subscription.service";
+import { getConversationQuota } from "@/lib/billing/conversation-usage.service";
+import { needsUserOnboarding } from "@/lib/services/user-onboarding.service";
 
 /** Current NextAuth session user (for clients that prefer REST). */
 export async function GET() {
@@ -12,14 +16,30 @@ export async function GET() {
       );
     }
 
+    const role = session.user.role || "USER";
+    const billing = await getBillingSnapshot(session.user.id, role);
+    const conversations = await getConversationQuota(session.user.id, role, {
+      billing,
+    });
+    const needsOnboarding = await needsUserOnboarding(session.user.id, role);
+    const destination = postAuthPathFromSession({
+      role,
+      billing,
+      needsOnboarding,
+    });
+
     return NextResponse.json(
       {
         user: {
           id: session.user.id,
           name: session.user.name,
           email: session.user.email,
-          role: session.user.role || "USER",
+          role,
         },
+        billing,
+        conversations,
+        needsOnboarding,
+        destination,
       },
       { status: 200 }
     );

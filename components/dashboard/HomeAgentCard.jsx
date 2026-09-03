@@ -10,7 +10,7 @@ export function HomeAgentCard({
   messageCount = 0,
 }) {
   return (
-    <article className="flex h-full flex-col rounded-xl border border-border/80 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/20">
+    <article className="aide-card flex h-full flex-col p-4 transition-shadow hover:shadow-md">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
           <Link
@@ -48,14 +48,20 @@ export function HomeAgentCard({
       <div className="mt-auto flex items-center gap-2 pt-4">
         <Link
           href={`/agents/${agent.id}`}
-          className={cn(buttonVariants({ size: "sm" }), "gap-1")}
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "gap-1"
+          )}
         >
           Open
           <ArrowRight className="size-3.5" />
         </Link>
         <Link
           href={`/agents/${agent.id}/test`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "gap-1"
+          )}
         >
           <FlaskConical className="size-3.5" />
           Test

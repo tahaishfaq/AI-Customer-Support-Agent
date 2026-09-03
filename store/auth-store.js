@@ -15,6 +15,24 @@ function emailFromIdToken(idToken) {
   }
 }
 
+function userFromIdToken(idToken) {
+  try {
+    const payload = idToken?.split?.(".")[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    const email = String(json.email || "").trim().toLowerCase();
+    if (!email) return null;
+    return {
+      id: json.sub || null,
+      name: json.name || email.split("@")[0],
+      email,
+      role: "USER",
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function suspendedHint(email) {
   if (!email) return { suspended: false, restoreStatus: null };
   try {
@@ -209,19 +227,20 @@ export const useAuthStore = create((set, get) => ({
       });
     }
 
-    const user = await get().hydrate();
-    if (!user) {
-      throw new Error("Google sign-in failed");
+    const optimistic = userFromIdToken(idToken);
+    if (optimistic) {
+      set({ user: optimistic, loading: false, sessionExpired: false });
     }
-    if (user.role === "ADMIN") {
-      await get().logout();
-      throwLoginError({
-        google: true,
-        adminPasswordOnly: true,
-        email: user.email,
+
+    void get()
+      .hydrate()
+      .then((user) => {
+        if (user?.role === "ADMIN") {
+          void get().logout();
+        }
       });
-    }
-    return user;
+
+    return optimistic || (await get().hydrate());
   },
 
   logout: async () => {

@@ -14,7 +14,10 @@ export default function AgentsPage() {
         actions={
           <Link
             href="/agents/new"
-            className={cn(buttonVariants(), "rounded-full gap-1.5")}
+            className={cn(
+              buttonVariants(),
+              "gap-1.5 rounded-full"
+            )}
           >
             <Plus data-icon="inline-start" />
             New agent

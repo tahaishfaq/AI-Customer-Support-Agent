@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessage, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import {
+  isConversationLimitError,
+} from "@/components/billing/BillingPlansUsage";
+import { refreshConversationQuota } from "@/hooks/use-conversation-quota";
 import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
@@ -318,6 +322,7 @@ export function AgentTestStudio({ agent }) {
       });
       conversationIdRef.current = result.conversationId;
       setConversationId(result.conversationId);
+      refreshConversationQuota();
       const usedKnowledge = result.usedKnowledge || [];
       const toolSteps = result.toolSteps || [];
       const pendingConfirmations = result.pendingConfirmations || [];
@@ -388,15 +393,19 @@ export function AgentTestStudio({ agent }) {
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       const status = err.status;
-      const message =
-        status === 429
+      const limit = isConversationLimitError(err);
+      const message = limit
+        ? err.message || "Monthly conversation limit reached"
+        : status === 429
           ? "Rate limited — wait a moment, then resume"
           : err.message || "Unable to send message";
-      const reason =
-        status === 429
+      const reason = limit
+        ? "Plan limit — upgrade or wait for monthly reset"
+        : status === 429
           ? "Rate limit — pause and retry shortly"
           : "Request failed — remaining questions not marked Sent";
       setError(message);
+      if (limit) refreshConversationQuota();
       setPauseReason(reason);
       setChatExtras((prev) => [
         ...prev,
@@ -743,7 +752,7 @@ export function AgentTestStudio({ agent }) {
       {agent.enabled === false ? (
         <Alert variant="destructive" className="mx-3 mb-2">
           <AlertDescription>
-            This agent is disabled by Aide admin. Studio chat is off.
+            This agent is disabled by AIDE admin. Studio chat is off.
           </AlertDescription>
         </Alert>
       ) : error ? (

@@ -1,63 +1,95 @@
+import { Star } from "lucide-react";
+import { AideLogo } from "@/components/brand/AideLogo";
+
 const HIGHLIGHTS = [
   {
-    title: "AI support agents",
-    body: "Create agents with your own knowledge and welcome flow.",
+    title: "Agents that ship",
+    body: "Knowledge, tools, and embed — ready in one workspace.",
   },
   {
-    title: "Live conversations",
-    body: "Every chat is stored with response time and context.",
+    title: "Conversations you own",
+    body: "Every chat stored with context for the desk and analytics.",
   },
   {
-    title: "Customer insights",
-    body: "See sentiment, topics, and trends in one dashboard.",
+    title: "Insights that compound",
+    body: "See topics, resolution, and where to improve next.",
   },
 ];
 
-/** Marketing panel stays light even when the app shell is dark. */
+/** Brand panel — grid + glow, matches landing footer language. */
 export function AuthVisualPanel() {
   return (
-    <div className="relative hidden min-h-screen overflow-hidden lg:block">
+    <aside className="relative hidden min-h-dvh overflow-hidden bg-[#0b0b0b] text-white lg:flex lg:flex-col">
       <div
-        className="absolute inset-0"
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+          maskImage:
+            "radial-gradient(ellipse 80% 70% at 50% 20%, #000 20%, transparent 75%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-8%] h-[50%] w-[min(40rem,110%)] -translate-x-1/2"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklch, var(--primary) 28%, transparent), transparent 70%), linear-gradient(180deg, oklch(0.96 0.02 55) 0%, oklch(0.94 0.03 45) 45%, oklch(0.97 0.015 60) 100%)",
+            "radial-gradient(ellipse at center, color-mix(in oklch, var(--color-primary) 38%, transparent) 0%, color-mix(in oklch, var(--color-primary) 12%, transparent) 42%, transparent 72%)",
+          filter: "blur(8px)",
         }}
       />
 
-      <div className="relative flex h-full flex-col justify-center px-12 xl:px-16">
-        <p className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-wide text-primary">
-          Aide workspace
-        </p>
-        <h2 className="mt-3 max-w-md font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight tracking-tight text-foreground">
-          Support that learns from every conversation
-        </h2>
-        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-muted-foreground">
-          Build agents, chat with customers, and turn messages into clear
-          business insights.
-        </p>
+      <div className="relative z-10 flex flex-1 flex-col justify-between px-10 py-12 xl:px-14 xl:py-14">
+        <AideLogo href="/" size="md" variant="light" />
 
-        <ul className="mt-10 flex flex-col gap-4">
-          {HIGHLIGHTS.map((item, index) => (
-            <li
-              key={item.title}
-              className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm backdrop-blur-sm"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                  {index + 1}
-                </span>
+        <div className="max-w-md">
+          <p className="text-[12px] font-medium tracking-[0.14em] text-white/45 uppercase">
+            [ AIDE ]
+          </p>
+          <h2 className="landing-display mt-4 text-[2.15rem] leading-[1.15] tracking-tight xl:text-[2.45rem]">
+            Support that turns into a system.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-white/65">
+            Build grounded agents, hand off with context, and measure what
+            actually resolves.
+          </p>
+
+          <ul className="mt-10 space-y-5">
+            {HIGHLIGHTS.map((item) => (
+              <li key={item.title} className="flex gap-3">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--color-primary)]" />
                 <div>
-                  <p className="font-medium text-foreground">{item.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-[14px] font-semibold text-white">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-white/55">
                     {item.body}
                   </p>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className="size-3.5 fill-[var(--color-primary)] text-[var(--color-primary)]"
+              />
+            ))}
+            <span className="ml-1 text-[13px] font-medium text-white/85">
+              4.9 average satisfaction
+            </span>
+          </div>
+          <p className="text-[13px] text-white/50">
+            Trusted by teams who value structure.
+          </p>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 }

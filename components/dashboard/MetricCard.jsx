@@ -26,7 +26,7 @@ export function MetricCard({
     return (
       <div
         className={cn(
-          "flex min-w-0 flex-col gap-2 rounded-xl px-3.5 py-3.5 sm:px-4 sm:py-4",
+          "aide-card flex h-full min-w-0 flex-col gap-2 p-3.5 sm:p-4",
           className
         )}
       >
@@ -64,12 +64,7 @@ export function MetricCard({
   }
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-card p-4 shadow-none",
-        className
-      )}
-    >
+    <div className={cn("aide-card p-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 truncate text-xs font-medium text-muted-foreground">
           {label}

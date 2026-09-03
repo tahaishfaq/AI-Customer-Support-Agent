@@ -41,7 +41,7 @@ export function AgentHero({ agent, onDelete }) {
           <Link
             href={`/agents/${agent.id}/edit`}
             className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
+              buttonVariants({ size: "sm" }),
               "rounded-full"
             )}
           >

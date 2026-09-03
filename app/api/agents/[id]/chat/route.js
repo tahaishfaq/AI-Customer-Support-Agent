@@ -127,6 +127,7 @@ export async function POST(request, { params }) {
     if (
       error.status === 400 ||
       error.status === 401 ||
+      error.status === 402 ||
       error.status === 403 ||
       error.status === 404 ||
       error.status === 500 ||

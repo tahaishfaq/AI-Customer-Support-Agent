@@ -154,6 +154,8 @@ model User {
   assignedConversations Conversation[] @relation("AssignedConversations")
   customPlanRequests CustomPlanRequest[]
   handledCustomPlanRequests CustomPlanRequest[] @relation("CustomPlanRequestHandler")
+  subscriptions      Subscription[]
+  onboarding         UserOnboarding?
 }
 
 model Account {
@@ -568,6 +570,8 @@ model BillingPlan {
   safepayPlanId        String?
   maxWorkspaces        Int             @default(1)
   maxAgentsPerWorkspace Int            @default(2)
+  /// Billable conversations per calendar month (0 = unlimited). Botpress-style: 2+ visitor messages in month.
+  maxConversationsPerMonth Int         @default(0)
   featuresJson         Json?
   sortOrder            Int             @default(0)
   isActive             Boolean         @default(true)
@@ -575,6 +579,8 @@ model BillingPlan {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   customPlanRequests   CustomPlanRequest[]
+  subscriptions        Subscription[] @relation("SubscriptionPlan")
+  pendingSubscriptions Subscription[] @relation("SubscriptionPendingPlan")
 
   @@index([isActive, sortOrder])
 }
@@ -604,4 +610,109 @@ model CustomPlanRequest {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([planId])
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+model Subscription {
+  id                       String             @id @default(cuid())
+  userId                   String
+  planId                   String
+  pendingPlanId            String?
+  status                   SubscriptionStatus @default(PENDING)
+  safepaySubscriptionToken String?
+  safepayCustomerRef       String?
+  checkoutReference        String?            @unique
+  currentPeriodEnd         DateTime?
+  cancelAtPeriodEnd        Boolean            @default(false)
+  canceledAt               DateTime?
+  activatedAt              DateTime?
+  lastPaymentAt            DateTime?
+  lastWebhookAt            DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                     BillingPlan        @relation("SubscriptionPlan", fields: [planId], references: [id], onDelete: Restrict)
+  pendingPlan              BillingPlan?       @relation("SubscriptionPendingPlan", fields: [pendingPlanId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+enum BillingProvider {
+  SAFEPAY
+}
+
+enum BillingEventProcessingStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+model BillingEvent {
+  id                String                       @id @default(cuid())
+  provider          BillingProvider              @default(SAFEPAY)
+  eventType         String
+  externalId        String                       @unique
+  checkoutReference String?
+  userId            String?
+  subscriptionId    String?
+  signatureValid    Boolean                      @default(false)
+  processingStatus  BillingEventProcessingStatus @default(RECEIVED)
+  errorMessage      String?
+  payloadHash       String
+  payloadRedacted   Json?
+  receivedAt        DateTime                     @default(now())
+  processedAt       DateTime?
+
+  @@index([checkoutReference])
+  @@index([userId, receivedAt])
+}
+
+enum OnboardingCrawlStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+  SKIPPED
+}
+
+model UserOnboarding {
+  id                    String                @id @default(cuid())
+  userId                String                @unique
+  /// SafePay customer identity (collected before plan pick).
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  country               String?               @default("PK")
+  websiteUrl            String?
+  companyType           String?
+  teamSize              String?
+  monthlyConversations  String?
+  primaryGoal           String?
+  businessProfileJson   Json?
+  crawlStatus           OnboardingCrawlStatus @default(PENDING)
+  crawlError            String?
+  crawledAt             DateTime?
+  /// Interest + SafePay profile finished (unlocks plan picker).
+  interestCompletedAt   DateTime?
+  /// Full onboarding gate cleared (same as interest for v2; kept for legacy).
+  completedAt           DateTime?
+  safepayCustomerRef    String?
+  safepayCustomerStatus String?               @default("NONE")
+  safepayCustomerError  String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([completedAt])
+  @@index([interestCompletedAt])
+  @@index([crawlStatus])
 }

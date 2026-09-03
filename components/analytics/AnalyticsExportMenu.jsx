@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 const BASE_OPTIONS = [
   { id: "summary", label: "Summary KPIs", hint: "Overview for this range" },
@@ -61,10 +62,7 @@ export function AnalyticsExportMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={disabled || !data}
-        className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[0.8rem] font-medium text-foreground outline-none hover:bg-muted disabled:opacity-50",
-          className
-        )}
+        className={cn(buttonVariants({ size: "sm" }), className)}
       >
         <Download className="size-3.5" aria-hidden />
         Export
