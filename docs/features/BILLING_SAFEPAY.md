@@ -1,7 +1,8 @@
 # B01 — Billing & subscriptions (SafePay)
 
-**Status:** 🟡 **In progress — B0–B4 implemented in code; B5 partial; sandbox E2E + prod sign-off pending** (updated Sep 1, 2026 — O01 Orchestrator ✅; display name **Basic** for `planType=FREE`)  
+**Status:** 🟡 **Hosted checkout (B0–B5) in code; Atoms+COF migration = Phase 0 POC** (updated Sep 4, 2026)  
 **Replaces backlog sketch:** `[POST_MVP_BACKLOG_PLAN.md](../POST_MVP_BACKLOG_PLAN.md)` § **P3-BILLING** (was Stripe; **provider = SafePay**)  
+**In-AIDE card / COF plan:** **[`BILLING_ATOMS_COF.md`](./BILLING_ATOMS_COF.md)** — sequenced phases 0–14 + checklists. Do not cut over live paid checkout until Phase 0 gate passes.  
 **Priority rule:** **Security first.** Money paths must be correct before UX polish.  
 **Execution rule:** One phase → automated + manual test → next phase. Never skip a test gate.  
 **O01 invariant:** Billing / plan / suspend gates stay **above** Orchestrator (proxy/layout). Do **not** put plan checks inside `runTurn`. Entitlements (incl. future MCP server caps) enforce at API/config load, not in the tool loop.
@@ -9,7 +10,7 @@
 
 |                 |                                                                                                              |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Provider**    | [SafePay](https://getsafepay.com) — hosted subscription checkout (`@sfpy/node-sdk`)                          |
+| **Provider**    | [SafePay](https://getsafepay.com) — **today:** hosted `createSubscription`; **target:** Atoms + COF ([`BILLING_ATOMS_COF.md`](./BILLING_ATOMS_COF.md)) |
 | **Plans**       | **Exactly 4** fixed slots — **Basic** (`FREE`) | **Popular** | **Teams** | **Custom** (Botpress-style pricing grid)    |
 | **Who pays**    | **User** (Aide account), not Workspace                                                                       |
 | **When**        | After register / first Google signup — **before** dashboard / agent onboarding                               |
@@ -371,8 +372,8 @@ Same gate after JWT session exists. Do **not** create ACTIVE subscription in Goo
 ## 3.4 Upgrade / downgrade (Phase B4)
 
 - **Upgrade (paid→higher paid):** new SafePay checkout with new plan id; keep old ACTIVE until webhook; then swap planId + token in transaction.  
-- **Downgrade:** either period-end change (`cancelAtPeriodEnd` + schedule) or immediate with SafePay rules — **confirm with SafePay support before coding**. Until confirmed: only “cancel + resubscribe”.  
-- **Paid→Free:** cancel SafePay sub; on `subscription:ended` set plan to Free ACTIVE or CANCELED→must pick Free again.
+- **Downgrade:** **period-end** — schedule `cancelAtPeriodEnd` + keep paid `planId` / entitlements until `currentPeriodEnd` (or Safepay `subscription:ended`). Do **not** drop limits immediately when user picks Basic.  
+- **Paid→Free:** cancel SafePay sub (if `sub_*`); set `pendingPlanId` = Free; on `subscription:ended` **or** `npm run billing:period-end` job → Free ACTIVE.
 
 
 
@@ -1240,12 +1241,31 @@ Aide Teams — for teams running multiple brands or high-volume support. Everyth
 
 | Doc                                                                    | Role                                                              |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `[BILLING_ATOMS_COF.md](./BILLING_ATOMS_COF.md)`                        | **In-AIDE Atoms + COF migration** — phases 0–14 + checklists      |
 | `[AUDIT_BOTPRESS_VS_HAPY.md](../AUDIT_BOTPRESS_VS_HAPY.md)`            | Product positioning — 4-tier agent SaaS                           |
 | `[EMAIL_RESEND_PLAN.md](./EMAIL_RESEND_PLAN.md)`                       | Resend transactional email — custom plan notify, auth, onboarding |
 | `[POST_MVP_BACKLOG_PLAN.md](../POST_MVP_BACKLOG_PLAN.md)` § P3-BILLING | Historical Stripe sketch — superseded by SafePay here             |
 | `[OPEN_SEQUENCE.md](../OPEN_SEQUENCE.md)`                              | Add B01 when execution starts                                     |
 | Admin Safety / PlatformSettings                                        | Caps predecessor                                                  |
 | Auth register + `proxy.js`                                             | Gate insertion points                                             |
+
+
+---
+
+# Part 15 — Atoms + COF migration (pointer)
+
+Full sequenced plan, Phase 0 evidence, and per-phase checklists live in:
+
+**[`BILLING_ATOMS_COF.md`](./BILLING_ATOMS_COF.md)**
+
+Summary:
+
+| Mode | Who | Checkout | Recurring |
+|------|-----|----------|-----------|
+| `LEGACY_NATIVE` (default) | Existing + `BILLING_CHECKOUT_MODE=legacy` | Hosted `/subscribe` via `checkout.createSubscription` | Safepay native plan webhooks |
+| `ATOMS_HYBRID` | New paid when `BILLING_CHECKOUT_MODE=atoms` | `/billing/pay` + `@sfpy/atoms` | Until COF proven: native fallback / PAST_DUE + update payment |
+
+**Do not** remove native webhook handlers. **Do not** invent `unscheduled_cof` request shapes — prove in Phase 0 before AIDE-managed renewals.
 
 
 ---

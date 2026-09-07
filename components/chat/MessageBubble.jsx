@@ -127,6 +127,8 @@ export function MessageBubble({
   onFeedback,
   usedKnowledge = null,
   toolSteps = null,
+  citations = null,
+  sources = null,
   pendingConfirmations = null,
   onConfirmDecision = null,
   confirmBusy = false,
@@ -154,6 +156,12 @@ export function MessageBubble({
         })
         .filter(Boolean)
     : [];
+  const webSources = (Array.isArray(sources) && sources.length
+    ? sources
+    : Array.isArray(citations)
+      ? citations
+      : []
+  ).filter((source) => source?.url);
   const parsedFile = parseChatAttachment(content);
   const caption = parsedFile.display
     .replace(/!\[[^\]]*\]\(https?:[^)]+\)/g, "")
@@ -210,14 +218,14 @@ export function MessageBubble({
         ) : null}
         <div
           className={cn(
-            "max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[75%]",
+            "max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[75%]",
             isUser
               ? themed
-                ? "rounded-br-md bg-[var(--wc-primary)] text-white"
-                : "rounded-br-md bg-[var(--color-primary)] text-white"
+                ? "bg-[var(--wc-primary)] text-white"
+                : "bg-orange-600 text-white"
               : themed
-                ? "rounded-bl-md bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
-                : "rounded-bl-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
+                ? "bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
+                : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
           )}
           style={{
             borderRadius: themed ? "var(--wc-radius)" : undefined,
@@ -310,7 +318,7 @@ export function MessageBubble({
           <span
             className={cn(
               "mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white",
-              themed ? "bg-[var(--wc-primary)]" : "bg-[var(--color-primary)]"
+              themed ? "bg-[var(--wc-primary)]" : "bg-orange-600"
             )}
           >
             Y
@@ -346,6 +354,34 @@ export function MessageBubble({
           </span>{" "}
           {toolLabels.join(" · ")}
         </p>
+      ) : null}
+
+      {!isUser && !pending && webSources.length > 0 ? (
+        <div
+          className={cn(
+            "flex max-w-[85%] flex-wrap gap-1.5 sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1"
+          )}
+          aria-label="Web sources"
+        >
+          {webSources.slice(0, 8).map((source) => (
+            <a
+              key={source.url}
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "max-w-full truncate rounded-full border px-2 py-1 text-[11px] underline underline-offset-2",
+                themed
+                  ? "border-[var(--wc-border)] text-[var(--wc-muted)]"
+                  : "border-[var(--color-border)] text-[var(--color-muted)]"
+              )}
+              title={source.title || source.url}
+            >
+              {source.title || "Web source"}
+            </a>
+          ))}
+        </div>
       ) : null}
 
       {!isUser &&

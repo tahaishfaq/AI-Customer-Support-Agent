@@ -3,6 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { usePathname } from "next/navigation";
 import { SessionProvider } from "@/components/session/SessionProvider";
+import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -11,6 +12,9 @@ function isLightOnlyRoute(pathname) {
   if (pathname === "/") return true;
   if (pathname.startsWith("/login")) return true;
   if (pathname.startsWith("/register")) return true;
+  if (pathname.startsWith("/forgot-password")) return true;
+  if (pathname.startsWith("/reset-password")) return true;
+  if (pathname.startsWith("/verify-email")) return true;
   if (pathname.startsWith("/w/")) return true;
   return false;
 }
@@ -35,10 +39,12 @@ export function Providers({ children }) {
       storageKey="hapy-theme"
     >
       <SessionProvider>
-        <TooltipProvider>
-          {children}
-          <AppToaster />
-        </TooltipProvider>
+        <RealtimeProvider>
+          <TooltipProvider>
+            {children}
+            <AppToaster />
+          </TooltipProvider>
+        </RealtimeProvider>
       </SessionProvider>
     </NextThemesProvider>
   );

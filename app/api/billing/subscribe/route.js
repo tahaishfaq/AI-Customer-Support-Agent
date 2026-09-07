@@ -56,12 +56,15 @@ export async function POST(request) {
       {
         ok: true,
         subscription,
-        redirectTo: "/dashboard",
+        scheduledDowngrade: Boolean(subscription?.scheduledDowngrade),
+        redirectTo: subscription?.scheduledDowngrade
+          ? "/settings/billing"
+          : "/dashboard",
       },
       { status: 200 }
     );
   } catch (error) {
-    if (error.status === 400 || error.status === 409) {
+    if (error.status === 400 || error.status === 409 || error.status === 502) {
       return NextResponse.json(
         { error: { message: error.message, details: {} } },
         { status: error.status }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { AgentActivityBubble } from "@/components/chat/AgentActivityBubble";
 import { cn } from "@/lib/utils";
 
 export function MessageList({
@@ -16,6 +17,7 @@ export function MessageList({
   onFeedback,
   onConfirmDecision = null,
   confirmBusy = false,
+  activeActivities = [],
 }) {
   const bottomRef = useRef(null);
   const lastScrollKey = useRef("");
@@ -72,8 +74,11 @@ export function MessageList({
         </div>
       ) : null}
       {messages.map((msg) => (
-        <MessageBubble
-          key={msg.id}
+        <div key={msg.id} className="flex w-full flex-col items-start gap-2">
+          {msg.streaming && activeActivities.length ? (
+            <AgentActivityBubble activities={activeActivities} compact={compact} />
+          ) : null}
+          <MessageBubble
           role={msg.role}
           content={msg.content}
           responseTime={msg.responseTime}
@@ -87,11 +92,14 @@ export function MessageList({
           onFeedback={onFeedback}
           usedKnowledge={msg.usedKnowledge}
           toolSteps={msg.toolSteps}
+          citations={msg.citations}
+          sources={msg.sources}
           pendingConfirmations={msg.pendingConfirmations}
           onConfirmDecision={onConfirmDecision}
           confirmBusy={confirmBusy}
           streaming={Boolean(msg.streaming)}
-        />
+          />
+        </div>
       ))}
       {loading && !messages.some((m) => m.streaming) ? (
         <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />

@@ -9,6 +9,8 @@ import {
   listWorkspaces,
   updateWorkspace,
 } from "@/lib/api/workspaces";
+import { slugify as slugifyName } from "@/lib/utils/slugify";
+import { hrefForWorkspaceSlug } from "@/lib/hooks/use-workspace-nav";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 function mark(name) {
   return (name || "W").trim().charAt(0).toUpperCase() || "W";
@@ -73,6 +76,29 @@ export function WorkspaceSwitcher() {
   }, []);
 
   useEffect(() => {
+    if (loading || !active?.slug) return;
+    const next = hrefForWorkspaceSlug(
+      active.slug,
+      window.location.pathname,
+      window.location.search
+    );
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.location.replace(next);
+    }
+  }, [loading, active?.slug]);
+
+  useEffect(() => {
+    if (!workspaces.length) return;
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const urlSlug = parts[0] === "ws" ? parts[1] : null;
+    if (!urlSlug) return;
+    const match = workspaces.find((w) => w.slug === urlSlug);
+    if (match && match.id !== activeId) {
+      activateWorkspace(match.id).then(() => setActiveId(match.id)).catch(() => {});
+    }
+  }, [workspaces, activeId]);
+
+  useEffect(() => {
     if (collapsed) setOpen(false);
   }, [collapsed]);
 
@@ -90,7 +116,11 @@ export function WorkspaceSwitcher() {
     setBusy(true);
     try {
       await activateWorkspace(id);
-      window.location.assign("/dashboard");
+      const ws = workspaces.find((w) => w.id === id);
+      const slug = ws?.slug || slugifyName(ws?.name || "");
+      window.location.assign(
+        hrefForWorkspaceSlug(slug, "/dashboard")
+      );
     } catch (err) {
       setError(err.message || "Unable to switch workspace");
       setBusy(false);
@@ -102,8 +132,9 @@ export function WorkspaceSwitcher() {
     setBusy(true);
     setFormError("");
     try {
-      await createWorkspace({ name: nameDraft });
-      window.location.assign("/dashboard");
+      const created = await createWorkspace({ name: nameDraft });
+      const slug = created?.slug || slugifyName(nameDraft);
+      window.location.assign(hrefForWorkspaceSlug(slug, "/dashboard"));
     } catch (err) {
       setFormError(err.message || "Unable to create workspace");
       setBusy(false);
@@ -116,9 +147,15 @@ export function WorkspaceSwitcher() {
     setBusy(true);
     setFormError("");
     try {
-      await updateWorkspace(active.id, { name: nameDraft });
-      setSettingsOpen(false);
-      await load();
+      const updated = await updateWorkspace(active.id, { name: nameDraft });
+      const slug = updated?.slug || slugifyName(nameDraft);
+      window.location.assign(
+        hrefForWorkspaceSlug(
+          slug,
+          window.location.pathname,
+          window.location.search
+        )
+      );
     } catch (err) {
       setFormError(err.message || "Unable to rename workspace");
     } finally {
@@ -132,8 +169,10 @@ export function WorkspaceSwitcher() {
     setBusy(true);
     setFormError("");
     try {
-      await deleteWorkspace(active.id, { confirm: hasAgents });
-      window.location.assign("/dashboard");
+      const result = await deleteWorkspace(active.id, { confirm: hasAgents });
+      const leftover = workspaces.find((w) => w.id !== active.id);
+      const slug = result?.slug || leftover?.slug || slugifyName(leftover?.name || "");
+      window.location.assign(hrefForWorkspaceSlug(slug, "/dashboard"));
     } catch (err) {
       setFormError(err.message || "Unable to delete workspace");
       setBusy(false);
@@ -151,13 +190,22 @@ export function WorkspaceSwitcher() {
         }}
       >
         <DropdownMenuTrigger
-          className="flex h-10 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-md px-1 text-left outline-none transition-[gap,padding,width,height] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
+          className={cn(
+            "flex h-10 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-md px-2 text-left outline-none transition-[gap,padding,width,height] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            !collapsed && "hover:bg-sidebar-accent",
+            collapsed && "justify-center gap-0 px-0"
+          )}
           aria-label={`Workspace: ${active?.name || "Workspace"}`}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary font-heading text-[13px] font-semibold text-primary-foreground">
             {mark(active?.name)}
           </span>
-          <span className="min-w-0 flex-1 overflow-hidden opacity-100 transition-[opacity,flex-basis,width] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:opacity-0">
+          <span
+            className={cn(
+              "min-w-0 flex-1 overflow-hidden opacity-100 transition-[opacity,flex-basis,width] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
+              collapsed && "pointer-events-none w-0 flex-none opacity-0"
+            )}
+          >
             <span
               className="block truncate font-heading text-sm font-semibold leading-tight text-sidebar-foreground"
               suppressHydrationWarning
@@ -168,13 +216,18 @@ export function WorkspaceSwitcher() {
               Personal
             </span>
           </span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground opacity-100 transition-opacity duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0" />
+          <ChevronsUpDown
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground opacity-100 transition-opacity duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
+              collapsed && "w-0 opacity-0"
+            )}
+          />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
-          side={collapsed ? "right" : "bottom"}
+          side={isMobile ? "bottom" : "right"}
           align="start"
-          sideOffset={collapsed ? 8 : 4}
+          sideOffset={isMobile ? 4 : 8}
           className="w-64 min-w-64"
         >
           <div className="p-1.5">

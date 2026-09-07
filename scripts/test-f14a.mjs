@@ -67,7 +67,7 @@ function main() {
     assert(/handleConfirmDecision/.test(src), `${rel} handles confirm`);
   }
 
-  const plan = read("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
+  const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
   assert(/Phase A/.test(plan) && /✅/.test(plan), "F14 plan marks A done");
 
   console.log("ok  confirmation deny + pending create");

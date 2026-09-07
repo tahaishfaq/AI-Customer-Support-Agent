@@ -1,4 +1,10 @@
-# M01 — MCP Tools: simple deep plan (approve before build)
+# M01 — MCP Tools UX (deferred)
+
+**Status:** Backend MCP path **shipped** (F13 + Stage 5). This plan = optional **owner UX** — after go-live + sockets.  
+**Do next:** [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) · [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md)  
+**Shipped tools hub:** [`../shipped/F13_TOOLS_HUB.md`](../shipped/F13_TOOLS_HUB.md)
+
+---
 
 **Status:** 📋 Planning — **updated Aug 31, 2026** (O01 Orchestrator shipped; Anthropic `mcp-builder` skill installed)  
 **Related:** F13 (backend shipped) · F14 Confirm (HTTP only) · O01 Capability Registry · Botpress Tools → MCP UX  
@@ -611,8 +617,8 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve. Orchestrator (`r
 | `lib/actions/invoke-tool.js`                   | Chat invoke + WRITE gap |
 | `lib/orchestrator/`                            | `runTurn` (do not fork for MCP) |
 | `app/api/demo/mcp/route.js`                    | Demo server (DS1 target)|
-| `docs/features/F13_TOOLS_HUB.md`               | Shipped backend story   |
-| `docs/features/ORCHESTRATOR_LAYER_PLAN.md`     | O01 done                |
+| `docs/shipped/F13_TOOLS_HUB.md`               | Shipped backend story   |
+| `docs/shipped/ORCHESTRATOR_LAYER_PLAN.md`     | O01 done                |
 
 
 ---

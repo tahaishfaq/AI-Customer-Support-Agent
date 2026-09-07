@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Cable, Play, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Cable, ChevronRight, Play, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
@@ -196,7 +201,7 @@ function parseJsonObject(text, label) {
 export function ActionsForm({
   agentId,
   agentName,
-  actionsEnabled = true,
+  actionsEnabled = false,
   onActionsEnabledChange,
   siteKnowledgeOrigin = null,
   pendingCreateForm = null,
@@ -224,7 +229,7 @@ export function ActionsForm({
   });
   const [credBusy, setCredBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
-  const killOn = actionsEnabled !== false;
+  const killOn = Boolean(actionsEnabled);
 
   const activeCreds = useMemo(
     () => credentials.filter((c) => !c.revokedAt),
@@ -538,9 +543,9 @@ export function ActionsForm({
             <div className="min-w-0">
               <p className="text-sm font-semibold">HTTP Request</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Run an HTTP call as a tool. For advanced use cases with custom
-                headers and bodies.
-                {!killOn ? " · actions off" : ""}
+                Run an HTTP call as a tool. Off by default — turn it on when
+                your APIs are ready.
+                {!killOn ? " · currently off" : ""}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -730,43 +735,59 @@ export function ActionsForm({
           ) : null}
 
           <FormSection title="Recent tool runs">
-            <FieldBlock
-              label="Audit"
-              hint="Name, status, duration only — no response bodies or secrets."
+            <Collapsible
+              defaultOpen={false}
+              className="group overflow-hidden rounded-xl border border-border bg-card"
             >
-              {runs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No tool runs yet.
-                </p>
-              ) : (
-                <ul className="max-h-56 overflow-auto rounded-xl border border-border bg-card p-2">
-                  {runs.map((run) => (
-                    <li
-                      key={run.id}
-                      className="flex flex-wrap items-baseline justify-between gap-2 px-2 py-1.5 text-xs"
-                    >
-                      <span className="font-medium">
-                        {run.actionName || "unknown"}
-                        <span className="ml-2 font-normal text-muted-foreground">
-                          {run.status}
-                          {run.httpStatus != null
-                            ? ` · ${run.httpStatus}`
-                            : ""}
-                        </span>
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {run.durationMs != null
-                          ? `${run.durationMs}ms · `
-                          : ""}
-                        {run.createdAt
-                          ? new Date(run.createdAt).toLocaleString()
-                          : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </FieldBlock>
+              <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40">
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[open]:rotate-90" />
+                <span className="min-w-0 flex-1 truncate">Audit</span>
+                {runs.length > 0 ? (
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    {runs.length}
+                  </span>
+                ) : null}
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-2 border-t border-border px-3 py-3">
+                  <p className="text-xs text-muted-foreground">
+                    Name, status, duration only — no response bodies or secrets.
+                  </p>
+                  {runs.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No tool runs yet.
+                    </p>
+                  ) : (
+                    <ul className="max-h-56 overflow-auto rounded-lg border border-border bg-muted/20 p-2">
+                      {runs.map((run) => (
+                        <li
+                          key={run.id}
+                          className="flex flex-wrap items-baseline justify-between gap-2 px-2 py-1.5 text-xs"
+                        >
+                          <span className="font-medium">
+                            {run.actionName || "unknown"}
+                            <span className="ml-2 font-normal text-muted-foreground">
+                              {run.status}
+                              {run.httpStatus != null
+                                ? ` · ${run.httpStatus}`
+                                : ""}
+                            </span>
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {run.durationMs != null
+                              ? `${run.durationMs}ms · `
+                              : ""}
+                            {run.createdAt
+                              ? new Date(run.createdAt).toLocaleString()
+                              : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </FormSection>
 
           <FormSection title="Consent evidence">

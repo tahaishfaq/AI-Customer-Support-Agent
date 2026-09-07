@@ -21,7 +21,7 @@ function exists(rel) {
 }
 
 function main() {
-  const f12 = read("docs/features/F12_HUMAN_DESK.md");
+  const f12 = read("docs/shipped/F12_HUMAN_DESK.md");
   assert(/Phase D — Error handling ✅/.test(f12), "Phase D marked done");
   assert(/Phase E — Production bottlenecks ✅/.test(f12), "Phase E marked done");
   assert(/Phase F — Scaling ✅/.test(f12), "Phase F marked done");

@@ -45,10 +45,7 @@ export function AuthVisualPanel() {
         <AideLogo href="/" size="md" variant="light" />
 
         <div className="max-w-md">
-          <p className="text-[12px] font-medium tracking-[0.14em] text-white/45 uppercase">
-            [ AIDE ]
-          </p>
-          <h2 className="landing-display mt-4 text-[2.15rem] leading-[1.15] tracking-tight xl:text-[2.45rem]">
+          <h2 className="landing-display text-[2.15rem] leading-[1.15] tracking-tight xl:text-[2.45rem]">
             Support that turns into a system.
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-white/65">

@@ -64,9 +64,9 @@ const COLUMN_B = [
   },
 ];
 
-function ReviewCard({ card }) {
+function ReviewCard({ card, className }) {
   return (
-    <article className="landing-dot-frame flex flex-col bg-card p-5 sm:p-6">
+    <article className={cn("landing-dot-frame flex flex-col bg-card p-5 sm:p-6", className)}>
       <div className="flex items-start justify-between gap-3">
         <Quote
           className="size-5 text-muted-foreground/50"
@@ -130,6 +130,27 @@ function VerticalMarquee({ cards, direction = "up", duration = "42s" }) {
   );
 }
 
+function HorizontalMarquee({ cards, duration = "48s" }) {
+  const loop = [...cards, ...cards];
+
+  return (
+    <div className="relative overflow-hidden sm:hidden">
+      <div
+        className="landing-reviews-h-marquee flex w-max gap-3"
+        style={{ animationDuration: duration }}
+      >
+        {loop.map((card, i) => (
+          <ReviewCard
+            key={`${card.name}-${i}`}
+            card={card}
+            className="h-[15rem] w-[17rem] shrink-0"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function LandingReviews() {
   return (
     <section
@@ -151,7 +172,7 @@ export function LandingReviews() {
 
       <div className="grid gap-5 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-6 lg:px-8 lg:py-12">
         <LandingReveal fadeOnly delay={60}>
-          <aside className="landing-dot-frame relative flex h-full min-h-[28rem] flex-col overflow-hidden bg-[var(--landing-ink)] p-6 text-white sm:min-h-[32rem] sm:p-8 lg:min-h-[34rem]">
+          <aside className="landing-dot-frame relative flex h-full min-h-[22rem] flex-col overflow-hidden bg-[var(--landing-ink)] p-5 text-white sm:min-h-[32rem] sm:p-8 lg:min-h-[34rem]">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -211,13 +232,10 @@ export function LandingReviews() {
         </LandingReveal>
 
         <LandingReveal fadeOnly delay={90} className="min-w-0">
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+          <HorizontalMarquee cards={[...COLUMN_A, ...COLUMN_B]} />
+          <div className="hidden gap-4 sm:grid sm:grid-cols-2 sm:gap-5">
             <VerticalMarquee cards={COLUMN_A} direction="up" duration="40s" />
-            <VerticalMarquee
-              cards={COLUMN_B}
-              direction="down"
-              duration="46s"
-            />
+            <VerticalMarquee cards={COLUMN_B} direction="down" duration="46s" />
           </div>
         </LandingReveal>
       </div>

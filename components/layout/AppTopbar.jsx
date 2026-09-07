@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Fragment } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, PanelLeft } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, PanelLeft } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,33 +12,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { useAuthStore } from "@/store/auth-store";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 import { getBreadcrumbs } from "@/components/layout/nav";
-
-function initials(name) {
-  if (!name) return "A";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
 
 function NavMenuTrigger() {
   const { toggleSidebar, isMobile, openMobile } = useSidebar();
@@ -62,17 +41,8 @@ function NavMenuTrigger() {
 
 export function AppTopbar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const agentName = useBreadcrumbStore((s) => s.agentName);
   const crumbs = getBreadcrumbs(pathname, { agentName });
-
-  async function handleLogout() {
-    await logout();
-    router.push("/");
-    router.refresh();
-  }
 
   return (
     <header className="z-30 flex h-12 shrink-0 items-center gap-1.5 border-b border-border bg-card/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4 md:px-5">
@@ -107,47 +77,6 @@ export function AppTopbar() {
       </Breadcrumb>
 
       <ThemeToggle className="text-muted-foreground" />
-
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-          aria-label="Account menu"
-        >
-          <span className="hidden max-w-[5.5rem] truncate text-sm text-muted-foreground md:block lg:max-w-[9rem]">
-            {user?.name}
-          </span>
-          <Avatar size="sm">
-            <AvatarFallback className="bg-primary text-[11px] font-semibold text-primary-foreground">
-              {initials(user?.name)}
-            </AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel className="font-normal">
-              <p className="truncate text-sm font-medium">
-                {user?.name || "Account"}
-              </p>
-              {user?.email ? (
-                <p className="truncate text-xs text-muted-foreground">
-                  {user.email}
-                </p>
-              ) : null}
-            </DropdownMenuLabel>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={handleLogout}
-              className="cursor-pointer"
-            >
-              <LogOut data-icon="inline-start" />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </header>
   );
 }

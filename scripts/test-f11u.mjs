@@ -60,7 +60,7 @@ function testFiles() {
     exists("components/customization/UniversalBusinessWizard.jsx"),
     "UniversalBusinessWizard"
   );
-  assert(exists("docs/features/F11_UNIVERSAL_AUTHZ_PLAN.md"), "F11-U authz plan");
+  assert(exists("docs/shipped/F11_UNIVERSAL_AUTHZ_PLAN.md"), "F11-U authz plan");
   assert(
     exists("prisma/migrations/20260829120000_f11u_access_class/migration.sql"),
     "accessClass migration"

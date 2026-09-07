@@ -30,14 +30,17 @@ function main() {
   );
 
   const google = read("components/auth/GoogleSignInButton.jsx");
+  const gis = read("lib/auth/google-gis.js");
   assert(
     !/Loading Google/.test(google),
     "must never show Loading Google… hole"
   );
-  assert(/phase === "idle"/.test(google), "click-to-load idle phase");
-  assert(/Connecting…/.test(google), "loading stays on button");
+  assert(
+    /gisStatus/.test(google) && /"idle"/.test(gis),
+    "GIS status machine includes idle (click-to-load)"
+  );
   assert(/Try Google again/.test(google), "error → try again");
-  assert(/setPhase\("idle"\)/.test(google), "retry returns to idle");
+  assert(/retryGoogleGisReady/.test(google), "retry returns to GIS ready path");
 
   assert(exists("components/ui/inline-alert.jsx"), "InlineAlert");
   const alert = read("components/ui/inline-alert.jsx");

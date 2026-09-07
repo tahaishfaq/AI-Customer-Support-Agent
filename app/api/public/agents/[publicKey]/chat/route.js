@@ -8,6 +8,7 @@ import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { durationHeaders, durationMsSince } from "@/lib/observability/duration";
 import { safeLogError } from "@/lib/observability/safe-log";
+import { formatSseEvent, streamingChatEnabled } from "@/lib/chat/sse";
 
 /** Keep above OPENAI_TIMEOUT_MS (default 45s). */
 export const maxDuration = 60;
@@ -65,6 +66,62 @@ export async function POST(request, { params }) {
     const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
     const bearerToken = bearerMatch?.[1]?.trim() || null;
 
+    const wantsStream =
+      Boolean(parsed.data.stream) &&
+      streamingChatEnabled() &&
+      (request.headers.get("accept") || "").includes("text/event-stream");
+
+    if (wantsStream) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const emit = (event) => {
+            controller.enqueue(encoder.encode(formatSseEvent(event.type, event.data)));
+          };
+          try {
+            await sendChatMessage(agent.id, {
+              publicAccess: true,
+              message: parsed.data.message,
+              conversationId: parsed.data.conversationId,
+              resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
+              identityToken:
+                parsed.data.identityToken ||
+                request.headers.get("x-customer-identity") ||
+                request.headers.get("x-identity-token") ||
+                null,
+              userSession: parsed.data.userSession || null,
+              bearerToken,
+              realtimeAccessToken: request.headers.get("x-aide-conversation-access-token"),
+              requestOrigin: originFromRequest(request),
+              requestId,
+              signal: request.signal,
+              stream: { emit },
+            });
+          } catch (error) {
+            emit({
+              type: "error",
+              data: {
+                message: error.message || "Unable to process chat",
+                code: error?.details?.code || error?.code || null,
+              },
+            });
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+          ...durationHeaders(started),
+        },
+      });
+    }
+
     const result = await sendChatMessage(agent.id, {
       publicAccess: true,
       message: parsed.data.message,
@@ -77,6 +134,8 @@ export async function POST(request, { params }) {
         null,
       userSession: parsed.data.userSession || null,
       bearerToken,
+      realtimeAccessToken: request.headers.get("x-aide-conversation-access-token"),
+      requestOrigin: originFromRequest(request),
       requestId,
       signal: request.signal,
     });

@@ -55,8 +55,18 @@ function main() {
   });
   assert(system.startsWith("You are Acme support."), "overlay first");
   assert(/## Response rules/.test(system), "rules section after overlay");
-  assert(/Answer only from the agent system prompt and knowledge/.test(system), "grounding");
-  assert(/don’t have knowledge|don't have knowledge/i.test(system), "empty-KB refuse line");
+  assert(
+    /Answer only from the agent system prompt and knowledge|If knowledge does not cover a business fact/i.test(
+      system
+    ),
+    "grounding"
+  );
+  assert(
+    /don’t have knowledge|don't have knowledge|cannot verify|knowledge does not cover/i.test(
+      system
+    ),
+    "empty/missing-KB refuse line"
+  );
   assert(system.includes(knowledge.trim()), "F08 knowledge appended");
   assert(
     system.indexOf("## Response rules") > system.indexOf("You are Acme support."),

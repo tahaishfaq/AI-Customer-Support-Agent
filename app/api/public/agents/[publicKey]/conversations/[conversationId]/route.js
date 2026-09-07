@@ -34,6 +34,8 @@ export async function GET(request, { params }) {
             role: true,
             content: true,
             responseTime: true,
+            citations: true,
+            sources: true,
             feedback: true,
             feedbackReason: true,
             createdAt: true,

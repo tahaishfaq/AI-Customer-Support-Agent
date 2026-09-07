@@ -73,11 +73,21 @@ function main() {
   assert(/Use demo MCP/.test(mcpPanel), "Use demo MCP");
 
   const toolLoop = read("lib/actions/tool-loop.js");
+  const invoke = read("lib/actions/invoke-tool.js");
+  const registry = read("lib/capabilities/registry.js");
+  const mcp = read("lib/services/mcp.service.js");
   assert(
-    /listEnabledMcpToolsForAgent/.test(toolLoop),
-    "tool-loop listEnabledMcpToolsForAgent"
+    /listEnabledMcpToolsForAgent/.test(toolLoop) ||
+      /listEnabledMcpToolsForAgent/.test(registry) ||
+      /listEnabledMcpToolsForAgent/.test(mcp),
+    "MCP listEnabledMcpToolsForAgent wiring"
   );
-  assert(/executeMcpToolAction/.test(toolLoop), "tool-loop executeMcpToolAction");
+  assert(
+    /executeMcpToolAction/.test(toolLoop) ||
+      /executeMcpToolAction/.test(invoke) ||
+      /executeMcpToolAction/.test(mcp),
+    "executeMcpToolAction wiring"
+  );
 
   for (const rel of [
     "app/api/agents/[id]/mcp-servers/route.js",
@@ -119,7 +129,7 @@ function main() {
     "sanitize slugs"
   );
 
-  const plan = read("docs/features/F13_TOOLS_HUB.md");
+  const plan = read("docs/shipped/F13_TOOLS_HUB.md");
   assert(/Phase T3 — MCP \(deep\) ✅/.test(plan), "F13 plan marks T3 done");
   assert(
     /T0–T3 done|T0–T4 (done|complete|shipped)|Status:.*Shipped/i.test(plan),

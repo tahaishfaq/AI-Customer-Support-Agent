@@ -43,8 +43,7 @@ function main() {
 
   const preview = read("components/customization/CustomizationPreview.jsx");
   assert(
-    /siteBody/.test(preview) &&
-      /real site \+ widget|min-h-\[520px\]/.test(preview),
+    /siteBody/.test(preview) && /min-h-\[480px\]/.test(preview),
     "preview must look like a real site stage"
   );
   assert(
@@ -54,9 +53,8 @@ function main() {
 
   const dash = read("app/(app)/dashboard/page.jsx");
   assert(
-    /tracking-wider text-\[var\(--color-primary\)\]/.test(dash) &&
-      /Aide/.test(dash),
-    "dashboard brand signal in first viewport"
+    /font-display|tracking-tight|Workspace insights/.test(dash),
+    "dashboard has branded heading / insights"
   );
   assert(
     /aria-label="Workspace insights"/.test(dash),

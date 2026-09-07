@@ -27,7 +27,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(/Phase E — Production bottlenecks ✅/.test(f11), "F11 Phase E marked done");
   console.log("ok  F11-F doc scope");
 }
@@ -35,8 +35,20 @@ function testDocScope() {
 function testSourceWiring() {
   assert(exists("lib/actions/outbound-semaphore.js"), "semaphore module");
   const loop = read("lib/actions/tool-loop.js");
-  assert(/withOutboundSlot/.test(loop), "tool loop uses concurrency slot");
-  assert(/orderToolCallsGetFirst/.test(loop), "GET-first ordering");
+  const invoke = read("lib/actions/invoke-tool.js");
+  const orchLoop = read("lib/orchestrator/loop.js");
+  assert(
+    /withOutboundSlot/.test(loop) ||
+      /withOutboundSlot/.test(invoke) ||
+      /withOutboundSlot/.test(orchLoop),
+    "tool loop uses concurrency slot"
+  );
+  assert(
+    /orderToolCallsGetFirst/.test(loop) ||
+      /orderToolCallsGetFirst/.test(invoke) ||
+      /orderToolCallsGetFirst/.test(orchLoop),
+    "GET-first ordering"
+  );
 
   const classify = read("lib/services/ai/classify.js");
   assert(!/tools|tool_choice|chatCompletionWithTools/.test(classify), "classify has no tools");

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Download,
@@ -39,7 +38,7 @@ import {
 import { StudioLogDetail } from "@/components/studio/StudioLogDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -344,6 +343,8 @@ export function AgentTestStudio({ agent }) {
             createdAt: result.message.createdAt,
             usedKnowledge,
             toolSteps,
+            citations: result.citations || [],
+            sources: result.sources || [],
             pendingConfirmations,
           },
         ];
@@ -792,7 +793,7 @@ export function AgentTestStudio({ agent }) {
     </>
   );
 
-  const panelHeight = "h-[min(640px,72vh)] min-h-[480px]";
+  const panelHeight = "h-[min(560px,68vh)] min-h-[440px]";
 
   const suggestedPills = useMemo(() => {
     let source = [];
@@ -1178,12 +1179,6 @@ export function AgentTestStudio({ agent }) {
                 <RotateCcw data-icon="inline-start" />
                 New chat
               </Button>
-              <Link
-                href={`/chat?agentId=${agent.id}${conversationId ? `&conversationId=${conversationId}` : ""}`}
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-              >
-                Open in Chat
-              </Link>
             </div>
             {lastPrompt ? (
               <p className="mt-2 truncate text-[11px] text-muted-foreground">

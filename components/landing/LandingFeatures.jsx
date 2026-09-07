@@ -57,10 +57,10 @@ function FeatureVisual({ type, dark }) {
       className={cn(
         "flex w-full items-center justify-center",
         isInsights
-          ? "min-h-[18rem] p-4 sm:min-h-[20rem] sm:p-6 lg:p-8"
-          : isChat
-            ? "h-[24rem] p-6 sm:h-[26rem] sm:p-8"
-            : "min-h-[13rem] p-6 sm:min-h-[15rem] sm:p-8",
+          ? "min-h-[16rem] p-4 sm:min-h-[20rem] sm:p-6 lg:p-8"
+        : isChat
+            ? "h-[22rem] p-5 sm:h-[26rem] sm:p-8"
+            : "min-h-[12rem] p-5 sm:min-h-[15rem] sm:p-8",
         dark && "text-white"
       )}
     >
@@ -81,6 +81,11 @@ function FeatureCopy({ feature }) {
 
   return (
     <div className="flex h-full flex-col justify-center">
+      {feature.index === "01" ? (
+        <p className="mb-6 text-[12px] font-semibold tracking-[0.14em] text-[var(--color-primary)] uppercase sm:hidden">
+          Features
+        </p>
+      ) : null}
       <div className="flex items-center gap-3">
         <span
           className={cn(
@@ -116,7 +121,7 @@ function FeatureCopy({ feature }) {
       </h3>
       <p
         className={cn(
-          "mt-4 max-w-md text-[15px] leading-relaxed",
+          "mt-4 hidden max-w-md text-[15px] leading-relaxed sm:block",
           dark ? "text-white/70" : "text-[var(--landing-muted)]"
         )}
       >
@@ -186,12 +191,12 @@ export function LandingFeatures() {
     >
       <div className="grid grid-cols-1 lg:grid-cols-2">
           {/* Intro — full width */}
-          <GridCell className="col-span-1 lg:col-span-2">
+          <GridCell className="col-span-1 hidden lg:col-span-2 sm:block">
             <LandingReveal fadeOnly className="max-w-2xl">
               <p className="text-[12px] font-semibold tracking-[0.14em] text-[var(--color-primary)] uppercase">
                 Features
               </p>
-              <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--landing-muted)] sm:text-base">
+              <p className="mt-4 hidden max-w-xl text-[15px] leading-relaxed text-[var(--landing-muted)] sm:block sm:text-base">
                 Three core capabilities — chat, actions, and insights — built to
                 work together from day one.
               </p>
@@ -199,12 +204,12 @@ export function LandingFeatures() {
           </GridCell>
 
           {/* 01 — copy | visual */}
-          <GridCell className="landing-dot-r-lg">
+          <GridCell className="order-1 landing-dot-r-lg lg:order-none">
             <LandingReveal fadeOnly delay={60}>
               <FeatureCopy feature={f1} />
             </LandingReveal>
           </GridCell>
-          <GridCell className="bg-[#f7f5f2]">
+          <GridCell className="order-2 bg-[#f7f5f2] lg:order-none">
             <LandingReveal fadeOnly delay={80}>
               <FeatureVisual type={f1.visual} />
             </LandingReveal>
@@ -223,14 +228,14 @@ export function LandingFeatures() {
           </GridCell>
 
           {/* 03 — copy | visual (dark) */}
-          <GridCell dark className="bg-[var(--landing-ink)] landing-dot-cell-none-lg landing-dot-r-lg-light">
+          <GridCell dark className="order-5 bg-[var(--landing-ink)] landing-dot-cell-none-lg landing-dot-r-lg-light lg:order-none">
             <LandingReveal fadeOnly delay={140}>
               <FeatureCopy feature={f3} />
             </LandingReveal>
           </GridCell>
           <GridCell
             dark
-            className="landing-dot-cell-none bg-[var(--landing-ink)]"
+            className="order-6 landing-dot-cell-none bg-[var(--landing-ink)] lg:order-none"
           >
             <LandingReveal fadeOnly delay={160}>
               <FeatureVisual type={f3.visual} dark />

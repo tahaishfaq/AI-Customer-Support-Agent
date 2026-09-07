@@ -118,20 +118,34 @@ export function LandingPlans() {
                       </div>
                     ) : null}
 
-                    <div className="flex flex-1 flex-col p-5 sm:p-6">
-                      <div className="min-h-[6.5rem]">
+                    <div className="flex flex-1 flex-col p-4 sm:p-6">
+                      <div className="landing-dot-b mb-4 flex items-start justify-between gap-3 pb-4 sm:hidden">
+                        <p className="pt-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                          {plan.name}
+                        </p>
+                        <div className="text-right">
+                          <p className="landing-display text-[1.5rem] leading-none text-foreground">
+                            {formatPlanPriceLabel(plan, billingInterval)}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {formatPlanPriceNote(plan, billingInterval)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="hidden min-h-[6.5rem] sm:block">
                         <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                           {planBestFor(plan)}
                         </p>
                         <h3 className="landing-display mt-2 text-[1.6rem] leading-tight text-foreground">
                           {plan.name}
                         </h3>
-                        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                        <p className="mt-2 hidden text-[13px] leading-relaxed text-muted-foreground sm:block">
                           {plan.description}
                         </p>
                       </div>
 
-                      <div className="landing-dot-t mt-5 pt-5">
+                      <div className="landing-dot-t mt-4 hidden pt-4 sm:mt-5 sm:block sm:pt-5">
                         <p className="landing-display text-[1.85rem] leading-none text-foreground">
                           {formatPlanPriceLabel(plan, billingInterval)}
                         </p>
@@ -140,11 +154,11 @@ export function LandingPlans() {
                         </p>
                       </div>
 
-                      <PlanLimitsStrip plan={plan} className="mt-5" compact />
+                      <PlanLimitsStrip plan={plan} className="mt-4 sm:mt-5" compact />
 
                       {isComingSoon ? (
                         <span
-                          className="mt-5 inline-flex h-11 w-full cursor-not-allowed items-center justify-center rounded-md bg-muted text-sm font-medium text-muted-foreground"
+                          className="mt-4 inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-md bg-muted text-sm font-medium text-muted-foreground sm:mt-5 sm:h-11"
                           aria-disabled="true"
                         >
                           Coming soon
@@ -153,7 +167,7 @@ export function LandingPlans() {
                         <Link
                           href={href}
                           className={cn(
-                            "mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90",
+                            "mt-4 inline-flex h-10 items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 sm:mt-5 sm:h-11",
                             isFeatured
                               ? "bg-primary text-primary-foreground"
                               : "landing-btn-ink"
@@ -164,7 +178,7 @@ export function LandingPlans() {
                         </Link>
                       )}
 
-                      <ul className="landing-dot-t mt-5 flex-1 space-y-2 pt-5">
+                      <ul className="landing-dot-t mt-4 flex-1 space-y-1.5 pt-4 sm:mt-5 sm:space-y-2 sm:pt-5">
                         {(plan.features || []).map((feature) => (
                           <li
                             key={feature}

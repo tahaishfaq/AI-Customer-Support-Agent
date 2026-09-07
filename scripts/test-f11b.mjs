@@ -30,7 +30,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(
     /Phase B — Design & functionality ✅/.test(f11),
     "F11 Phase B should be marked done"

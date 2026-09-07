@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Headphones, Inbox, Search } from "lucide-react";
 import { listInbox, getDeskStats, markInboxSeen } from "@/lib/api/desk";
 import { ConversationRow } from "@/components/conversations/ConversationRow";
@@ -23,6 +23,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { DESK_INBOX_POLL_MS } from "@/lib/desk/desk-config";
 import { DESK_INBOX_SEEN_EVENT } from "@/hooks/use-desk-waiting-count";
+import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
+import {
+  REALTIME_CLIENT_EVENTS,
+  REALTIME_CLIENT_STATUS,
+} from "@/lib/realtime/client-events";
 
 const PAGE_SIZE = 20;
 const LIST_POLL_MS = DESK_INBOX_POLL_MS;
@@ -55,6 +60,8 @@ export function InboxShell({ selectedId, children }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [stats, setStats] = useState(null);
   const [markingRead, setMarkingRead] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const inboxRequestRef = useRef(0);
 
   const hideListOnMobile = Boolean(selectedId);
 
@@ -99,6 +106,7 @@ export function InboxShell({ selectedId, children }) {
     let cancelled = false;
 
     async function load() {
+      const requestId = ++inboxRequestRef.current;
       setLoading(true);
       setError("");
       setOffset(0);
@@ -109,13 +117,17 @@ export function InboxShell({ selectedId, children }) {
           limit: PAGE_SIZE,
           offset: 0,
         });
-        if (cancelled) return;
+        if (cancelled || requestId !== inboxRequestRef.current) return;
         setConversations(data.conversations || []);
         setTotal(data.total || 0);
       } catch (err) {
-        if (!cancelled) setError(err.message || "Unable to load inbox");
+        if (!cancelled && requestId === inboxRequestRef.current) {
+          setError(err.message || "Unable to load inbox");
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && requestId === inboxRequestRef.current) {
+          setLoading(false);
+        }
       }
     }
 
@@ -126,8 +138,39 @@ export function InboxShell({ selectedId, children }) {
   }, [status, priority, reloadKey]);
 
   useEffect(() => {
-    if (status !== "WAITING_HUMAN") return undefined;
+    function onRealtimeStatus(event) {
+      const connected =
+        event?.detail?.status === REALTIME_CLIENT_STATUS.CONNECTED;
+      setRealtimeConnected(connected);
+      if (connected) setReloadKey((value) => value + 1);
+    }
+    function onRealtimeEvent(event) {
+      const type = event?.detail?.eventType;
+      if (
+        [
+          REALTIME_EVENT_TYPES.HANDOFF_CREATED,
+          REALTIME_EVENT_TYPES.MESSAGE_CREATED,
+          REALTIME_EVENT_TYPES.CLAIM_UPDATED,
+          REALTIME_EVENT_TYPES.STATUS_UPDATED,
+          REALTIME_EVENT_TYPES.PRIORITY_UPDATED,
+          REALTIME_EVENT_TYPES.INBOX_SEEN_UPDATED,
+        ].includes(type)
+      ) {
+        setReloadKey((value) => value + 1);
+      }
+    }
+    window.addEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+    window.addEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+    return () => {
+      window.removeEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+      window.removeEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (realtimeConnected) return undefined;
     const id = setInterval(async () => {
+      const requestId = ++inboxRequestRef.current;
       try {
         const data = await listInbox({
           status,
@@ -135,6 +178,7 @@ export function InboxShell({ selectedId, children }) {
           limit: PAGE_SIZE,
           offset: 0,
         });
+        if (requestId !== inboxRequestRef.current) return;
         setConversations(data.conversations || []);
         setTotal(data.total || 0);
       } catch {
@@ -142,7 +186,7 @@ export function InboxShell({ selectedId, children }) {
       }
     }, LIST_POLL_MS);
     return () => clearInterval(id);
-  }, [status, priority]);
+  }, [status, priority, realtimeConnected]);
 
   async function loadMore() {
     setLoadingMore(true);

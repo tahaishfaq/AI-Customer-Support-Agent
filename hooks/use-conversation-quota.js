@@ -2,6 +2,11 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { getBillingStatus } from "@/lib/api/billing";
+import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
+import {
+  REALTIME_CLIENT_EVENTS,
+  REALTIME_CLIENT_STATUS,
+} from "@/lib/realtime/client-events";
 
 const REFRESH_EVENT = "aide:conversation-quota-refresh";
 
@@ -23,6 +28,8 @@ const listeners = new Set();
 let subscriberCount = 0;
 let focusBound = false;
 let intervalId = null;
+let realtimeConnected = false;
+let lastRealtimeVersions = new Map();
 
 function emit() {
   shared = { ...shared };
@@ -86,7 +93,44 @@ function startGlobalListeners() {
   focusBound = true;
   window.addEventListener(REFRESH_EVENT, onRefreshEvent);
   window.addEventListener("focus", onRefreshEvent);
-  intervalId = window.setInterval(onRefreshEvent, 60_000);
+  function onRealtimeStatus(event) {
+    realtimeConnected =
+      event?.detail?.status === REALTIME_CLIENT_STATUS.CONNECTED;
+    if (realtimeConnected) {
+      if (intervalId != null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+      onRefreshEvent();
+    } else if (intervalId == null) {
+      intervalId = window.setInterval(onRefreshEvent, 60_000);
+    }
+  }
+  function onRealtimeEvent(event) {
+    const detail = event?.detail;
+    const type = detail?.eventType;
+    if (
+      type === REALTIME_EVENT_TYPES.BILLING_SUBSCRIPTION_UPDATED ||
+      type === REALTIME_EVENT_TYPES.BILLING_QUOTA_UPDATED
+    ) {
+      const version = Number(detail?.aggregateVersion);
+      if (Number.isInteger(version) && version > 0) {
+        const previous = lastRealtimeVersions.get(type) || 0;
+        if (version <= previous) return;
+        lastRealtimeVersions.set(type, version);
+      }
+      onRefreshEvent();
+    }
+  }
+  window.addEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+  window.addEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+  if (!realtimeConnected) {
+    intervalId = window.setInterval(onRefreshEvent, 60_000);
+  }
+  startGlobalListeners.cleanup = () => {
+    window.removeEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+    window.removeEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+  };
 }
 
 function stopGlobalListeners() {
@@ -94,10 +138,14 @@ function stopGlobalListeners() {
   focusBound = false;
   window.removeEventListener(REFRESH_EVENT, onRefreshEvent);
   window.removeEventListener("focus", onRefreshEvent);
+  startGlobalListeners.cleanup?.();
+  startGlobalListeners.cleanup = null;
   if (intervalId != null) {
     window.clearInterval(intervalId);
     intervalId = null;
   }
+  realtimeConnected = false;
+  lastRealtimeVersions = new Map();
 }
 
 function subscribe(onStoreChange) {

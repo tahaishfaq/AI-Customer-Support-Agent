@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { BillingPlanPicker } from "@/components/billing/BillingPlanPicker";
 import { BASIC_PLAN_NAME } from "@/lib/billing/plan-labels";
+import { getBillingCheckoutMode } from "@/lib/billing/checkout-mode";
+import { isSafepayConfigured } from "@/lib/billing/safepay-client";
 import { getBillingSnapshot } from "@/lib/billing/subscription.service";
 
 export const metadata = {
@@ -59,6 +61,8 @@ export default async function BillingCanceledPage() {
             mode={changeMode ? "change" : "signup"}
             currentPlanId={currentPlanId}
             pendingCheckout={pendingCheckout}
+            initialPaymentsAvailable={isSafepayConfigured()}
+            initialCheckoutMode={getBillingCheckoutMode()}
           />
         </div>
       </div>

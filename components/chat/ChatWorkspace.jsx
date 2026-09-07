@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { listAgents } from "@/lib/api/agents";
-import { sendChatMessage, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
 import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
@@ -41,6 +41,8 @@ function mapThreadMessages(messages) {
     role: m.role,
     content: m.content,
     responseTime: m.responseTime,
+    citations: m.citations || [],
+    sources: m.sources || [],
     createdAt: m.createdAt,
   }));
 }
@@ -65,6 +67,7 @@ export function ChatWorkspace() {
   const [widgetOpen, setWidgetOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [activeActivities, setActiveActivities] = useState([]);
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.id === agentId) || null,
@@ -87,6 +90,7 @@ export function ChatWorkspace() {
     setMeta({ category: null, sentiment: null });
     setError("");
     setLastFailedText("");
+    setActiveActivities([]);
     setHistoryOpen(false);
   }, []);
 
@@ -95,6 +99,7 @@ export function ChatWorkspace() {
     setLoadingThread(true);
     setError("");
     setLastFailedText("");
+    setActiveActivities([]);
     try {
       const data = await getConversation(id);
       setConversationId(data.id);
@@ -156,32 +161,62 @@ export function ChatWorkspace() {
     setHistoryKey((k) => k + 1);
   }
 
+  const sendLockRef = useRef(false);
+
   async function send(text) {
-    if (!agentId || sending) return;
+    if (!agentId || sending || sendLockRef.current) return;
+    sendLockRef.current = true;
     setSending(true);
     setError("");
     setLimitReached(false);
     setLastFailedText("");
 
     const optimisticId = `local-user-${Date.now()}`;
+    const streamingId = `streaming-assistant-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: text, local: true },
     ]);
 
     try {
-      const result = await sendChatMessage(agentId, {
+      const result = await sendChatMessageStream(agentId, {
         message: text,
         conversationId: conversationId || undefined,
+        onDelta: (delta) => {
+          setMessages((prev) => {
+            const existing = prev.find((item) => item.id === streamingId);
+            if (existing) {
+              return prev.map((item) =>
+                item.id === streamingId
+                  ? { ...item, content: `${item.content}${delta}` }
+                  : item
+              );
+            }
+            return [
+              ...prev,
+              { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
+            ];
+          });
+        },
+        onTool: (data) => {
+          if (data?.kind !== "agent_activity") return;
+          setActiveActivities((previous) => {
+            const next = previous.filter((item) => item.activityId !== data.activityId);
+            return [...next, data];
+          });
+        },
       });
 
       setConversationId(result.conversationId);
+      setActiveActivities([]);
       setMeta({
         category: result.category,
         sentiment: result.sentiment,
       });
       setMessages((prev) => {
-        const withoutOptimistic = prev.filter((m) => m.id !== optimisticId);
+        const withoutOptimistic = prev.filter(
+          (m) => m.id !== optimisticId && m.id !== streamingId
+        );
         return [
           ...withoutOptimistic,
           {
@@ -198,6 +233,8 @@ export function ChatWorkspace() {
             createdAt: result.message.createdAt,
             toolSteps: result.toolSteps || [],
             pendingConfirmations: result.pendingConfirmations || [],
+            citations: result.citations || [],
+            sources: result.sources || [],
           },
         ];
       });
@@ -211,14 +248,17 @@ export function ChatWorkspace() {
         setLastFailedText(text);
       }
       setSending(false);
+      sendLockRef.current = false;
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setActiveActivities([]);
       const limit = isConversationLimitError(err);
       setLimitReached(limit);
       setError(err.message || "Unable to send message");
       if (limit) refreshConversationQuota();
       setLastFailedText(text);
       setSending(false);
+      sendLockRef.current = false;
     }
   }
 
@@ -342,6 +382,7 @@ export function ChatWorkspace() {
           intro={widgetIntro(selectedAgent, customization)}
           onConfirmDecision={handleConfirmDecision}
           confirmBusy={sending}
+          activeActivities={activeActivities}
           onFeedback={async (messageId, rating, reason) => {
             if (!messageId) return;
             await fetch(`/api/messages/${messageId}/feedback`, {

@@ -1,0 +1,20 @@
+{
+  "id": "resp_fixture_002",
+  "output": [
+    { "type": "unknown_item", "value": "ignore me" },
+    {
+      "id": "msg_fixture_002",
+      "type": "message",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Safe text",
+          "annotations": [
+            { "type": "url_citation", "start_index": -1, "end_index": 2, "url": "https://bad.example" },
+            { "type": "url_citation", "start_index": 0, "end_index": 4, "url": "ftp://bad.example" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useCallback, useRef, useState } from "react";
 import { Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,19 @@ export function ChatComposer({
     el.style.overflowY = next >= maxH ? "auto" : "hidden";
   }, [value]);
 
+  const sendingRef = useRef(false);
+
   function submit() {
     const text = value.trim();
-    if (!text || busy) return;
+    if (!text || busy || sendingRef.current) return;
+    sendingRef.current = true;
     onSend(text);
     setValue("");
-    requestAnimationFrame(() => textareaRef.current?.focus());
+    onValueChange?.("");
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      sendingRef.current = false;
+    });
   }
 
   function handleKeyDown(e) {

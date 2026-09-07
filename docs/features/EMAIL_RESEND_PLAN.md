@@ -1,5 +1,10 @@
 # E01 — Transactional email (Resend)
 
+**Status:** ✅ EM0–EM3 shipped · EM4/EM5 later → [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) #15  
+**Never** an Orchestrator tool.
+
+---
+
 **Status:** 📋 Planning — **not started** (synced Aug 31, 2026 — O01 ✅; no Orchestrator dependency)  
 **Provider:** [Resend](https://resend.com) (`resend` npm package)  
 **Priority rule:** **Security first** — tokens never in logs; rate limits on all public send triggers.  

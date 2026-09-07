@@ -9,7 +9,7 @@ function FieldLabel({ htmlFor, children }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="mb-2 block font-mono text-[11px] font-medium tracking-[0.14em] text-[var(--landing-ink)] uppercase"
+      className="block font-mono text-[11px] font-medium leading-5 tracking-[0.14em] text-[var(--landing-ink)] uppercase"
     >
       {children}
     </label>
@@ -88,7 +88,7 @@ export function LandingContact() {
               <span className="text-[var(--landing-muted)]">Works?</span>
             </h2>
 
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[var(--landing-muted)] sm:text-base">
+            <p className="mt-5 hidden max-w-md text-[15px] leading-relaxed text-[var(--landing-muted)] sm:block sm:text-base">
               Let&apos;s design a structured AI support system tailored to your
               workflows, tools, and business goals — without chaos, without
               experiments.
@@ -109,7 +109,7 @@ export function LandingContact() {
         </LandingReveal>
 
         <LandingReveal delay={60}>
-          <div className="rounded-lg border border-black/[0.08] bg-white p-6 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:p-8">
+          <div className="rounded-lg border border-black/[0.08] bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)] sm:p-8">
             {sent ? (
               <div className="flex min-h-[22rem] flex-col items-start justify-center">
                 <p className="landing-display text-2xl text-[var(--landing-ink)]">
@@ -127,8 +127,8 @@ export function LandingContact() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={onSubmit} className="space-y-5" noValidate>
-                <div>
+              <form onSubmit={onSubmit} className="space-y-4 sm:space-y-5" noValidate>
+                <div className="space-y-2">
                   <FieldLabel htmlFor="contact-name">Full name</FieldLabel>
                   <input
                     id="contact-name"
@@ -142,7 +142,7 @@ export function LandingContact() {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <FieldLabel htmlFor="contact-email">Work email</FieldLabel>
                   <input
                     id="contact-email"
@@ -157,7 +157,7 @@ export function LandingContact() {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <FieldLabel htmlFor="contact-company">Company name</FieldLabel>
                   <input
                     id="contact-company"
@@ -170,9 +170,12 @@ export function LandingContact() {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <FieldLabel htmlFor="contact-message">
-                    Tell us about your workflows or challenges
+                    <span className="sm:hidden">Message</span>
+                    <span className="hidden sm:inline">
+                      Tell us about your workflows or challenges
+                    </span>
                   </FieldLabel>
                   <textarea
                     id="contact-message"
