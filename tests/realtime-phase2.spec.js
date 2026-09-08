@@ -62,7 +62,13 @@ test("two authenticated browser tabs receive one realtime event", async ({ brows
     aggregateType: "subscription",
     aggregateVersion: 1,
     visibility: "OWNER",
-    payload: { browserE2E: true },
+    payload: {
+      subscriptionId: "browser-e2e-subscription",
+      status: "ACTIVE",
+      planId: "browser-e2e-plan",
+      action: "updated",
+      providerEventType: "browser_e2e",
+    },
   };
   const redis = new Redis(process.env.REALTIME_REDIS_URL, {
     username: process.env.REALTIME_REDIS_USERNAME || undefined,
@@ -116,7 +122,7 @@ test("two authenticated browser tabs receive one realtime event", async ({ brows
   } finally {
     await first.evaluate(() => window.__aideRealtime?.disconnect()).catch(() => {});
     await second.evaluate(() => window.__aideRealtime?.disconnect()).catch(() => {});
-    await context.close();
+    await context.close().catch(() => {});
     await redis.quit();
     if (e2eSession) {
       execFileSync(
