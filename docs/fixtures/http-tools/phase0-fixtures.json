@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Sanitized local contract fixtures only. No production identifiers, credentials, or customer data.",
+  "fixtures": [
+    {
+      "id": "order_lookup",
+      "request": {
+        "method": "GET",
+        "pathTemplate": "/orders/{{orderId}}",
+        "input": {
+          "orderId": "ORD-100"
+        },
+        "contentType": null,
+        "body": null
+      },
+      "expected": {
+        "status": 200,
+        "projection": {
+          "id": "ORD-100",
+          "status": "Shipped",
+          "carrier": "DHL",
+          "eta": "Tuesday"
+        },
+        "outcome": "SUCCEEDED"
+      }
+    },
+    {
+      "id": "appointment_availability",
+      "request": {
+        "method": "POST",
+        "pathTemplate": "/appointments/availability",
+        "input": {
+          "date": "2030-01-15",
+          "service": "consultation"
+        },
+        "contentType": "application/json",
+        "body": {
+          "date": "2030-01-15",
+          "service": "consultation"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "projection": {
+          "slots": [
+            {
+              "start": "09:00",
+              "end": "09:30"
+            }
+          ]
+        },
+        "outcome": "SUCCEEDED"
+      }
+    },
+    {
+      "id": "order_cancellation",
+      "request": {
+        "method": "POST",
+        "pathTemplate": "/orders/{{orderId}}/cancel",
+        "input": {
+          "orderId": "ORD-100",
+          "reason": "customer_request"
+        },
+        "contentType": "application/json",
+        "body": {
+          "reason": "customer_request"
+        }
+      },
+      "expected": {
+        "status": 202,
+        "projection": {
+          "operationId": "op_sanitized_001",
+          "status": "accepted"
+        },
+        "outcome": "PENDING",
+        "requires": [
+          "confirmation",
+          "upstream_idempotency",
+          "reconciliation"
+        ]
+      }
+    }
+  ]
+}
