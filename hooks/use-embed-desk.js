@@ -22,6 +22,7 @@ export function useEmbedDesk({
   messages,
   setMessages,
   realtimeConnected = false,
+  realtimeAccessToken = null,
 }) {
   const [waitingForHuman, setWaitingForHuman] = useState(false);
   const [handoffAt, setHandoffAt] = useState(null);
@@ -93,7 +94,12 @@ export function useEmbedDesk({
     const requestId = ++refreshRequestRef.current;
     try {
       const res = await fetch(
-        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`
+        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`,
+        {
+          headers: {
+            "x-aide-conversation-access-token": realtimeAccessToken || "",
+          },
+        }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return null;
@@ -115,7 +121,7 @@ export function useEmbedDesk({
     } catch {
       return null;
     }
-  }, [agent, conversationId, applyDeskState, setMessages]);
+  }, [agent, conversationId, applyDeskState, realtimeAccessToken, setMessages]);
 
   const resetDeskState = useCallback(() => {
     setWaitingForHuman(false);

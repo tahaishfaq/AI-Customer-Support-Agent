@@ -148,6 +148,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     messages,
     setMessages,
     realtimeConnected: publicRealtimeConnected,
+    realtimeAccessToken,
   });
   const hostUserRef = useRef(null);
 
@@ -289,8 +290,22 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
       setConversationId(stored.activeId);
       try {
+        let accessToken = realtimeAccessTokenRef.current;
+        try {
+          accessToken =
+            localStorage.getItem(realtimeAccessKey(stored.activeId)) || accessToken;
+          realtimeAccessTokenRef.current = accessToken;
+          if (accessToken) setRealtimeAccessToken(accessToken);
+        } catch {
+          // Continue with the in-memory capability.
+        }
         const res = await fetch(
-          `/api/public/agents/${agent.publicKey}/conversations/${stored.activeId}`
+          `/api/public/agents/${agent.publicKey}/conversations/${stored.activeId}`,
+          {
+            headers: {
+              "x-aide-conversation-access-token": accessToken || "",
+            },
+          }
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
@@ -591,7 +606,12 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
       if (data.aiPaused || data.waitingForHuman) {
         const full = await fetch(
-          `/api/public/agents/${agent.publicKey}/conversations/${data.conversationId}`
+          `/api/public/agents/${agent.publicKey}/conversations/${data.conversationId}`,
+          {
+            headers: {
+              "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+            },
+          }
         )
           .then((r) => r.json().catch(() => ({})))
           .catch(() => null);
@@ -686,6 +706,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         ...(hostUserRef.current?.displayName
           ? { userDisplay: hostUserRef.current.displayName }
           : {}),
+        realtimeAccessToken: realtimeAccessTokenRef.current,
       }
     );
     setMessages((prev) =>
@@ -749,7 +770,12 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     setError("");
     try {
       const res = await fetch(
-        `/api/public/agents/${agent.publicKey}/conversations/${id}`
+        `/api/public/agents/${agent.publicKey}/conversations/${id}`,
+        {
+          headers: {
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
+        }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
@@ -770,7 +796,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     try {
       await fetch(`/api/public/agents/${agent.publicKey}/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+        },
         body: JSON.stringify({
           messageId,
           rating,
@@ -790,7 +819,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/csat`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
           body: JSON.stringify(skip ? { skip: true } : { score }),
         }
       );
@@ -826,7 +858,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/handoff`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
           body: JSON.stringify({ reason: "Customer requested human support" }),
         }
       );
