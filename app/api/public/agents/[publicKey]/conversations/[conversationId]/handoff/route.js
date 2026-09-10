@@ -10,6 +10,7 @@ import {
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { safeLogError } from "@/lib/observability/safe-log";
+import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
 
 export async function POST(request, { params }) {
   const requestId = resolveRequestId(request);
@@ -37,6 +38,13 @@ export async function POST(request, { params }) {
     if (!agent) {
       return jsonError(request, 404, "Agent not found");
     }
+
+    await requirePublicConversationAccess({
+      request,
+      conversationId,
+      agentId: agent.id,
+      origin: originFromRequest(request),
+    });
 
     let body = {};
     try {
@@ -68,6 +76,7 @@ export async function POST(request, { params }) {
   } catch (error) {
     if (
       error.status === 404 ||
+      error.status === 401 ||
       error.status === 409 ||
       error.status === 429
     ) {

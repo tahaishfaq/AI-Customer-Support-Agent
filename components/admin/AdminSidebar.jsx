@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/admin/admin-nav";
 import { Badge } from "@/components/ui/badge";
 import { AideLogo } from "@/components/brand/AideLogo";
+import { queryKeys } from "@/lib/query/keys";
 
 const ICONS = {
   dashboard: LayoutDashboard,
@@ -83,24 +84,12 @@ function NavLink({ item, onNavigate, badge }) {
 export function AdminSidebar({ onNavigate }) {
   const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
-  const [pendingRestoreCount, setPendingRestoreCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getAdminOverview();
-        if (!cancelled) {
-          setPendingRestoreCount(Number(data?.pendingRestoreCount) || 0);
-        }
-      } catch {
-        if (!cancelled) setPendingRestoreCount(0);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.admin.overview,
+    queryFn: getAdminOverview,
+    staleTime: 60_000,
+  });
+  const pendingRestoreCount = Number(overviewQuery.data?.pendingRestoreCount) || 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card">

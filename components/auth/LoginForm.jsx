@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 export function LoginForm({
   sessionExpired = false,
   suspended: suspendedProp = false,
+  resetOk = false,
   next = "",
 }) {
   const router = useRouter();
@@ -40,10 +41,12 @@ export function LoginForm({
   const [restoreStatus, setRestoreStatus] = useState(null);
   const clearedRef = useRef(false);
 
-  if (!clearedRef.current && (sessionExpired || suspendedProp)) {
-    clearedRef.current = true;
-    queueMicrotask(() => logout());
-  }
+  useEffect(() => {
+    if (!clearedRef.current && (sessionExpired || suspendedProp)) {
+      clearedRef.current = true;
+      void logout();
+    }
+  }, [logout, sessionExpired, suspendedProp]);
 
   function goHome(user) {
     const dest = resolveFastPostAuthPath(user, next);
@@ -183,6 +186,15 @@ export function LoginForm({
         </Alert>
       ) : null}
 
+      {resetOk ? (
+        <Alert>
+          <AlertTitle>Password updated</AlertTitle>
+          <AlertDescription>
+            Sign in with your new password.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <GoogleSignInButton
         text="signin_with"
         onSuccess={(user) => goHome(user)}
@@ -218,7 +230,16 @@ export function LoginForm({
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <div className="flex items-center justify-between gap-3">
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Link
+                href="/forgot-password"
+                prefetch
+                className="text-xs font-medium text-[var(--landing-ink)] underline underline-offset-2 transition-opacity hover:opacity-70"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <PasswordInput
               id="password"
               autoComplete="current-password"

@@ -29,7 +29,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(/Phase C — Improvements ✅/.test(f11), "F11 Phase C marked done");
   console.log("ok  F11-D doc scope");
 }
@@ -50,8 +50,19 @@ function testSourceWiring() {
   );
 
   const loop = read("lib/actions/tool-loop.js");
-  assert(/actionsEnabled/.test(loop), "kill switch in tool loop");
-  assert(/RATE_LIMITED|actionOutboundLimitOpts/.test(loop), "outbound rate limit");
+  const orch = read("lib/orchestrator/index.js");
+  const registry = read("lib/capabilities/registry.js");
+  assert(
+    /actionsEnabled/.test(loop) ||
+      /actionsEnabled/.test(orch) ||
+      /actionsEnabled/.test(registry),
+    "kill switch in tool loop / orchestrator / registry"
+  );
+  assert(
+    /RATE_LIMITED|actionOutboundLimitOpts/.test(loop) ||
+      /actionOutboundLimitOpts/.test(read("lib/services/action.service.js")),
+    "outbound rate limit"
+  );
 
   const svc = read("lib/services/action.service.js");
   assert(/mergeHeadersPreservingSecrets/.test(svc), "preserve secrets on update");

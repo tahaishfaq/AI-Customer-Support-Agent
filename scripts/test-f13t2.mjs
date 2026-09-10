@@ -53,7 +53,7 @@ function main() {
   assert(!/FormSection title=\{editingId/.test(form), "no inline edit FormSection");
   assert(!/Edit as developer/.test(form), "no Advanced collapsible");
 
-  const plan = read("docs/features/F13_TOOLS_HUB.md");
+  const plan = read("docs/shipped/F13_TOOLS_HUB.md");
   assert(/Phase T2/.test(plan) && /✅/.test(plan), "F13 plan marks T2");
 
   console.log("ok  HttpToolDialog Params·Body·Auth·Headers + Inputs·Timeout");

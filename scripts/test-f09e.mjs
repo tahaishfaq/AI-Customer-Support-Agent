@@ -45,8 +45,17 @@ function main() {
     knowledgeText: knowledge,
   });
   assert(system.includes(knowledge.trim()), "knowledge still appended after truncate");
-  assert(RESPONSE_RULES_GROUNDING.split(" ")[0] === "Answer", "grounding constant exported");
-  assert(/Never reveal API keys/.test(RESPONSE_RULES_SAFETY), "safety constant exported");
+  const groundingText = Array.isArray(RESPONSE_RULES_GROUNDING)
+    ? RESPONSE_RULES_GROUNDING.join(" ")
+    : String(RESPONSE_RULES_GROUNDING);
+  assert(
+    /Answer|cannot verify|knowledge does not cover/i.test(groundingText),
+    "grounding constant exported"
+  );
+  const safetyText = Array.isArray(RESPONSE_RULES_SAFETY)
+    ? RESPONSE_RULES_SAFETY.join(" ")
+    : String(RESPONSE_RULES_SAFETY);
+  assert(/Never reveal API keys/i.test(safetyText), "safety constant exported");
   assert(MAX_SYSTEM_PROMPT_TOTAL_WARN >= 12_000, "warn threshold above F08 knowledge cap");
 
   assert(/test:f09e/.test(read("package.json")), "npm script");

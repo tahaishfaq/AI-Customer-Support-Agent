@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { listAgents } from "@/lib/api/agents";
-import { sendChatMessage, resumeChatAfterConfirmation } from "@/lib/api/chat";
-import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
+import { sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
@@ -29,6 +29,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useChatActivity } from "@/hooks/use-chat-activity";
 
 function placementFromDeploy(deploy) {
   if (deploy?.chatInterface === "embedded") return "full-page";
@@ -41,6 +42,8 @@ function mapThreadMessages(messages) {
     role: m.role,
     content: m.content,
     responseTime: m.responseTime,
+    citations: m.citations || [],
+    sources: m.sources || [],
     createdAt: m.createdAt,
   }));
 }
@@ -65,6 +68,8 @@ export function ChatWorkspace() {
   const [widgetOpen, setWidgetOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const sendLockRef = useRef(false);
+  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.id === agentId) || null,
@@ -82,21 +87,30 @@ export function ChatWorkspace() {
   }, [selectedAgent?.id, customization.deploy.chatInterface]);
 
   const resetThread = useCallback((agent) => {
+    setLoadingThread(false);
+    setSending(false);
+    sendLockRef.current = false;
     setConversationId(null);
     setMessages(welcomeBubble(agent));
     setMeta({ category: null, sentiment: null });
     setError("");
     setLastFailedText("");
+    clearActivities();
     setHistoryOpen(false);
-  }, []);
+  }, [clearActivities]);
 
   const resumeConversation = useCallback(async (id) => {
     if (!id) return;
+    setSending(false);
+    sendLockRef.current = false;
     setLoadingThread(true);
     setError("");
     setLastFailedText("");
+    clearActivities();
+    const version = activityVersion();
     try {
       const data = await getConversation(id);
+      if (version !== activityVersion()) return;
       setConversationId(data.id);
       setAgentId(data.agentId);
       setMessages(mapThreadMessages(data.messages));
@@ -107,11 +121,12 @@ export function ChatWorkspace() {
       setHistoryOpen(false);
       setWidgetOpen(true);
     } catch (err) {
+      if (version !== activityVersion()) return;
       setError(err.message || "Unable to open conversation");
     } finally {
-      setLoadingThread(false);
+      if (version === activityVersion()) setLoadingThread(false);
     }
-  }, []);
+  }, [clearActivities, activityVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,31 +172,59 @@ export function ChatWorkspace() {
   }
 
   async function send(text) {
-    if (!agentId || sending) return;
+    if (!agentId || sending || sendLockRef.current) return;
+    sendLockRef.current = true;
     setSending(true);
     setError("");
     setLimitReached(false);
     setLastFailedText("");
 
+    const activityRequest = beginActivity();
     const optimisticId = `local-user-${Date.now()}`;
+    const streamingId = `streaming-assistant-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: text, local: true },
     ]);
 
     try {
-      const result = await sendChatMessage(agentId, {
+      const result = await sendChatMessageStream(agentId, {
+        signal: activityRequest.controller.signal,
         message: text,
         conversationId: conversationId || undefined,
+        onDelta: (delta) => {
+          if (!isCurrentActivity(activityRequest)) return;
+          setMessages((prev) => {
+            const existing = prev.find((item) => item.id === streamingId);
+            if (existing) {
+              return prev.map((item) =>
+                item.id === streamingId
+                  ? { ...item, content: `${item.content}${delta}` }
+                  : item
+              );
+            }
+            return [
+              ...prev,
+              { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
+            ];
+          });
+        },
+        onTool: (data) => {
+          receiveActivity(activityRequest, data);
+        },
       });
 
+      if (!isCurrentActivity(activityRequest)) return;
       setConversationId(result.conversationId);
+      clearActivities();
       setMeta({
         category: result.category,
         sentiment: result.sentiment,
       });
       setMessages((prev) => {
-        const withoutOptimistic = prev.filter((m) => m.id !== optimisticId);
+        const withoutOptimistic = prev.filter(
+          (m) => m.id !== optimisticId && m.id !== streamingId
+        );
         return [
           ...withoutOptimistic,
           {
@@ -198,6 +241,8 @@ export function ChatWorkspace() {
             createdAt: result.message.createdAt,
             toolSteps: result.toolSteps || [],
             pendingConfirmations: result.pendingConfirmations || [],
+            citations: result.citations || [],
+            sources: result.sources || [],
           },
         ];
       });
@@ -211,27 +256,38 @@ export function ChatWorkspace() {
         setLastFailedText(text);
       }
       setSending(false);
+      sendLockRef.current = false;
     } catch (err) {
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      if (!isCurrentActivity(activityRequest)) return;
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId && m.id !== streamingId));
+      clearActivities();
       const limit = isConversationLimitError(err);
       setLimitReached(limit);
       setError(err.message || "Unable to send message");
       if (limit) refreshConversationQuota();
       setLastFailedText(text);
       setSending(false);
+      sendLockRef.current = false;
     }
   }
 
   async function handleConfirmDecision(confirmation, decision) {
+    if (activityBusy()) throw new Error("Wait for the current response to finish.");
     const cid = confirmation.conversationId || conversationId;
     if (!cid || !confirmation?.id) {
       throw new Error("Missing conversation");
     }
+    const activityRequest = beginActivity();
+    const streamingId = `confirmation-stream-${Date.now()}`;
+    setSending(true);
+    sendLockRef.current = true;
+    try {
     const updated = await resolveConversationConfirmation(
       cid,
       confirmation.id,
       decision
     );
+    if (!isCurrentActivity(activityRequest)) return;
     setMessages((prev) =>
       prev.map((m) => ({
         ...m,
@@ -254,13 +310,19 @@ export function ChatWorkspace() {
         const result = await resumeChatAfterConfirmation(agentId, {
           conversationId: cid,
           confirmationId: confirmation.id,
+          signal: activityRequest.controller.signal,
+          onTool: data => receiveActivity(activityRequest, data),
+          onDelta: delta => {
+            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
+          },
         });
+        if (!isCurrentActivity(activityRequest)) return;
         setConversationId(result.conversationId);
         setMeta({
           category: result.category,
           sentiment: result.sentiment,
         });
-        setMessages((prev) => mergeAssistantReply(prev, result));
+        setMessages((prev) => mergeAssistantReply(prev.filter(message => message.id !== streamingId), result));
         setHistoryKey((k) => k + 1);
         if (customization.features.notificationSound && result.message) {
           playNotificationBeep();
@@ -269,10 +331,18 @@ export function ChatWorkspace() {
           setError("Generation failed — Try again");
         }
       } catch (err) {
+        if (!isCurrentActivity(activityRequest)) return;
         setError(err.message || "Unable to continue after approval");
         throw err;
-      } finally {
+      }
+    }
+
+    } finally {
+      if (isCurrentActivity(activityRequest)) {
+        setMessages(previous => previous.filter(message => message.id !== streamingId));
+        clearActivities();
         setSending(false);
+        sendLockRef.current = false;
       }
     }
   }
@@ -342,6 +412,7 @@ export function ChatWorkspace() {
           intro={widgetIntro(selectedAgent, customization)}
           onConfirmDecision={handleConfirmDecision}
           confirmBusy={sending}
+          activeActivities={activeActivities}
           onFeedback={async (messageId, rating, reason) => {
             if (!messageId) return;
             await fetch(`/api/messages/${messageId}/feedback`, {

@@ -15,8 +15,7 @@ import {
   formatFullDate,
   monogram,
 } from "@/components/conversations/format";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 function groupMessages(messages) {
   const groups = [];
@@ -164,17 +163,7 @@ export function ConversationThread({
             <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-muted)]">
               Read only
             </span>
-          ) : (
-            <Link
-              href={`/chat?agentId=${agentId}${conversation.id ? `&conversationId=${conversation.id}` : ""}`}
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "shrink-0"
-              )}
-            >
-              Open in chat
-            </Link>
-          )}
+          ) : null}
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -192,6 +181,8 @@ export function ConversationThread({
                       content={msg.content}
                       responseTime={msg.responseTime}
                       createdAt={msg.createdAt}
+                      citations={msg.citations}
+                      sources={msg.sources}
                       showMeta
                     />
                   ))}
@@ -293,19 +284,6 @@ export function ConversationThread({
             </dd>
           </div>
         </dl>
-        {readOnly ? null : (
-        <div className="mt-auto border-t border-[var(--color-border)] p-4">
-          <p className="mb-2 text-[12px] text-[var(--color-muted)]">
-            Reply in this thread below, or open the embed preview.
-          </p>
-          <Link
-            href={`/chat?agentId=${agentId}&conversationId=${conversation.id}`}
-            className={cn(buttonVariants(), "w-full")}
-          >
-            Open in chat widget
-          </Link>
-        </div>
-        )}
       </aside>
     </div>
   );

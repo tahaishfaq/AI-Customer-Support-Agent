@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   Clock,
@@ -26,6 +27,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingCrawlKick } from "@/components/billing/OnboardingCrawlKick";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query/keys";
 
 function formatResponseTime(ms) {
   if (ms == null || ms === 0) return "—";
@@ -55,48 +57,36 @@ function zeroHint(value) {
   return n === 0 || value === "0%" || value === "—" ? "No data yet" : undefined;
 }
 
+const EMPTY_LIST = [];
+
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.loading);
-  const [overview, setOverview] = useState(null);
-  const [agents, setAgents] = useState([]);
-  const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.analytics.overview(),
+    queryFn: getOverview,
+    staleTime: 60_000,
+  });
+  const agentsQuery = useQuery({
+    queryKey: queryKeys.agents.all,
+    queryFn: listAgents,
+  });
+  const conversationsQuery = useQuery({
+    queryKey: queryKeys.conversations.list({ limit: 100, offset: 0 }),
+    queryFn: () => listConversations({ limit: 100, offset: 0 }),
+  });
+  const overview = overviewQuery.data;
+  const agents = agentsQuery.data ?? EMPTY_LIST;
+  const conversations = conversationsQuery.data?.conversations ?? EMPTY_LIST;
+  const loading =
+    overviewQuery.isPending || agentsQuery.isPending || conversationsQuery.isPending;
+  const error =
+    overviewQuery.error?.message ||
+    agentsQuery.error?.message ||
+    conversationsQuery.error?.message ||
+    "";
   const { quota, billing: billingStatus, loading: quotaLoading } =
     useConversationQuota();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const [overviewData, agentList, convoData] = await Promise.all([
-          getOverview(),
-          listAgents(),
-          listConversations({ limit: 100, offset: 0 }),
-        ]);
-        if (cancelled) return;
-        setOverview(overviewData);
-        setAgents(agentList);
-        setConversations(convoData.conversations || []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || "Unable to load dashboard");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadKey]);
 
   const metricsLoading = loading || authLoading;
   const firstName = user?.name?.split(" ")[0];
@@ -155,7 +145,15 @@ export default function DashboardPage() {
       </header>
 
       {error ? (
-        <InlineAlert onRetry={() => setReloadKey((k) => k + 1)}>
+        <InlineAlert
+          onRetry={() => {
+            void Promise.all([
+              overviewQuery.refetch(),
+              agentsQuery.refetch(),
+              conversationsQuery.refetch(),
+            ]);
+          }}
+        >
           {error}
         </InlineAlert>
       ) : null}

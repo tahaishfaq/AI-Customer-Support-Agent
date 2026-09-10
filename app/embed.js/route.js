@@ -37,7 +37,7 @@ export function GET(request) {
           user: window.__hapyUser,
           handshake: Boolean(handshake)
         },
-        "*"
+        ${hostJson}
       );
     } catch (e) {}
   }
@@ -49,38 +49,63 @@ export function GET(request) {
   }
 
   function clampFrame(n, min, max) {
-    return Math.min(Math.max(n || 0, min), max);
+    return Math.min(Math.max(n, Math.min(min, max)), max);
   }
 
-  var savedAnchor = "bottom-right";
+  function setStyle(iframe, name, value) {
+    if (iframe.style[name] !== value) iframe.style[name] = value;
+  }
 
-  function applyWidgetAnchor(iframe, positionId, offsetPx) {
+  function validFrame(data) {
+    return typeof data.open === "boolean" &&
+      typeof data.width === "number" && Number.isFinite(data.width) && data.width > 0 && data.width <= 4096 &&
+      typeof data.height === "number" && Number.isFinite(data.height) && data.height > 0 && data.height <= 4096 &&
+      (data.proactive === undefined || typeof data.proactive === "boolean") &&
+      (data.customLauncher === undefined || typeof data.customLauncher === "boolean");
+  }
+
+  function viewportBounds(iframe) {
+    var view = window.visualViewport;
+    var css = getComputedStyle(iframe);
+    function safe(side) { return Math.max(0, parseFloat(css.getPropertyValue("--aide-safe-" + side)) || 0); }
+    var left = 16 + safe("left");
+    var right = 16 + safe("right");
+    var top = 16 + safe("top");
+    var bottom = 16 + safe("bottom");
+    return {
+      left: left + (view ? view.offsetLeft : 0),
+      right: right + (view ? Math.max(0, window.innerWidth - view.offsetLeft - view.width) : 0),
+      bottom: bottom + (view ? Math.max(0, window.innerHeight - view.offsetTop - view.height) : 0),
+      width: Math.max(1, (view ? view.width : window.innerWidth) - left - right),
+      height: Math.max(1, (view ? view.height : window.innerHeight) - top - bottom)
+    };
+  }
+
+  function applyWidgetAnchor(iframe, positionId, offsetPx, version) {
     var offset = offsetPx == null ? 16 : offsetPx;
-    var parts = String(positionId || "bottom-right").split("-");
-    var vertical = parts[0] || "bottom";
-    var horizontal = parts[1] || "right";
-    iframe.style.position = "fixed";
-    iframe.style.left = "auto";
-    iframe.style.right = "auto";
-    iframe.style.top = "auto";
-    iframe.style.bottom = "auto";
-    iframe.style.transform = "";
-    if (horizontal === "left") iframe.style.left = offset + "px";
-    else iframe.style.right = offset + "px";
-    if (vertical === "top") iframe.style.top = offset + "px";
-    else if (vertical === "center") {
-      iframe.style.top = "50%";
-      iframe.style.transform = "translateY(-50%)";
-    } else iframe.style.bottom = offset + "px";
+    var bounds = version === 2 ? viewportBounds(iframe) : null;
+    setStyle(iframe, "position", "fixed");
+    setStyle(iframe, "left", positionId === "bottom-left" ? (bounds ? bounds.left : offset) + "px" : "auto");
+    setStyle(iframe, "right", positionId === "bottom-left" ? "auto" : (bounds ? bounds.right : offset) + "px");
+    setStyle(iframe, "top", "auto");
+    setStyle(iframe, "bottom", (bounds ? bounds.bottom : offset) + "px");
+    setStyle(iframe, "transform", "");
   }
 
   function sizeFloatingFrame(iframe, data) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-    var maxW = vw - 24;
-    var maxH = vh - 24;
-    var width = 56;
-    var height = 56;
+    // Both viewport edges need the same inset. Keep the existing child's 4px
+    // gutter in the initial size until the coordinated layout protocol replaces it.
+    var maxW = Math.max(1, vw - 32);
+    var maxH = Math.max(1, vh - 32);
+    if (data.version === 2) {
+      var bounds = viewportBounds(iframe);
+      maxW = bounds.width;
+      maxH = bounds.height;
+    }
+    var width = 60;
+    var height = 60;
     if (data && data.width && data.height) {
       width = clampFrame(data.width, 56, maxW);
       height = clampFrame(data.height, 56, maxH);
@@ -93,19 +118,51 @@ export function GET(request) {
       width = clampFrame(data.width, 280, Math.min(400, maxW));
       height = clampFrame(data.height, 160, Math.min(640, maxH));
     }
-    iframe.style.width = width + "px";
-    iframe.style.height = height + "px";
-    iframe.style.maxWidth = "calc(100vw - 16px)";
-    iframe.style.maxHeight = "calc(100dvh - 16px)";
+    setStyle(iframe, "width", clampFrame(width, 56, maxW) + "px");
+    setStyle(iframe, "height", clampFrame(height, 56, maxH) + "px");
+    setStyle(iframe, "maxWidth", "calc(100vw - 32px)");
+    setStyle(iframe, "maxHeight", "calc(100dvh - 32px)");
   }
 
   function boot(publicKey, targetSelector) {
-    if (!publicKey) return;
+    if (typeof publicKey !== "string" || !publicKey || publicKey.length > 256) return;
     document.querySelectorAll("iframe[data-hapy-widget]").forEach(function (node) {
-      if (node.getAttribute("data-hapy-widget") !== publicKey) node.remove();
+      if (node.getAttribute("data-hapy-widget") !== publicKey) {
+        if (node.__aideEmbedCleanup) node.__aideEmbedCleanup();
+        node.remove();
+      }
     });
-    var existing = document.querySelector('iframe[data-hapy-widget="' + publicKey + '"]');
+    var existing = Array.from(document.querySelectorAll("iframe[data-hapy-widget]")).find(function (node) {
+      return node.getAttribute("data-hapy-widget") === publicKey;
+    });
     if (existing) return;
+
+    var savedAnchor = "bottom-right";
+    var anchorSettled = false;
+    var frameSeen = false;
+    var disposed = false;
+    var resizeTick = 0;
+    var ackTick = 0;
+    var lastGeneration = 0;
+    var lastFrame = { open: false, width: 60, height: 60 };
+    var revealTimer;
+
+    function reveal() {
+      if (disposed || !iframe.isConnected || iframe.style.position !== "fixed") return;
+      applyWidgetAnchor(iframe, savedAnchor, null, lastFrame.version);
+      setStyle(iframe, "visibility", "visible");
+    }
+
+    function settleAnchor(position) {
+      // A delayed ping must not relocate a launcher that is already visible.
+      if (disposed || anchorSettled) return;
+      savedAnchor = position === "bottom-left" ? "bottom-left" : "bottom-right";
+      anchorSettled = true;
+      if (frameSeen) {
+        clearTimeout(revealTimer);
+        reveal();
+      }
+    }
 
     var parentOrigin = encodeURIComponent(window.location.origin);
     // Claim from the parent page so Origin/Referer are the customer site
@@ -123,14 +180,9 @@ export function GET(request) {
         });
       })
       .then(function (data) {
-        if (data && data.widgetPosition) {
-          savedAnchor = data.widgetPosition;
-          if (iframe.style.position === "fixed") {
-            applyWidgetAnchor(iframe, savedAnchor);
-          }
-        }
+        settleAnchor(data && data.widgetPosition);
       })
-      .catch(function () {});
+      .catch(function () { settleAnchor(); });
     var iframe = document.createElement("iframe");
     var target = targetSelector ? document.querySelector(targetSelector) : null;
     var embedMode = target ? "container" : "float";
@@ -151,6 +203,9 @@ export function GET(request) {
     iframe.style.background = "transparent";
     iframe.style.colorScheme = "light";
     iframe.style.overflow = "hidden";
+    ["left", "right", "top", "bottom"].forEach(function (side) {
+      iframe.style.setProperty("--aide-safe-" + side, "env(safe-area-inset-" + side + ", 0px)");
+    });
     window.__hapyEmbedKeys[publicKey] = true;
 
     if (target) {
@@ -161,16 +216,69 @@ export function GET(request) {
       target.appendChild(iframe);
     } else {
       iframe.style.position = "fixed";
+      iframe.style.visibility = "hidden";
       applyWidgetAnchor(iframe, savedAnchor);
-      sizeFloatingFrame(iframe, { open: false });
+      sizeFloatingFrame(iframe, lastFrame);
       document.body.appendChild(iframe);
+      revealTimer = setTimeout(function () {
+        settleAnchor();
+        reveal();
+      }, 2000);
     }
 
-    window.addEventListener("message", function (event) {
+    function cleanup() {
+      disposed = true;
+      clearTimeout(revealTimer);
+      cancelAnimationFrame(resizeTick);
+      cancelAnimationFrame(ackTick);
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("resize", onResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", onResize);
+        window.visualViewport.removeEventListener("scroll", onResize);
+      }
+      iframe.removeEventListener("load", onLoad);
+      delete window.__hapyEmbedKeys[publicKey];
+    }
+    iframe.__aideEmbedCleanup = cleanup;
+
+    function acknowledge() {
+      if (lastFrame.version !== 2) return;
+      cancelAnimationFrame(ackTick);
+      ackTick = requestAnimationFrame(function () {
+        ackTick = 0;
+        if (disposed || !iframe.isConnected || lastFrame.version !== 2) return;
+        iframe.contentWindow.postMessage({
+          source: "hapy-host", type: "frame-applied", version: 2,
+          generation: lastFrame.generation, open: lastFrame.open,
+          position: savedAnchor, width: iframe.clientWidth, height: iframe.clientHeight
+        }, ${hostJson});
+      });
+    }
+
+    function onLoad() {
+      lastGeneration = 0;
+      cancelAnimationFrame(ackTick);
+    }
+
+    function onResize() {
+      if (!iframe.isConnected) { cleanup(); return; }
+      if (disposed || resizeTick || iframe.style.position !== "fixed") return;
+      resizeTick = requestAnimationFrame(function () {
+        resizeTick = 0;
+        sizeFloatingFrame(iframe, lastFrame);
+        applyWidgetAnchor(iframe, savedAnchor, null, lastFrame.version);
+        acknowledge();
+      });
+    }
+
+    function onMessage(event) {
+      if (disposed || !iframe.isConnected) { cleanup(); return; }
       if (event.origin !== ${hostJson}) return;
       if (!event.data || event.data.source !== "hapy-widget") return;
       if (iframe.contentWindow !== event.source) return;
       if (event.data.type === "unavailable") {
+        cleanup();
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
         return;
       }
@@ -191,9 +299,43 @@ export function GET(request) {
       }
       if (event.data.type !== "frame") return;
       if (iframe.style.position !== "fixed") return;
-      sizeFloatingFrame(iframe, event.data);
-      applyWidgetAnchor(iframe, savedAnchor);
-    });
+      if (!validFrame(event.data)) return;
+      var data = event.data;
+      if (data.version !== undefined && data.version !== 2) return;
+      if (data.version === 2) {
+        if (!Number.isSafeInteger(data.generation) || data.generation < 1 || data.generation > 1000000000 ||
+            (data.position !== "bottom-left" && data.position !== "bottom-right") || data.generation < lastGeneration) return;
+        if (data.generation === lastGeneration && (data.open !== lastFrame.open || data.width !== lastFrame.width || data.height !== lastFrame.height)) return;
+        lastGeneration = data.generation;
+        // The authorized child already knows its configured corner. Do not wait
+        // for a second ping to move it; after reveal the host owns the anchor.
+        if (iframe.style.visibility === "hidden") {
+          savedAnchor = data.position;
+          anchorSettled = true;
+        }
+      } else if (lastFrame.version === 2) return;
+      lastFrame = {
+        version: data.version, generation: data.generation,
+        open: event.data.open, width: event.data.width, height: event.data.height,
+        proactive: event.data.proactive === true,
+        customLauncher: event.data.customLauncher === true
+      };
+      frameSeen = true;
+      sizeFloatingFrame(iframe, lastFrame);
+      applyWidgetAnchor(iframe, savedAnchor, null, lastFrame.version);
+      if (anchorSettled) {
+        clearTimeout(revealTimer);
+        reveal();
+      }
+      acknowledge();
+    }
+    window.addEventListener("message", onMessage);
+    window.addEventListener("resize", onResize);
+    iframe.addEventListener("load", onLoad);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onResize);
+      window.visualViewport.addEventListener("scroll", onResize);
+    }
   }
 
   window.aideChat = {

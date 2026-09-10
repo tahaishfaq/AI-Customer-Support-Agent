@@ -8,6 +8,8 @@ import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { durationHeaders, durationMsSince } from "@/lib/observability/duration";
 import { safeLogError } from "@/lib/observability/safe-log";
+import { streamingChatEnabled } from "@/lib/chat/sse";
+import { createChatServerStream } from "@/lib/chat/server-stream";
 
 /** Keep above OPENAI_TIMEOUT_MS (default 45s). */
 export const maxDuration = 60;
@@ -65,6 +67,48 @@ export async function POST(request, { params }) {
     const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
     const bearerToken = bearerMatch?.[1]?.trim() || null;
 
+    const wantsStream =
+      Boolean(parsed.data.stream) &&
+      streamingChatEnabled() &&
+      (request.headers.get("accept") || "").includes("text/event-stream");
+
+    if (wantsStream) {
+      const stream = createChatServerStream(async ({ emit, signal }) => {
+            return sendChatMessage(agent.id, {
+              publicAccess: true,
+              message: parsed.data.message,
+              conversationId: parsed.data.conversationId,
+              resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
+              identityToken:
+                parsed.data.identityToken ||
+                request.headers.get("x-customer-identity") ||
+                request.headers.get("x-identity-token") ||
+                null,
+              userSession: parsed.data.userSession || null,
+              bearerToken,
+              realtimeAccessToken: request.headers.get("x-aide-conversation-access-token"),
+              requestOrigin: originFromRequest(request),
+              requestId,
+              signal,
+              stream: { emit },
+            });
+      }, {
+        signal: request.signal,
+        onError: () => safeLogError("chat stream failed", { requestId, agentId, route: "public-chat", status: 500 }),
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+          "x-request-id": requestId,
+          ...durationHeaders(started),
+        },
+      });
+    }
+
     const result = await sendChatMessage(agent.id, {
       publicAccess: true,
       message: parsed.data.message,
@@ -77,6 +121,8 @@ export async function POST(request, { params }) {
         null,
       userSession: parsed.data.userSession || null,
       bearerToken,
+      realtimeAccessToken: request.headers.get("x-aide-conversation-access-token"),
+      requestOrigin: originFromRequest(request),
       requestId,
       signal: request.signal,
     });

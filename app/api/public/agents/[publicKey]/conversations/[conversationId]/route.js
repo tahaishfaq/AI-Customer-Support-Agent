@@ -10,6 +10,7 @@ import { originFromRequest } from "@/lib/utils/request-origin";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { safeLogError } from "@/lib/observability/safe-log";
+import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
 
 export async function GET(request, { params }) {
   const requestId = resolveRequestId(request);
@@ -23,6 +24,13 @@ export async function GET(request, { params }) {
       return jsonError(request, 404, "Agent not found");
     }
 
+    await requirePublicConversationAccess({
+      request,
+      conversationId,
+      agentId: agent.id,
+      origin: originFromRequest(request),
+    });
+
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -34,6 +42,8 @@ export async function GET(request, { params }) {
             role: true,
             content: true,
             responseTime: true,
+            citations: true,
+            sources: true,
             feedback: true,
             feedbackReason: true,
             createdAt: true,
@@ -61,7 +71,10 @@ export async function GET(request, { params }) {
         conversationHasHumanRequest(conversation.messages),
       messages: conversation.messages,
     });
-  } catch {
+  } catch (error) {
+    if (error.status) {
+      return jsonError(request, error.status, error.message, error.details || {});
+    }
     safeLogError("GET public conversation", {
       requestId,
       route: "public-conversation",

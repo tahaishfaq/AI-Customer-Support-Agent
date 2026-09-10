@@ -124,7 +124,7 @@ export function FeatureLiveActions() {
   }, [reduceMotion]);
 
   return (
-    <div className="w-full max-w-[19.5rem] rounded-2xl border border-white/70 bg-white/95 p-3.5 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md">
+    <div className="h-[14rem] w-full max-w-[19.5rem] overflow-hidden rounded-2xl border border-white/70 bg-white/95 p-3.5 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md sm:h-auto">
       <div className="mb-2.5 flex items-center justify-between px-0.5">
         <p className="text-[10px] font-semibold tracking-[0.12em] text-[var(--landing-muted)] uppercase">
           Actions
@@ -148,7 +148,7 @@ export function FeatureLiveActions() {
                 opacity: { duration: 0.2 },
                 scale: { duration: 0.2 },
               }}
-              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+              className={`landing-action-item flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
                 status[id] === "busy"
                   ? "border-[var(--color-primary)]/30 bg-white shadow-sm"
                   : status[id] === "done"

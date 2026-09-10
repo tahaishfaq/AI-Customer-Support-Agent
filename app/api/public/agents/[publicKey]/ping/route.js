@@ -7,6 +7,9 @@ import {
   getPublicAgentByKey,
   runCrawlJob,
 } from "@/lib/services/embed.service";
+import {
+  maybeRetestAfterLivePing,
+} from "@/lib/services/embed-readiness.service";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { pubPingLimitOpts } from "@/lib/rate-limit-config";
 import { originFromRequest } from "@/lib/utils/request-origin";
@@ -85,6 +88,16 @@ export async function POST(request, { params }) {
         corsHeaders
       );
     }
+    if (result.live) {
+      after(async () => {
+        try {
+          await maybeRetestAfterLivePing(agent.id);
+        } catch {
+          // Checklist probes must never break the widget ping.
+        }
+      });
+    }
+
     if (result.queued && result.jobId) {
       // Defer crawl slightly so chat/ping DB work settles (same Neon pool).
       const deferMs = Math.min(

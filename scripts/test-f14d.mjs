@@ -67,7 +67,7 @@ function main() {
   const loop = read("lib/actions/tool-loop.js");
   assert(/resolveIdentityMode\(fresh\) === "END_USER_TOKEN"/.test(loop), "loop prefer");
 
-  const plan = read("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
+  const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
   assert(/Phase D/.test(plan) && /✅/.test(plan), "F14 D marked done");
 
   console.log("ok  identity modes + policy");

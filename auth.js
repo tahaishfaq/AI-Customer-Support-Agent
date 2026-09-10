@@ -111,6 +111,11 @@ const providers = [
         })
         .catch(() => {});
 
+      const { maybeSendLoginAlert } = await import(
+        "@/lib/services/email-lifecycle.service"
+      );
+      maybeSendLoginAlert(user).catch(() => {});
+
       return toAuthUser(user);
     },
   }),
@@ -189,6 +194,10 @@ const providers = [
             },
           });
           await ensureDefaultWorkspace(user.id);
+          const { afterGoogleRegister } = await import(
+            "@/lib/services/email-lifecycle.service"
+          );
+          afterGoogleRegister(user).catch(() => {});
         }
       }
 
@@ -200,6 +209,11 @@ const providers = [
           data: { lastLoginAt: new Date() },
         })
         .catch(() => {});
+
+      const { maybeSendLoginAlert } = await import(
+        "@/lib/services/email-lifecycle.service"
+      );
+      maybeSendLoginAlert(user).catch(() => {});
 
       return toAuthUser(user);
     },
@@ -269,6 +283,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async createUser({ user }) {
       if (user?.id) {
         await ensureDefaultWorkspace(user.id);
+        // OAuth Google path via adapter — welcome if brand-new.
+        try {
+          const row = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              emailVerified: true,
+              passwordHash: true,
+            },
+          });
+          if (row && !row.passwordHash) {
+            const { afterGoogleRegister } = await import(
+              "@/lib/services/email-lifecycle.service"
+            );
+            await afterGoogleRegister(row);
+          }
+        } catch {
+          // never block account create
+        }
       }
     },
   },

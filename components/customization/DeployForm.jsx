@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ChevronRight,
   Code2,
   Copy,
-  ExternalLink,
   FileCode2,
   Globe,
   ImagePlus,
@@ -14,12 +14,16 @@ import {
   MessageCircle,
   Plus,
   RefreshCw,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +49,7 @@ import {
 } from "@/components/customization/CustomizationFields";
 import { buildEmbedSnippet } from "@/lib/customization/embed";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
+import { EmbedReadinessChecklist } from "@/components/customization/EmbedReadinessChecklist";
 import { cn } from "@/lib/utils";
 
 const PLATFORMS = [
@@ -108,7 +113,6 @@ function EmbedInstallDialog({
   const [copied, setCopied] = useState(false);
   const platform = PLATFORMS.find((p) => p.id === platformId) || PLATFORMS[0];
   const content = platformSnippet(platformId, publicKey, origin);
-  const shareUrl = `${origin}/w/${publicKey}`;
 
   async function copy() {
     try {
@@ -168,20 +172,6 @@ function EmbedInstallDialog({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-medium">{platform.label}</p>
               <div className="flex flex-wrap items-center gap-1.5">
-                {publicKey ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    nativeButton={false}
-                    render={
-                      <a href={shareUrl} target="_blank" rel="noreferrer" />
-                    }
-                  >
-                    <ExternalLink data-icon="inline-start" />
-                    Open widget
-                  </Button>
-                ) : null}
                 <Button
                   type="button"
                   variant="outline"
@@ -355,32 +345,7 @@ export function DeployForm({
       ) : null}
 
       <FormSection title="Install">
-        <Alert className="mb-4">
-          <ShieldCheck />
-          <AlertTitle>Universal embed checklist</AlertTitle>
-          <AlertDescription className="space-y-2 text-xs leading-relaxed">
-            <p>
-              1. Paste the snippet on every page where chat should appear.
-            </p>
-            <p>
-              2. When the visitor is signed in, call{" "}
-              <code className="rounded bg-muted px-1">aideChat.setUser</code>{" "}
-              on <strong>every page load</strong> (not only after the login
-              click).
-            </p>
-            <p>
-              3. Live tools always show <strong>Confirm</strong> in the widget
-              before calling your API. Guest lookups must return redacted data —
-              never another customer&apos;s private fields.
-            </p>
-            <p>
-              4. Use <strong>Packs</strong> for business templates, then point
-              tool URLs at your APIs; enforce{" "}
-              <code className="rounded bg-muted px-1">resource.owner == JWT.sub</code>{" "}
-              on account endpoints.
-            </p>
-          </AlertDescription>
-        </Alert>
+        <EmbedReadinessChecklist agentId={agentId} />
         <FieldBlock
           label="Embed code"
           hint="Copy this onto your webpage. Regenerate if the old snippet leaked or you want to kill live widgets."
@@ -395,30 +360,19 @@ export function DeployForm({
               <Code2 data-icon="inline-start" />
               Install webchat
             </Button>
-            {origin && publicKey ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={
-                  <a
-                    href={`${origin}/w/${publicKey}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  />
-                }
-              >
-                <ExternalLink data-icon="inline-start" />
-                Open widget
-              </Button>
-            ) : null}
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-zinc-950">
-            <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-              <span className="text-[11px] text-zinc-400">embed snippet</span>
-              <div className="flex items-center gap-1">
+          <Collapsible
+            defaultOpen={false}
+            className="group overflow-hidden rounded-xl border border-border bg-zinc-950"
+          >
+            <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-zinc-100 outline-none hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/40">
+              <ChevronRight className="size-4 shrink-0 text-zinc-400 transition-transform duration-200 group-data-[open]:rotate-90" />
+              <span className="min-w-0 flex-1 truncate">Embed snippet</span>
+              <Code2 className="size-3.5 shrink-0 text-zinc-500" aria-hidden />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="flex items-center justify-end gap-1 border-t border-white/10 px-3 py-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -438,18 +392,21 @@ export function DeployForm({
                   onClick={copySnippet}
                 >
                   {copied ? (
-                    <Check data-icon="inline-start" className="text-emerald-400" />
+                    <Check
+                      data-icon="inline-start"
+                      className="text-emerald-400"
+                    />
                   ) : (
                     <Copy data-icon="inline-start" />
                   )}
                   {copied ? "Copied" : "Copy"}
                 </Button>
               </div>
-            </div>
-            <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-zinc-200">
-              <code>{snippet}</code>
-            </pre>
-          </div>
+              <pre className="overflow-x-auto border-t border-white/10 p-3 text-[11px] leading-relaxed text-zinc-200">
+                <code>{snippet}</code>
+              </pre>
+            </CollapsibleContent>
+          </Collapsible>
           <p className="mt-2 text-xs text-muted-foreground">
             Regenerating issues a new public key. Sites still using the old
             script stop loading the widget immediately.

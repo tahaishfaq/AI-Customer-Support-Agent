@@ -9,7 +9,7 @@ Next.js fullstack MVP: build an agent, add knowledge, chat, customize webchat, e
 - **Next.js 16** (App Router) · React 19 · Tailwind CSS 4 · shadcn/ui
 - **Prisma 7** · **Neon PostgreSQL**
 - **Auth.js (NextAuth v5)** · **OpenAI** · **Cloudinary**
-- Hosting: **Vercel** (Node **22+**)
+- Hosting: **always-on Node.js app server** (Node **22+**); the same server hosts Next.js and Socket.IO
 
 ## Local setup
 
@@ -21,7 +21,7 @@ cp .env.example .env
 # fill env — never commit .env
 npx prisma generate
 npx prisma migrate deploy
-npm run seed:admin
+npm run seed:admins
 npm run dev
 ```
 
@@ -29,14 +29,19 @@ npm run dev
 - Admin: same `/login` with bootstrap **email + password** (no `/admin/register`)
 - Health: `/api/health`
 
-Copy variable names from `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `OPENAI_API_KEY`. Optional: Cloudinary, Google, `LOG_LEVEL`, admin bootstrap (`ADMIN_BOOTSTRAP_*` + `seed:admin`).
+Copy variable names from `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `OPENAI_API_KEY`. Optional: Cloudinary, Google, `LOG_LEVEL`. Admins are seeded from `prisma/admins.local.json`, not from `.env`.
 
-## Vercel
+## Node production deployment
 
-1. Connect the repo · Node **22.x**
-2. Set the same env vars as `.env.example` (`AUTH_URL` / `NEXT_PUBLIC_APP_URL` = your HTTPS origin)
-3. `npx prisma migrate deploy` against production Neon
-4. Seed admin once: `npm run seed:admin`
+1. Deploy the repository to an always-on Node host/container with Node **22.x**.
+2. Start it with `npm run start`; `server.js` serves Next.js and Socket.IO on the same `PORT`.
+3. Set `AUTH_URL` / `NEXT_PUBLIC_APP_URL` to the HTTPS app origin. `REALTIME_URL` is optional and defaults to the same origin.
+4. Set the realtime Redis/secret variables from `.env.example` and run `npx prisma migrate deploy` against production Neon.
+5. Seed admins once: copy `prisma/admins.local.example.json` → `prisma/admins.local.json`, fill 1–3 operators, `npm run seed:admins` against prod Neon. Delete the local file after.
+
+Vercel remains suitable for an HTTP-only deployment, but it is not the target
+runtime for this one-port Socket.IO architecture because it does not provide a
+long-lived Node process for WebSocket connections.
 
 ### Logs
 
@@ -59,19 +64,23 @@ Chat routes set `maxDuration = 60`. Keep `OPENAI_TIMEOUT_MS` (default 45000) **u
 
 In-memory per instance (`lib/rate-limit.js`). Tune via `RATE_LIMIT_PUB_CHAT`, `RATE_LIMIT_STUDIO_CHAT`, etc. **Upstash Redis:** deferred until multi-instance 429 drift hurts (F02-G decision: not yet).
 
-## Seed the one admin
+## Seed platform admins (not in `.env`)
+
+Admin passwords do **not** live in Vercel env. If `.env` leaks, rotate `AUTH_SECRET`, DB, OpenAI, SafePay, Resend, Cloudinary — not an admin password that was never there.
 
 ```bash
-ADMIN_BOOTSTRAP_EMAIL=you@example.com
-ADMIN_BOOTSTRAP_PASSWORD=at-least-10-chars
-npm run seed:admin
+cp prisma/admins.local.example.json prisma/admins.local.json
+# edit 1–3 emails + passwords (min 10 chars)
+npx prisma migrate deploy
+npm run seed:admins
+rm prisma/admins.local.json
 ```
 
-One platform admin. Google cannot sign in as admin. Non-admin hitting `/admin` → 404.
+`prisma/admins.local.json` is gitignored. Seed upserts those users as `ADMIN` (password login only; Google blocked) and writes their emails to `PlatformSettings.reservedAdminEmail` so register/Google cannot claim them. Non-admin hitting `/admin` → 404.
+
+**Production:** run seed on a laptop (or a one-shot CI job) pointed at **prod** `DATABASE_URL`. Do not put `ADMIN_BOOTSTRAP_PASSWORD` on Vercel.
 
 **Console denseness (F07):** Users filters live in the URL; Requests shows a pending badge; Dashboard KPIs deep-link to Users / Suspended / Requests; agent inspect shows last chat without loading full knowledge bodies.
-
-**Production:** point `DATABASE_URL` at the **same Neon** the Vercel app uses, then run `npm run seed:admin` once (local machine or CI with prod URL). Seed also writes `PlatformSettings.reservedAdminEmail` so a missing `ADMIN_BOOTSTRAP_EMAIL` on a future deploy cannot reopen Google signup for that address. After seed, keep `ADMIN_BOOTSTRAP_*` set on Vercel for smokes and reclaim.
 
 ## Embed
 
@@ -130,11 +139,11 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 | [`docs/OPEN_SEQUENCE.md`](docs/OPEN_SEQUENCE.md) | Ordered remaining work |
 | [`docs/ROADMAP_NEXT.md`](docs/ROADMAP_NEXT.md) | Roadmap index + OOS |
 | [`docs/features/F00_DOD_DEMO_BUFFER.md`](docs/features/F00_DOD_DEMO_BUFFER.md) | DoD / demo buffer |
-| [`docs/features/F00_PROGRESS.md`](docs/features/F00_PROGRESS.md) | Buffer checklist ticks |
+| [`docs/shipped/F00_PROGRESS.md`](docs/shipped/F00_PROGRESS.md) | Buffer checklist ticks |
 | [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) | What shipped (F01–F12 + F11 UX) |
-| [`docs/features/F11_AGENT_ACTIONS.md`](docs/features/F11_AGENT_ACTIONS.md) | Agent actions + UX-1–4 ✅ |
-| [`docs/features/F13_TOOLS_HUB.md`](docs/features/F13_TOOLS_HUB.md) | Next build — Tools hub |
-| [`docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md) | In-chat consent plan |
+| [`docs/shipped/F11_AGENT_ACTIONS.md`](docs/shipped/F11_AGENT_ACTIONS.md) | Agent actions + UX-1–4 ✅ |
+| [`docs/shipped/F13_TOOLS_HUB.md`](docs/shipped/F13_TOOLS_HUB.md) | Next build — Tools hub |
+| [`docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md) | In-chat consent plan |
 | [`docs/features/`](docs/features/) | Plans F10–F14 |
 | [`docs/ui/UI_STRATEGY.md`](docs/ui/UI_STRATEGY.md) | ShadCN polish guidance |
 | [`docs/POST_MVP_BACKLOG_PLAN.md`](docs/POST_MVP_BACKLOG_PLAN.md) | Backlog |
@@ -146,7 +155,7 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 |--------|---------|
 | `npm run dev` | Dev server |
 | `npm run build` | Production build |
-| `npm run seed:admin` | Create the one admin |
+| `npm run seed:admins` | Create/update 1–3 admins from `prisma/admins.local.json` |
 | `npm run test:product` | Product API smoke |
 | `npm run test:admin` | Admin smoke |
 | `npm run test:bugfix` | Origin lock + security HTTP regression |
@@ -182,8 +191,8 @@ PRs: **Lint** always (red = cannot merge once branch protection is on). **Shippe
 | `TEST_BASE_URL` | Prefer a **Vercel preview** URL (not localhost) for merge gates |
 | `DATABASE_URL` | Product smoke cleanup (delete temp users) |
 | `OPENAI_API_KEY` | One FAQ chat in product smoke |
-| `ADMIN_BOOTSTRAP_EMAIL` | Admin smoke + reserved-email register check |
-| `ADMIN_BOOTSTRAP_PASSWORD` | Admin smoke |
+| `ADMIN_BOOTSTRAP_EMAIL` | Optional HTTP admin smoke only (not required on Vercel) |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Optional HTTP admin smoke only (not required on Vercel) |
 
 **Branch protection:** require the **Lint** check; also require **HTTP smoke** once the secrets above are configured.
 

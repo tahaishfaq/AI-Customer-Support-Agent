@@ -1,62 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAgent } from "@/lib/api/agents";
+import { queryKeys } from "@/lib/query/keys";
 
-/** Avoid full-page skeleton when switching agent studio tabs. */
-const agentCache = new Map();
-
+/** Shared Query cache avoids refetching the agent on every studio tab. */
 export function useAgentStudio() {
   const params = useParams();
   const id = params?.id;
-  const cached = id ? agentCache.get(id) : null;
-  const [agent, setAgent] = useState(cached ?? null);
-  const [loading, setLoading] = useState(Boolean(id) && !cached);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.agents.detail(id),
+    queryFn: () => getAgent(id),
+    enabled: Boolean(id),
+  });
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    const hadCache = agentCache.has(id);
-
-    async function load() {
-      if (!hadCache) {
-        setLoading(true);
-      }
-      setError("");
-      try {
-        const data = await getAgent(id);
-        if (!cancelled) {
-          agentCache.set(id, data);
-          setAgent(data);
-        }
-      } catch (err) {
-        if (!cancelled && !agentCache.has(id)) {
-          setError(err.message || "Unable to load agent");
-          setAgent(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   return {
     id,
-    agent,
+    agent: query.data ?? null,
     setAgent: (next) => {
-      if (id && next) agentCache.set(id, next);
-      setAgent(next);
+      if (id) {
+        queryClient.setQueryData(queryKeys.agents.detail(id), (current) =>
+          typeof next === "function" ? next(current) : next
+        );
+      }
     },
-    loading: loading && !agent,
-    error,
+    loading: query.isPending,
+    error: query.error?.message || "",
     deleteOpen,
     setDeleteOpen,
   };

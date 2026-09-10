@@ -5,6 +5,9 @@ import {
   Building2,
   Cable,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
   Palette,
   Rocket,
   SlidersHorizontal,
@@ -92,6 +95,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
   const [justSaved, setJustSaved] = useState(false);
   const [publicKey, setPublicKey] = useState(agent.publicKey);
   const [pendingToolForm, setPendingToolForm] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const section = SECTIONS.find((s) => s.id === sectionId) || SECTIONS[0];
   const dirty = JSON.stringify(draft) !== saved;
 
@@ -175,9 +179,9 @@ export function CustomizationStudio({ agent, onAgentChange }) {
         </div>
       </CardHeader>
 
-      <div className="grid min-h-0 lg:grid-cols-[200px_minmax(0,1fr)_minmax(320px,400px)]">
+      <div className="flex min-h-0 flex-col lg:flex-row">
         <nav
-          className="flex gap-1 overflow-x-auto border-b border-border bg-muted/30 p-2 lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0"
+          className="flex shrink-0 gap-1 overflow-x-auto border-b border-border bg-muted/30 p-2 lg:w-[200px] lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0"
           aria-label="Customization sections"
         >
           {SECTIONS.map((item) => {
@@ -202,7 +206,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
           })}
         </nav>
 
-        <section className="min-w-0 border-b border-border lg:border-r lg:border-b-0">
+        <section className="min-w-0 flex-1 border-b border-border transition-[flex-basis,width] duration-300 ease-[var(--ease-ui)] lg:border-b-0">
           {section.title || section.description ? (
             <div className="flex flex-col gap-0.5 border-b border-border px-5 py-3.5">
               {section.title ? (
@@ -275,7 +279,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                   agentId={agent.id}
                   agentName={agent.name}
                   siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
-                  actionsEnabled={agent.actionsEnabled !== false}
+                  actionsEnabled={Boolean(agent.actionsEnabled)}
                   pendingCreateForm={pendingToolForm}
                   onPendingCreateConsumed={() => setPendingToolForm(null)}
                   onActionsEnabledChange={(actionsEnabled) => {
@@ -287,12 +291,83 @@ export function CustomizationStudio({ agent, onAgentChange }) {
           </ScrollArea>
         </section>
 
-        <aside className="min-w-0 self-start overflow-hidden bg-muted/30 p-4 lg:sticky lg:top-4">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
+        {/* Mobile: compact toggle under forms */}
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2 lg:hidden">
+          <span className="text-xs font-medium text-muted-foreground">
             Live preview
-          </p>
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-full"
+            onClick={() => setPreviewOpen((v) => !v)}
+            aria-expanded={previewOpen}
+          >
+            <MessageCircle data-icon="inline-start" />
+            {previewOpen ? "Hide" : "Show"}
+          </Button>
+        </div>
+        <div
+          className={cn(
+            "overflow-hidden bg-muted/30 transition-[max-height,opacity,padding] duration-300 ease-[var(--ease-ui)] lg:hidden",
+            previewOpen
+              ? "max-h-[720px] opacity-100 p-4"
+              : "max-h-0 opacity-0 p-0"
+          )}
+        >
           <CustomizationPreview agent={agent} customization={draft} />
-        </aside>
+        </div>
+
+        {/* Desktop: right rail — vertical tab + sliding panel */}
+        <div className="relative hidden shrink-0 lg:flex">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((v) => !v)}
+            aria-expanded={previewOpen}
+            aria-controls="customization-live-preview"
+            title={previewOpen ? "Close live preview" : "Open live preview"}
+            className={cn(
+              "group z-10 flex w-9 shrink-0 flex-col items-center justify-center gap-2 border-l border-border bg-muted/40 py-6 text-muted-foreground outline-none transition-colors duration-300 ease-[var(--ease-ui)] hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40",
+              previewOpen && "bg-muted text-foreground"
+            )}
+          >
+            {previewOpen ? (
+              <ChevronRight className="size-3.5 shrink-0 opacity-70" />
+            ) : (
+              <ChevronLeft className="size-3.5 shrink-0 opacity-70" />
+            )}
+            <MessageCircle className="size-3.5 shrink-0" />
+            <span
+              className="select-none text-[10px] font-semibold tracking-[0.14em] uppercase"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              Live preview
+            </span>
+          </button>
+
+          <aside
+            id="customization-live-preview"
+            className={cn(
+              "overflow-hidden border-l border-border bg-muted/30 transition-[width,opacity] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
+              previewOpen
+                ? "w-[min(420px,34vw)] opacity-100"
+                : "w-0 border-l-0 opacity-0"
+            )}
+          >
+            <div
+              className={cn(
+                "h-full w-[min(420px,34vw)] p-4 transition-transform duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
+                previewOpen ? "translate-x-0" : "translate-x-4"
+              )}
+            >
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Live preview
+              </p>
+              <CustomizationPreview agent={agent} customization={draft} />
+            </div>
+          </aside>
+        </div>
       </div>
     </Card>
   );

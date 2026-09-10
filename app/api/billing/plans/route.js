@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBillingCheckoutMode } from "@/lib/billing/checkout-mode";
 import { isSafepayConfigured } from "@/lib/billing/safepay-client";
 import { listPublicBillingPlans } from "@/lib/billing/plans.service";
 
@@ -9,6 +10,7 @@ export async function GET() {
       {
         plans,
         paymentsAvailable: isSafepayConfigured(),
+        checkoutMode: getBillingCheckoutMode(),
       },
       { status: 200 }
     );

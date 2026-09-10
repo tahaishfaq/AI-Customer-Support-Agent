@@ -1,9 +1,16 @@
 "use client";
 
-import { ArrowLeft, History, MessageCircle, Minus, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  BellOff,
+  Globe2,
+  MessageCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { monogram } from "@/components/conversations/format";
 import { widgetStyleVars } from "@/lib/customization/theme";
+import { WidgetBrand } from "@/components/chat/WidgetBrand";
 
 function Avatar({ src, label, className, style }) {
   if (src) {
@@ -37,9 +44,10 @@ export function ChatWidget({
   align = "end",
   fullPage = false,
   fillHost = false,
+  coordinatedFrame = false,
+  panelReady = true,
   historyOpen = false,
   onHistoryToggle,
-  onReset,
   children,
 }) {
   const identity = customization?.identity || {};
@@ -54,6 +62,7 @@ export function ChatWidget({
     typeof onHistoryToggle === "function";
   const vars = widgetStyleVars(customization);
   const primary = appearance.primaryColor || "var(--color-primary)";
+  const dark = appearance.theme === "dark";
 
   const launcherSrc = deploy.useBotAvatar
     ? identity.avatarUrl
@@ -76,6 +85,7 @@ export function ChatWidget({
       )}
       style={{
         ...vars,
+        ...(coordinatedFrame ? { width: "100%", height: "100%", maxWidth: "none", maxHeight: "none" } : {}),
         border: "none",
         outline: "none",
         overflow: "hidden",
@@ -91,19 +101,35 @@ export function ChatWidget({
       }}
     >
       <header
-        className="flex shrink-0 items-center gap-2.5 border-0 px-3.5 py-3 text-white shadow-none"
-        style={{ backgroundColor: "var(--wc-header-bg)" }}
+        className="flex shrink-0 items-center gap-2.5 border-b px-3.5 py-3 shadow-none"
+        style={{
+          backgroundColor: "var(--wc-shell)",
+          borderColor: "var(--wc-border)",
+          color: "var(--wc-shell-fg)",
+        }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <Avatar
+          {showHistory ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onHistoryToggle();
+              }}
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-[var(--wc-muted)] hover:bg-black/5 hover:text-[var(--wc-shell-fg)]"
+              aria-label={historyOpen ? "Back to chat" : "Open chat history"}
+              aria-pressed={historyOpen}
+              title={historyOpen ? "Back to chat" : "Chat history"}
+            >
+              <ArrowLeft className="size-[18px]" aria-hidden />
+            </button>
+          ) : null}
+          <WidgetBrand
             src={identity.avatarUrl}
             label={displayName}
-            className="size-8 rounded-full text-[11px] font-semibold"
-            style={
-              identity.avatarUrl
-                ? undefined
-                : { backgroundColor: "#ffffff", color: primary }
-            }
+            className={identity.avatarUrl ? "size-8" : undefined}
+            dark={dark}
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold leading-tight">
@@ -118,54 +144,42 @@ export function ChatWidget({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          {showHistory ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onHistoryToggle();
-              }}
-              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
-              aria-label={historyOpen ? "Back to chat" : "Open chat history"}
-              aria-pressed={historyOpen}
-              title={historyOpen ? "Back to chat" : "History"}
-            >
-              {historyOpen ? (
-                <ArrowLeft className="size-4 shrink-0" />
-              ) : (
-                <History className="size-4 shrink-0" />
-              )}
-            </button>
-          ) : null}
-
-          {onReset ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onReset();
-              }}
-              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
-              aria-label="New chat"
-              title="New chat"
-            >
-              <RotateCcw className="size-4 shrink-0" />
-            </button>
-          ) : null}
-
-          {!fullPage && onToggle ? (
-            <button
-              type="button"
-              onClick={onToggle}
-              className="inline-flex size-8 items-center justify-center rounded-lg text-white/85 hover:bg-white/15 hover:text-white"
-              aria-label="Minimize chat"
-              title="Minimize"
-            >
-              <Minus className="size-4" />
-            </button>
-          ) : null}
+          <span
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-lg",
+              agent?.webSearchEnabled
+                ? "text-emerald-500"
+                : "text-[var(--wc-muted)]"
+            )}
+            title={agent?.webSearchEnabled ? "Web search on" : "Web search off"}
+            aria-label={agent?.webSearchEnabled ? "Web search on" : "Web search off"}
+          >
+            <Globe2 className="size-[18px]" aria-hidden />
+          </span>
+          <span
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-lg",
+              features.notificationSound
+                ? "text-[var(--wc-primary)]"
+                : "text-[var(--wc-muted)]"
+            )}
+            title={
+              features.notificationSound
+                ? "Notifications enabled"
+                : "Notifications disabled"
+            }
+            aria-label={
+              features.notificationSound
+                ? "Notifications enabled"
+                : "Notifications disabled"
+            }
+          >
+            {features.notificationSound ? (
+              <Bell className="size-[18px]" aria-hidden />
+            ) : (
+              <BellOff className="size-[18px]" aria-hidden />
+            )}
+          </span>
         </div>
       </header>
       <div
@@ -186,12 +200,20 @@ export function ChatWidget({
         fillHost ? "ml-auto mt-auto" : "",
         align === "start" ? "items-start" : "items-end"
       )}
-      style={vars}
+      style={coordinatedFrame ? { ...vars, position: "absolute", inset: 0, width: "100%", height: "100%", margin: 0 } : vars}
     >
-      {open ? panel : null}
+      {coordinatedFrame ? (
+        <div
+          data-testid="embed-panel-surface"
+          hidden={!open || !panelReady}
+          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: "min(380px, 100%)", height: "min(520px, calc(100% - 68px))" }}
+        >
+          {panel}
+        </div>
+      ) : open ? panel : null}
 
       {proactive ? (
-        <div className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
+        <div style={coordinatedFrame ? { position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, maxWidth: "100%", minWidth: 0, maxHeight: 112, overflowY: "auto", overflowWrap: "anywhere" } : undefined} className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
           <div
             className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
             style={{ backgroundColor: primary }}
@@ -224,6 +246,7 @@ export function ChatWidget({
         <button
           type="button"
           className="rounded-full border-0 bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-none outline-none"
+          style={coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0, width: 144, height: 56 } : undefined}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
           onClick={onToggle}
         >
@@ -234,6 +257,7 @@ export function ChatWidget({
           type="button"
           className="flex size-14 items-center justify-center overflow-hidden rounded-full border-0 text-white shadow-none outline-none"
           style={{
+            ...(coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0 } : {}),
             backgroundColor: primary,
             boxShadow: "none",
           }}

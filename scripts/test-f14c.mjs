@@ -138,7 +138,7 @@ function main() {
   const snippet = read("lib/customization/embed.js");
   assert(/setUser/.test(snippet), "deploy snippet documents setUser");
 
-  const plan = read("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
+  const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
   assert(/Phase C/.test(plan) && /✅/.test(plan), "F14 plan marks C done");
 
   console.log("ok  resolveEndUserIdentity strategies");

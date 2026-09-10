@@ -114,6 +114,19 @@ async function main() {
     });
     assert(reg.ok || reg.status === 201, `register ${reg.status}`);
     jar = await signIn(email, password);
+
+    const plansRes = await fetch(`${BASE}/api/billing/plans`);
+    const plansBody = await json(plansRes);
+    const freePlan = (plansBody?.plans || []).find(
+      (plan) => plan.planType === "FREE"
+    );
+    assert(freePlan?.id, "free billing plan");
+
+    const subscribeRes = await api(jar, "/api/billing/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ planId: freePlan.id }),
+    });
+    assert(subscribeRes.ok, `free plan ${subscribeRes.status}`);
   });
 
   await test("DoD #2 Create agent", async () => {

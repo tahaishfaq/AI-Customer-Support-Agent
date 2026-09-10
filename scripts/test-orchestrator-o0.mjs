@@ -28,8 +28,8 @@ function assert(cond, msg) {
 
 function testFilesExist() {
   const files = [
-    "docs/features/ORCHESTRATOR_CONTRACT.md",
-    "docs/features/ORCHESTRATOR_LAYER_PLAN.md",
+    "docs/shipped/ORCHESTRATOR_CONTRACT.md",
+    "docs/shipped/ORCHESTRATOR_LAYER_PLAN.md",
     "lib/capabilities/result.js",
     "lib/orchestrator/map-policy.js",
   ];

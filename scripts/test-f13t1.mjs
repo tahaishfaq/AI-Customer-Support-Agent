@@ -83,7 +83,7 @@ function main() {
 
   assert(exists("components/customization/McpServersPanel.jsx"), "McpServersPanel file kept");
 
-  const plan = read("docs/features/F13_TOOLS_HUB.md");
+  const plan = read("docs/shipped/F13_TOOLS_HUB.md");
   assert(/T1/.test(plan) && /done|✅/.test(plan), "F13 plan marks T1");
 
   console.log("ok  vertical category helpers");

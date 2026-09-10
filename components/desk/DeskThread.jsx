@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Inbox, MessageSquareText, Send, StickyNote } from "lucide-react";
 import { getConversation } from "@/lib/api/conversations";
@@ -46,6 +47,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { DESK_EMBED_POLL_MS } from "@/lib/desk/desk-config";
 import { cn } from "@/lib/utils";
+import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
+import {
+  REALTIME_CLIENT_EVENTS,
+  REALTIME_CLIENT_STATUS,
+} from "@/lib/realtime/client-events";
+import { useRealtime } from "@/components/realtime/RealtimeProvider";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateDeskQueries } from "@/lib/query/invalidation";
 
 const POLL_MS = DESK_EMBED_POLL_MS;
 
@@ -213,8 +222,17 @@ function DeskReplyComposer({
 }
 
 export function DeskThread({ conversation: initial, onResolved }) {
-  const [conversation, setConversation] = useState(initial);
-  const [messages, setMessages] = useState(initial.messages || []);
+  const { joinRoom, leaveRoom, emitEphemeral } = useRealtime();
+  const queryClient = useQueryClient();
+  const threadQuery = useQuery({
+    queryKey: queryKeys.desk.thread(initial.id),
+    queryFn: () => getConversation(initial.id),
+    initialData: initial,
+  });
+  const [conversation, setConversation] = useState(threadQuery.data || initial);
+  const [messages, setMessages] = useState(
+    (threadQuery.data || initial).messages || []
+  );
   const [sending, setSending] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -222,8 +240,12 @@ export function DeskThread({ conversation: initial, onResolved }) {
   const [error, setError] = useState("");
   const [cannedReplies, setCannedReplies] = useState([]);
   const [composerMode, setComposerMode] = useState("reply");
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [customerTyping, setCustomerTyping] = useState(false);
+  const [teammatePresence, setTeammatePresence] = useState(null);
   const bottomRef = useRef(null);
   const lastTypingPing = useRef(0);
+  const refreshRequestRef = useRef(0);
 
   const waiting =
     conversation.waitingForHuman || conversation.status === "WAITING_HUMAN";
@@ -238,14 +260,41 @@ export function DeskThread({ conversation: initial, onResolved }) {
         : "Unclaimed";
 
   const refresh = useCallback(async () => {
+    const requestId = ++refreshRequestRef.current;
     try {
       const data = await getConversation(conversation.id);
+      if (requestId !== refreshRequestRef.current) return;
       setConversation(data);
       setMessages(data.messages || []);
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), data);
     } catch {
       // keep last good state during poll
     }
-  }, [conversation.id]);
+  }, [conversation.id, queryClient]);
+
+  useEffect(() => {
+    const room = `conversation:${conversation.id}:owner`;
+    let active = true;
+    void joinRoom(room).then((result) => {
+      if (!active || !result?.ok || !conversation.agent?.workspaceId) return;
+      void emitEphemeral(REALTIME_EVENT_TYPES.PRESENCE_UPDATED, {
+        workspaceId: conversation.agent.workspaceId,
+        conversationId: conversation.id,
+        status: "online",
+      });
+    });
+    return () => {
+      active = false;
+      if (conversation.agent?.workspaceId) {
+        void emitEphemeral(REALTIME_EVENT_TYPES.PRESENCE_UPDATED, {
+          workspaceId: conversation.agent.workspaceId,
+          conversationId: conversation.id,
+          status: "offline",
+        });
+      }
+      void leaveRoom(room);
+    };
+  }, [conversation.agent?.workspaceId, conversation.id, emitEphemeral, joinRoom, leaveRoom]);
 
   useEffect(() => {
     setConversation(initial);
@@ -277,12 +326,85 @@ export function DeskThread({ conversation: initial, onResolved }) {
   }, [messages, sending]);
 
   useEffect(() => {
-    if (!waiting) return undefined;
+    function onRealtimeStatus(event) {
+      const connected =
+        event?.detail?.status === REALTIME_CLIENT_STATUS.CONNECTED;
+      setRealtimeConnected(connected);
+      if (!connected) setCustomerTyping(false);
+      if (connected) {
+        refresh();
+        if (conversation.agent?.workspaceId) {
+          void emitEphemeral(REALTIME_EVENT_TYPES.PRESENCE_UPDATED, {
+            workspaceId: conversation.agent.workspaceId,
+            conversationId: conversation.id,
+            status: "online",
+          });
+        }
+      }
+    }
+    function onRealtimeEvent(event) {
+      const incoming = event?.detail;
+      if (incoming?.conversationId !== conversation.id) return;
+      if (
+        [
+          REALTIME_EVENT_TYPES.HANDOFF_CREATED,
+          REALTIME_EVENT_TYPES.MESSAGE_CREATED,
+          REALTIME_EVENT_TYPES.CLAIM_UPDATED,
+          REALTIME_EVENT_TYPES.STATUS_UPDATED,
+          REALTIME_EVENT_TYPES.PRIORITY_UPDATED,
+          REALTIME_EVENT_TYPES.CSAT_UPDATED,
+        ].includes(incoming.eventType)
+      ) {
+        refresh();
+      }
+    }
+    window.addEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+    window.addEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+    return () => {
+      window.removeEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+      window.removeEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+    };
+  }, [conversation.agent?.workspaceId, conversation.id, emitEphemeral, refresh]);
+
+  useEffect(() => {
+    function onRealtimeEvent(event) {
+      const incoming = event?.detail;
+      if (!incoming?.ephemeral || incoming?.payload?.conversationId !== conversation.id) return;
+      if (incoming.eventName === REALTIME_EVENT_TYPES.TYPING_STARTED) {
+        setCustomerTyping(incoming.payload.actorType === "PUBLIC");
+      } else if (incoming.eventName === REALTIME_EVENT_TYPES.TYPING_STOPPED) {
+        setCustomerTyping(false);
+      } else if (incoming.eventName === REALTIME_EVENT_TYPES.PRESENCE_UPDATED) {
+        setTeammatePresence(
+          incoming.payload.status === "offline"
+            ? null
+            : incoming.payload.displayName || "Team member"
+        );
+      }
+    }
+    window.addEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+    return () => window.removeEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
+  }, [conversation.id]);
+
+  useEffect(() => {
+    if (realtimeConnected) return undefined;
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
-  }, [waiting, refresh]);
+  }, [waiting, realtimeConnected, refresh]);
 
   function handleComposerChange(text) {
+    if (waiting && composerMode === "reply") {
+      const eventType = String(text || "").trim()
+        ? REALTIME_EVENT_TYPES.TYPING_STARTED
+        : REALTIME_EVENT_TYPES.TYPING_STOPPED;
+      void emitEphemeral(eventType, {
+        conversationId: conversation.id,
+        expiresAt:
+          eventType === REALTIME_EVENT_TYPES.TYPING_STARTED
+            ? new Date(Date.now() + 5000).toISOString()
+            : null,
+      });
+    }
     if (!waiting || composerMode !== "reply" || !String(text || "").trim()) {
       return;
     }
@@ -297,6 +419,12 @@ export function DeskThread({ conversation: initial, onResolved }) {
     if (mode !== "note" && !waiting) return;
 
     const role = mode === "note" ? "INTERNAL" : "HUMAN";
+    if (mode === "reply") {
+      void emitEphemeral(REALTIME_EVENT_TYPES.TYPING_STOPPED, {
+        conversationId: conversation.id,
+        expiresAt: null,
+      });
+    }
     const optimisticId = `local-${mode}-${Date.now()}`;
 
     setSending(true);
@@ -330,6 +458,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
         ];
       });
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setError(
@@ -341,6 +473,15 @@ export function DeskThread({ conversation: initial, onResolved }) {
     }
   }
 
+  useEffect(() => {
+    return () => {
+      void emitEphemeral(REALTIME_EVENT_TYPES.TYPING_STOPPED, {
+        conversationId: conversation.id,
+        expiresAt: null,
+      });
+    };
+  }, [conversation.id, emitEphemeral]);
+
   async function resolve(resumeAi) {
     setResolving(true);
     setError("");
@@ -348,6 +489,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
       const result = await resolveConversation(conversation.id, { resumeAi });
       setConversation((prev) => applyDeskPatch(prev, result));
       onResolved?.(result);
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
       setResolving(false);
     } catch (err) {
       setError(err.message || "Unable to resolve");
@@ -361,6 +506,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
     try {
       const result = await claimConversation(conversation.id, claim);
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setError(err.message || "Unable to update claim");
     } finally {
@@ -375,6 +524,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
     try {
       const result = await setConversationPriority(conversation.id, next);
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setError(err.message || "Unable to set priority");
     } finally {
@@ -401,14 +554,26 @@ export function DeskThread({ conversation: initial, onResolved }) {
               {monogram(conversation.agent?.name)}
             </span>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">
-                {conversation.agent?.name || "Agent"}
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">
+                  {conversation.agent?.name || "Agent"}
+                </h1>
+                {conversation.source === "STUDIO" ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-violet-500/35 px-2 py-0 text-[10px] text-violet-700 dark:text-violet-300"
+                  >
+                    Test · not billed
+                  </Badge>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {waiting
                   ? `Waiting since ${formatRelative(conversation.handoffAt || conversation.startedAt)}`
                   : `Started ${formatFullDate(conversation.startedAt)}`}
                 {waiting ? ` · ${claimedLabel}` : null}
+                {customerTyping ? " · Customer is typing…" : null}
+                {teammatePresence ? ` · ${teammatePresence} viewing` : null}
               </p>
             </div>
           </div>

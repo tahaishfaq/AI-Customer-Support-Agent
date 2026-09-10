@@ -30,7 +30,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(/Phase F — Scaling ✅/.test(f11), "F11 Phase F marked done");
   assert(/out of F11 MVP/i.test(f11), "long jobs still out of MVP");
   console.log("ok  F11-G doc scope");
@@ -39,9 +39,21 @@ function testDocScope() {
 function testSourceWiring() {
   assert(exists("lib/actions/get-cache.js"), "get-cache module");
   const loop = read("lib/actions/tool-loop.js");
-  assert(/actionWorkspaceDailyLimitOpts|actions:daily:/.test(loop), "daily cap in loop");
-  assert(/getCachedGetResult|setCachedGetResult/.test(loop), "GET cache in loop");
-  assert(/workspaceId/.test(loop), "workspaceId threaded");
+  const invoke = read("lib/actions/invoke-tool.js");
+  assert(
+    /actionWorkspaceDailyLimitOpts|actions:daily:/.test(loop) ||
+      /actionWorkspaceDailyLimitOpts|actions:daily:/.test(invoke),
+    "daily cap in loop/invoke"
+  );
+  assert(
+    /getCachedGetResult|setCachedGetResult/.test(loop) ||
+      /getCachedGetResult|setCachedGetResult/.test(invoke),
+    "GET cache in loop/invoke"
+  );
+  assert(
+    /workspaceId/.test(loop) || /workspaceId/.test(invoke),
+    "workspaceId threaded"
+  );
 
   const chat = read("lib/services/chat.service.js");
   assert(/actionRuntime|workspaceId/.test(chat), "chat passes workspace");

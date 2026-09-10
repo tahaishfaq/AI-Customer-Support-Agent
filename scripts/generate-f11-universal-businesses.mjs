@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Generates:
- *  - docs/features/F11_UNIVERSAL_BUSINESSES.md (50 businesses)
- *  - docs/features/F11_BUSINESS_EDGE_CASES.md (100 × 50 = 5000)
+ *  - docs/shipped/F11_UNIVERSAL_BUSINESSES.md (50 businesses)
+ *  - docs/shipped/F11_BUSINESS_EDGE_CASES.md (100 × 50 = 5000)
  *
  * Run: node scripts/generate-f11-universal-businesses.mjs
  */
@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DOCS = join(__dirname, "../docs/features");
+const DOCS = join(__dirname, "../docs/shipped");
 
 /** @type {Array<{id:string,name:string,vertical:string,embed:string,guestTools:string[],accountTools:string[],supportUseCases:string[]}>} */
 const BUSINESSES = [
@@ -686,5 +686,5 @@ Automate \`BE0001\`–\`BE0500\` (B01–B05 × 100) in \`test:f11u\` first — c
 writeFileSync(join(DOCS, "F11_BUSINESS_EDGE_CASES.md"), edgeMd);
 
 console.log(
-  `Wrote 50 businesses + ${n - 1} edge cases to docs/features/`
+  `Wrote 50 businesses + ${n - 1} edge cases to docs/shipped/`
 );

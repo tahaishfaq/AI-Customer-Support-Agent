@@ -88,7 +88,7 @@ function testChatHandlesToolEscalate() {
 }
 
 function testDecisionADocs() {
-  const plan = read("docs/features/ORCHESTRATOR_LAYER_PLAN.md");
+  const plan = read("docs/shipped/ORCHESTRATOR_LAYER_PLAN.md");
   assert(/O4a|decision A|Knowledge stuffing/i.test(plan) || /O4/.test(plan));
   console.log("ok  O4 plan present");
 }

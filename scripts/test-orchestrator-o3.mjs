@@ -114,10 +114,10 @@ function testStopRules() {
 }
 
 function testContractDoc() {
-  const contract = read("docs/features/ORCHESTRATOR_CONTRACT.md");
+  const contract = read("docs/shipped/ORCHESTRATOR_CONTRACT.md");
   assert(/TurnResult/.test(contract), "contract documents TurnResult");
   assert(/stopReason/.test(contract), "contract has stopReason");
-  const plan = read("docs/features/ORCHESTRATOR_LAYER_PLAN.md");
+  const plan = read("docs/shipped/ORCHESTRATOR_LAYER_PLAN.md");
   assert(/O3/.test(plan), "plan has O3");
   console.log("ok  O3 docs mention TurnResult");
 }

@@ -14,7 +14,9 @@ enum MessageRole {
   USER
   ASSISTANT
   HUMAN
-  /** Desk-only; never returned on public embed APIs or LLM history */
+  /**
+   * Desk-only; never returned on public embed APIs or LLM history
+   */
   INTERNAL
 }
 
@@ -22,6 +24,14 @@ enum ConversationStatus {
   OPEN
   WAITING_HUMAN
   RESOLVED
+}
+
+/**
+ * Billing: only EMBED (site widget / public chat) counts toward monthly quota.
+ */
+enum ConversationSource {
+  STUDIO
+  EMBED
 }
 
 enum HandoffPriority {
@@ -87,6 +97,44 @@ enum ActionAccessClass {
   DESTRUCTIVE
 }
 
+enum ActionRevisionState {
+  DRAFT
+  VALIDATED
+  PUBLISHED
+  RETIRED
+}
+
+enum TaskRevisionState {
+  DRAFT
+  VALIDATED
+  PUBLISHED
+  RETIRED
+}
+
+enum TaskRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  PAUSED
+  ESCALATED
+}
+
+enum DurableWriteStatus {
+  PREPARED
+  IN_FLIGHT
+  SUCCEEDED
+  FAILED
+  OUTCOME_UNKNOWN
+}
+
+enum ReconciliationStatus {
+  NOT_REQUIRED
+  REQUIRED
+  IN_PROGRESS
+  RESOLVED
+  HANDOFF
+}
+
 enum ToolRunStatus {
   OK
   ERROR
@@ -103,6 +151,8 @@ enum ActionConfirmationStatus {
   APPROVED
   DENIED
   EXPIRED
+  /// One-shot: claimed when the exact WRITE executes (replay protection).
+  CONSUMED
 }
 
 enum McpTransport {
@@ -133,29 +183,33 @@ enum RestoreRequestStatus {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String
-  email         String     @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String? // null for Google-only users
-  googleId      String?    @unique // Google "sub" (GIS id-token flow)
-  role          UserRole   @default(USER)
-  status        UserStatus @default(ACTIVE)
-  lastLoginAt   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  workspaces    Workspace[]
-  agents        Agent[]
-  accounts      Account[]
-  sessions      Session[]
-  auditEvents   AuditEvent[]
-  restoreRequests RestoreRequest[]
-  assignedConversations Conversation[] @relation("AssignedConversations")
-  customPlanRequests CustomPlanRequest[]
+  id                        String              @id @default(cuid())
+  name                      String
+  email                     String              @unique
+  emailVerified             DateTime?
+  image                     String?
+  passwordHash              String? // null for Google-only users
+  googleId                  String?             @unique // Google "sub" (GIS id-token flow)
+  role                      UserRole            @default(USER)
+  status                    UserStatus          @default(ACTIVE)
+  realtimeSessionVersion    Int                 @default(1)
+  lastLoginAt               DateTime?
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  workspaces                Workspace[]
+  agents                    Agent[]
+  accounts                  Account[]
+  sessions                  Session[]
+  realtimeSessions          RealtimeSession[]
+  auditEvents               AuditEvent[]
+  restoreRequests           RestoreRequest[]
+  assignedConversations     Conversation[]      @relation("AssignedConversations")
+  customPlanRequests        CustomPlanRequest[]
   handledCustomPlanRequests CustomPlanRequest[] @relation("CustomPlanRequestHandler")
-  subscriptions      Subscription[]
-  onboarding         UserOnboarding?
+  subscriptions             Subscription[]
+  onboarding                UserOnboarding?
+  emailTokens               EmailToken[]
+  emailDeliveries           EmailDeliveryLog[]
 }
 
 model Account {
@@ -196,52 +250,151 @@ model VerificationToken {
 }
 
 model Workspace {
-  id                String    @id @default(cuid())
+  id                String                  @id @default(cuid())
   userId            String
   name              String
+  slug              String
   deskInboxSeenAt   DateTime?
+  inboxVersion      Int                     @default(0)
   deskCannedReplies Json?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   agents            Agent[]
   actionCredentials ActionCredential[]
+  connections       IntegrationConnection[]
 
   @@unique([userId, name])
+  @@unique([userId, slug])
   @@index([userId])
 }
 
 model Agent {
-  id                   String              @id @default(cuid())
-  userId               String
-  workspaceId          String
-  name                 String
-  description          String?
-  systemPrompt         String
-  answerStyle          String              @default("DETAILED")
-  welcomeMessage       String
-  customization        Json?
-  publicKey            String?             @unique
-  enabled              Boolean             @default(true)
-  embedEnabled         Boolean             @default(true)
-  actionsEnabled       Boolean             @default(true)
-  webSearchEnabled     Boolean             @default(false)
-  siteKnowledgeOrigin  String?             @unique
-  siteCrawledAt        DateTime?
-  crawlRecrawlHours    Int                 @default(0)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace            Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  knowledgeDocs        KnowledgeDocument[]
-  conversations        Conversation[]
-  crawlJobs            SiteCrawlJob[]
-  actions              AgentAction[]
-  mcpServers           AgentMcpServer[]
-  toolRuns             ToolRun[]
+  id                  String              @id @default(cuid())
+  userId              String
+  workspaceId         String
+  name                String
+  description         String?
+  systemPrompt        String
+  answerStyle         String              @default("DETAILED")
+  welcomeMessage      String
+  customization       Json?
+  publicKey           String?             @unique
+  enabled             Boolean             @default(true)
+  embedEnabled        Boolean             @default(true)
+  actionsEnabled      Boolean             @default(false)
+  webSearchEnabled    Boolean             @default(false)
+  siteKnowledgeOrigin String?             @unique
+  siteCrawledAt       DateTime?
+  crawlRecrawlHours   Int                 @default(0)
+  /**
+   * Last successful live-site widget ping (not localhost / Aide origin).
+   */
+  embedLastPingAt     DateTime?
+  /**
+   * Last HTTP/MCP readiness probe results (no secrets / bodies).
+   */
+  embedReadiness      Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace           Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  knowledgeDocs       KnowledgeDocument[]
+  conversations       Conversation[]
+  crawlJobs           SiteCrawlJob[]
+  actions             AgentAction[]
+  tasks               AgentTask[]
+  mcpServers          AgentMcpServer[]
+  toolRuns            ToolRun[]
+  taskRuns            TaskRun[]
 
   @@index([userId])
   @@index([workspaceId])
+}
+
+model AgentTask {
+  id                     String         @id @default(cuid())
+  agentId                String
+  name                   String
+  description            String
+  enabled                Boolean        @default(true)
+  currentDraftRevisionId String?
+  publishedRevisionId    String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  agent                  Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  revisions              TaskRevision[]
+
+  @@unique([agentId, name])
+  @@index([agentId, enabled])
+}
+
+model TaskRevision {
+  id                      String             @id @default(cuid())
+  taskId                  String
+  revision                Int                @default(1)
+  state                   TaskRevisionState  @default(DRAFT)
+  configurationHash       String
+  supportedIntents        Json
+  requiredIdentity        ActionIdentityMode @default(NONE)
+  allowedActionRevisions  Json
+  steps                   Json
+  dependencies            Json?
+  outputMappings          Json?
+  confirmationCheckpoints Json?
+  failurePolicy           Json?
+  budgets                 Json
+  publishedAt             DateTime?
+  retiredAt               DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  task                    AgentTask          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  runs                    TaskRun[]
+
+  @@unique([taskId, revision])
+  @@index([taskId, state])
+  @@index([configurationHash])
+}
+
+model TaskRun {
+  id              String        @id @default(cuid())
+  taskRevisionId  String
+  agentId         String
+  workspaceId     String?
+  conversationId  String?
+  customerSubject String?
+  status          TaskRunStatus @default(RUNNING)
+  requestId       String?
+  startedAt       DateTime      @default(now())
+  finishedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  taskRevision    TaskRevision  @relation(fields: [taskRevisionId], references: [id], onDelete: Restrict)
+  agent           Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  steps           TaskStepRun[]
+
+  @@index([agentId, createdAt])
+  @@index([conversationId])
+}
+
+model TaskStepRun {
+  id               String          @id @default(cuid())
+  taskRunId        String
+  stepId           String
+  actionRevisionId String?
+  actionName       String?
+  status           String
+  resultCode       String?
+  httpStatus       Int?
+  errorCode        String?
+  resultJson       Json?
+  startedAt        DateTime        @default(now())
+  finishedAt       DateTime?
+  taskRun          TaskRun         @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+  actionRevision   ActionRevision? @relation(fields: [actionRevisionId], references: [id], onDelete: SetNull)
+
+  @@index([taskRunId])
+  @@index([actionRevisionId])
 }
 
 model KnowledgeDocument {
@@ -264,76 +417,166 @@ model KnowledgeDocument {
 }
 
 model AgentAction {
-  id                   String            @id @default(cuid())
-  agentId              String
-  name                 String
-  description          String
-  method               ActionHttpMethod  @default(GET)
-  urlTemplate          String
-  frozenHost           String?
-  headersJson          Json?
-  inputSchemaJson      Json?
-  outputSchemaJson     Json?
-  enabled              Boolean           @default(true)
-  timeoutMs            Int               @default(8000)
-  credentialId         String?
-  riskLevel            ActionRiskLevel   @default(READ)
-  requiresConfirmation Boolean           @default(false)
-  requiresIdentity     Boolean           @default(false)
+  id                     String                 @id @default(cuid())
+  agentId                String
+  name                   String
+  description            String
+  method                 ActionHttpMethod       @default(GET)
+  urlTemplate            String
+  frozenHost             String?
+  connectionId           String?
+  headersJson            Json?
+  requestContentType     String?                @default("application/json")
+  requestBodyTemplate    Json?
+  parameterBindings      Json?
+  inputSchemaJson        Json?
+  outputSchemaJson       Json?
+  responseProjectionJson Json?
+  enabled                Boolean                @default(true)
+  timeoutMs              Int                    @default(8000)
+  credentialId           String?
+  riskLevel              ActionRiskLevel        @default(READ)
+  requiresConfirmation   Boolean                @default(false)
+  requiresIdentity       Boolean                @default(false)
   /// F14-D: NONE | OWNER_KEY | END_USER_TOKEN (END_USER_TOKEN syncs requiresIdentity)
-  identityMode         ActionIdentityMode @default(NONE)
+  identityMode           ActionIdentityMode     @default(NONE)
   /// F11-U: who may use this tool (guest vs signed-in vs destructive)
-  accessClass          ActionAccessClass  @default(PUBLIC_READ)
-  idempotent           Boolean           @default(true)
-  version              Int               @default(1)
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  agent                Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  credential           ActionCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
-  toolRuns             ToolRun[]
-  confirmations        ActionConfirmation[]
+  accessClass            ActionAccessClass      @default(PUBLIC_READ)
+  idempotent             Boolean                @default(true)
+  version                Int                    @default(1)
+  currentDraftRevisionId String?
+  publishedRevisionId    String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  agent                  Agent                  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  credential             ActionCredential?      @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  connection             IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  toolRuns               ToolRun[]
+  confirmations          ActionConfirmation[]
+  revisions              ActionRevision[]
 
   @@unique([agentId, name])
   @@index([agentId])
   @@index([agentId, enabled])
   @@index([credentialId])
+  @@index([connectionId])
+  @@index([publishedRevisionId])
+}
+
+model ActionRevision {
+  id                     String               @id @default(cuid())
+  actionId               String
+  revision               Int                  @default(1)
+  state                  ActionRevisionState  @default(DRAFT)
+  configurationHash      String
+  name                   String
+  description            String
+  method                 ActionHttpMethod
+  urlTemplate            String
+  frozenHost             String?
+  connectionId           String?
+  connectionRevisionId   String?
+  headersJson            Json?
+  requestContentType     String?
+  requestBodyTemplate    Json?
+  parameterBindings      Json?
+  inputSchemaJson        Json?
+  outputSchemaJson       Json?
+  responseProjectionJson Json?
+  enabled                Boolean              @default(true)
+  timeoutMs              Int                  @default(8000)
+  credentialId           String?
+  riskLevel              ActionRiskLevel      @default(READ)
+  requiresConfirmation   Boolean              @default(false)
+  requiresIdentity       Boolean              @default(false)
+  identityMode           ActionIdentityMode   @default(NONE)
+  accessClass            ActionAccessClass    @default(PUBLIC_READ)
+  idempotent             Boolean              @default(true)
+  publishedAt            DateTime?
+  retiredAt              DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  action                 AgentAction          @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  confirmations          ActionConfirmation[]
+  toolRuns               ToolRun[]
+  taskStepRuns           TaskStepRun[]
+
+  @@unique([actionId, revision])
+  @@index([actionId, state])
+  @@index([configurationHash])
+}
+
+model IntegrationConnection {
+  id                String                          @id @default(cuid())
+  workspaceId       String
+  name              String
+  environment       String                          @default("production")
+  enabled           Boolean                         @default(true)
+  currentRevisionId String?
+  createdAt         DateTime                        @default(now())
+  updatedAt         DateTime                        @updatedAt
+  workspace         Workspace                       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  revisions         IntegrationConnectionRevision[]
+  actions           AgentAction[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, enabled])
+}
+
+model IntegrationConnectionRevision {
+  id                  String                @id @default(cuid())
+  connectionId        String
+  revision            Int                   @default(1)
+  baseOrigin          String
+  allowedDestinations Json?
+  credentialId        String?
+  headerPolicy        Json?
+  healthVerifiedAt    DateTime?
+  createdAt           DateTime              @default(now())
+  connection          IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  credential          ActionCredential?     @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, revision])
+  @@index([connectionId, createdAt])
+  @@index([credentialId])
 }
 
 model ActionCredential {
-  id           String               @id @default(cuid())
-  workspaceId  String
-  name         String
-  type         ActionCredentialType @default(BEARER)
-  headerName   String?
-  ciphertext   String
-  keyVersion   Int                  @default(1)
-  revokedAt    DateTime?
-  lastRotatedAt DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  actions      AgentAction[]
-  mcpServers   AgentMcpServer[]
+  id                  String                          @id @default(cuid())
+  workspaceId         String
+  name                String
+  type                ActionCredentialType            @default(BEARER)
+  headerName          String?
+  ciphertext          String
+  keyVersion          Int                             @default(1)
+  revokedAt           DateTime?
+  lastRotatedAt       DateTime?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  workspace           Workspace                       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actions             AgentAction[]
+  connectionRevisions IntegrationConnectionRevision[]
+  mcpServers          AgentMcpServer[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
 }
 
 model AgentMcpServer {
-  id           String        @id @default(cuid())
+  id           String            @id @default(cuid())
   agentId      String
   name         String
-  transport    McpTransport  @default(HTTP)
+  transport    McpTransport      @default(HTTP)
   url          String
   frozenHost   String?
-  authType     McpAuthType   @default(NONE)
+  authType     McpAuthType       @default(NONE)
   headerName   String?
   credentialId String?
-  enabled      Boolean       @default(true)
+  enabled      Boolean           @default(true)
   lastProbeAt  DateTime?
   lastError    String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   agent        Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
   credential   ActionCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
   tools        AgentMcpTool[]
@@ -345,19 +588,20 @@ model AgentMcpServer {
 }
 
 model AgentMcpTool {
-  id                   String          @id @default(cuid())
+  id                   String               @id @default(cuid())
   serverId             String
   name                 String
   functionName         String
-  description          String          @default("")
+  description          String               @default("")
   inputSchemaJson      Json?
-  enabled              Boolean         @default(false)
-  riskLevel            ActionRiskLevel @default(READ)
-  requiresConfirmation Boolean         @default(false)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  server               AgentMcpServer  @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  enabled              Boolean              @default(false)
+  riskLevel            ActionRiskLevel      @default(READ)
+  requiresConfirmation Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  server               AgentMcpServer       @relation(fields: [serverId], references: [id], onDelete: Cascade)
   toolRuns             ToolRun[]
+  confirmations        ActionConfirmation[]
 
   @@unique([serverId, name])
   @@unique([serverId, functionName])
@@ -365,52 +609,126 @@ model AgentMcpTool {
 }
 
 model ActionConfirmation {
-  id             String                   @id @default(cuid())
-  conversationId String
-  actionId       String
-  argsHash       String
-  status         ActionConfirmationStatus @default(PENDING)
-  expiresAt      DateTime
+  id               String                   @id @default(cuid())
+  conversationId   String
+  /// HTTP AgentAction id (null when MCP confirmation).
+  actionId         String?
+  actionRevisionId String?
+  /// MCP AgentMcpTool id (null when HTTP confirmation).
+  mcpToolId        String?
+  argsHash         String
+  status           ActionConfirmationStatus @default(PENDING)
+  expiresAt        DateTime
   /// F14-B durable evidence handle (set on approve/deny)
-  evidenceId     String?                  @unique
-  userSubject    String?
-  userDisplay    String?
-  decidedAt      DateTime?
-  decidedIp      String?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  conversation   Conversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  action         AgentAction              @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  evidenceId       String?                  @unique
+  userSubject      String?
+  userDisplay      String?
+  decidedAt        DateTime?
+  decidedIp        String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  conversation     Conversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  action           AgentAction?             @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionRevision   ActionRevision?          @relation(fields: [actionRevisionId], references: [id], onDelete: Cascade)
+  mcpTool          AgentMcpTool?            @relation(fields: [mcpToolId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, status])
+  @@index([conversationId, argsHash, status])
   @@index([actionId])
+  @@index([actionRevisionId])
+  @@index([mcpToolId])
   @@index([expiresAt])
   @@index([userSubject])
   @@index([decidedAt])
 }
 
+/// Stage 5.6 — durable WRITE idempotency (stable key → replay OK result).
+model WriteIdempotencyRecord {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique
+  agentId        String
+  conversationId String?
+  actionId       String?
+  mcpToolId      String?
+  argsHash       String
+  /// IN_FLIGHT | OK | ERROR
+  status         String
+  httpStatus     Int?
+  errorCode      String?
+  /// Capped successful body for model replay
+  bodyText       String?  @db.Text
+  resultForModel String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  expiresAt      DateTime
+
+  @@index([expiresAt])
+  @@index([agentId, createdAt])
+  @@index([conversationId])
+}
+
+/// Phase 8 — durable write dispatch and reconciliation state.
+/// Sensitive arguments/results are intentionally not stored here.
+model DurableWriteOperation {
+  id                     String               @id @default(cuid())
+  agentId                String
+  workspaceId            String
+  conversationId         String?
+  customerSubject        String?
+  principalScope         String
+  actionId               String?
+  actionRevisionId       String?
+  approvalId             String?
+  logicalOperationId     String
+  idempotencyKey         String
+  requestFingerprint     String
+  upstreamIdempotencyKey String?
+  status                 DurableWriteStatus   @default(PREPARED)
+  reconciliationStatus   ReconciliationStatus @default(NOT_REQUIRED)
+  attempt                Int                  @default(0)
+  leaseOwner             String?
+  leaseUntil             DateTime?
+  httpStatus             Int?
+  outcomeCode            String?
+  errorCode              String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  dispatchedAt           DateTime?
+  finishedAt             DateTime?
+
+  @@unique([workspaceId, principalScope, logicalOperationId])
+  @@unique([workspaceId, principalScope, idempotencyKey])
+  @@index([agentId, createdAt])
+  @@index([conversationId, createdAt])
+  @@index([status, leaseUntil])
+  @@index([reconciliationStatus, updatedAt])
+}
+
 model ToolRun {
-  id              String        @id @default(cuid())
-  agentId         String
-  actionId        String?
-  mcpToolId       String?
-  conversationId  String?
-  workspaceId     String?
-  customerSubject String?
-  actionVersion   Int?
-  status          ToolRunStatus
-  durationMs      Int?
-  httpStatus      Int?
-  errorCode       String?
-  errorCategory   String?
-  requestId       String?
-  createdAt       DateTime      @default(now())
-  agent           Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  action          AgentAction?  @relation(fields: [actionId], references: [id], onDelete: SetNull)
-  mcpTool         AgentMcpTool? @relation(fields: [mcpToolId], references: [id], onDelete: SetNull)
+  id               String          @id @default(cuid())
+  agentId          String
+  actionId         String?
+  mcpToolId        String?
+  conversationId   String?
+  workspaceId      String?
+  customerSubject  String?
+  actionVersion    Int?
+  actionRevisionId String?
+  status           ToolRunStatus
+  durationMs       Int?
+  httpStatus       Int?
+  errorCode        String?
+  errorCategory    String?
+  requestId        String?
+  createdAt        DateTime        @default(now())
+  agent            Agent           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  action           AgentAction?    @relation(fields: [actionId], references: [id], onDelete: SetNull)
+  actionRevision   ActionRevision? @relation(fields: [actionRevisionId], references: [id], onDelete: SetNull)
+  mcpTool          AgentMcpTool?   @relation(fields: [mcpToolId], references: [id], onDelete: SetNull)
 
   @@index([agentId, createdAt])
   @@index([actionId])
+  @@index([actionRevisionId])
   @@index([mcpToolId])
   @@index([conversationId])
   @@index([workspaceId, createdAt])
@@ -435,35 +753,45 @@ model SiteCrawlJob {
 }
 
 model Conversation {
-  id                  String             @id @default(cuid())
-  agentId             String
-  category            Category?
-  sentiment           Sentiment?
-  status              ConversationStatus @default(OPEN)
-  handoffReason       String?
-  handoffSummary      String?
-  handoffAt           DateTime?
-  handoffCount        Int                @default(0)
-  handoffPriority     HandoffPriority    @default(NORMAL)
-  lastHandoffEndedAt  DateTime?
-  humanTypingAt       DateTime?
-  assignedUserId      String?
-  claimedAt           DateTime?
-  aiPaused            Boolean            @default(false)
-  customerSubject     String?
-  identityIss         String?
-  identityExpiresAt   DateTime?
-  /** 1–5 after desk resolve; null if skipped or not offered yet */
-  csatScore           Int?
-  /** Set when rated or skipped (so we do not re-prompt until next handoff) */
-  csatAt              DateTime?
-  startedAt           DateTime           @default(now())
-  endedAt             DateTime?
-  createdAt           DateTime           @default(now())
-  agent               Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  assignedUser        User?              @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  messages            Message[]
-  actionConfirmations ActionConfirmation[]
+  id                     String                     @id @default(cuid())
+  agentId                String
+  /**
+   * STUDIO = owner test / in-app chat; EMBED = public site widget (billable).
+   */
+  source                 ConversationSource         @default(EMBED)
+  category               Category?
+  sentiment              Sentiment?
+  status                 ConversationStatus         @default(OPEN)
+  handoffReason          String?
+  handoffSummary         String?
+  handoffAt              DateTime?
+  handoffCount           Int                        @default(0)
+  handoffPriority        HandoffPriority            @default(NORMAL)
+  lastHandoffEndedAt     DateTime?
+  humanTypingAt          DateTime?
+  assignedUserId         String?
+  claimedAt              DateTime?
+  aiPaused               Boolean                    @default(false)
+  customerSubject        String?
+  identityIss            String?
+  identityExpiresAt      DateTime?
+  /**
+   * 1–5 after desk resolve; null if skipped or not offered yet
+   */
+  csatScore              Int?
+  /**
+   * Set when rated or skipped (so we do not re-prompt until next handoff)
+   */
+  csatAt                 DateTime?
+  startedAt              DateTime                   @default(now())
+  endedAt                DateTime?
+  createdAt              DateTime                   @default(now())
+  agent                  Agent                      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  assignedUser           User?                      @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages               Message[]
+  actionConfirmations    ActionConfirmation[]
+  publicRealtimeAccesses PublicConversationAccess[]
+  realtimeVersion        Int                        @default(0)
 
   @@index([agentId])
   @@index([agentId, startedAt])
@@ -476,6 +804,7 @@ model Conversation {
   @@index([customerSubject])
   @@index([handoffPriority])
   @@index([csatAt])
+  @@index([source])
 }
 
 model Message {
@@ -484,6 +813,8 @@ model Message {
   role           MessageRole
   content        String
   responseTime   Int?
+  citations      Json?
+  sources        Json?
   feedback       String?
   feedbackReason String?
   feedbackAt     DateTime?
@@ -512,12 +843,12 @@ model AuditEvent {
 }
 
 model RestoreRequest {
-  id        String                @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
   message   String
-  status    RestoreRequestStatus  @default(PENDING)
-  createdAt DateTime              @default(now())
-  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    RestoreRequestStatus @default(PENDING)
+  createdAt DateTime             @default(now())
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status, createdAt])
@@ -530,7 +861,9 @@ model PlatformSettings {
   globalEmbedKill       Boolean  @default(false)
   maxWorkspacesPerUser  Int      @default(20)
   maxAgentsPerWorkspace Int      @default(0)
-  /** Mirror of ADMIN_BOOTSTRAP_EMAIL after seed — blocks Google if env drifts */
+  /**
+   * Mirror of ADMIN_BOOTSTRAP_EMAIL after seed — blocks Google if env drifts
+   */
   reservedAdminEmail    String?
   updatedAt             DateTime @updatedAt
 }
@@ -558,54 +891,54 @@ enum CustomPlanRequestStatus {
 }
 
 model BillingPlan {
-  id                   String          @id @default(cuid())
-  slug                 String          @unique
-  name                 String
-  description          String?
-  planType             BillingPlanType @unique
-  isPopular            Boolean         @default(false)
-  priceMinor           Int             @default(0)
-  currency             String          @default("PKR")
-  interval             BillingInterval @default(MONTH)
-  safepayPlanId        String?
-  maxWorkspaces        Int             @default(1)
-  maxAgentsPerWorkspace Int            @default(2)
+  id                       String              @id @default(cuid())
+  slug                     String              @unique
+  name                     String
+  description              String?
+  planType                 BillingPlanType     @unique
+  isPopular                Boolean             @default(false)
+  priceMinor               Int                 @default(0)
+  currency                 String              @default("PKR")
+  interval                 BillingInterval     @default(MONTH)
+  safepayPlanId            String?
+  maxWorkspaces            Int                 @default(1)
+  maxAgentsPerWorkspace    Int                 @default(2)
   /// Billable conversations per calendar month (0 = unlimited). Botpress-style: 2+ visitor messages in month.
-  maxConversationsPerMonth Int         @default(0)
-  featuresJson         Json?
-  sortOrder            Int             @default(0)
-  isActive             Boolean         @default(true)
-  isDefault            Boolean         @default(false)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  customPlanRequests   CustomPlanRequest[]
-  subscriptions        Subscription[] @relation("SubscriptionPlan")
-  pendingSubscriptions Subscription[] @relation("SubscriptionPendingPlan")
+  maxConversationsPerMonth Int                 @default(0)
+  featuresJson             Json?
+  sortOrder                Int                 @default(0)
+  isActive                 Boolean             @default(true)
+  isDefault                Boolean             @default(false)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  customPlanRequests       CustomPlanRequest[]
+  subscriptions            Subscription[]      @relation("SubscriptionPlan")
+  pendingSubscriptions     Subscription[]      @relation("SubscriptionPendingPlan")
 
   @@index([isActive, sortOrder])
 }
 
 model CustomPlanRequest {
-  id                String                  @id @default(cuid())
-  userId            String
-  planId            String?
-  companyName       String?
-  contactName       String?
-  contactEmail      String
-  phone             String?
-  estimatedSeats    Int?
-  useCase           String?
-  message           String
-  status            CustomPlanRequestStatus @default(NEW)
-  adminNotes        String?
-  handledByAdminId  String?
-  handledAt         DateTime?
-  emailSentAt       DateTime?
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan              BillingPlan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
-  handledByAdmin    User?                   @relation("CustomPlanRequestHandler", fields: [handledByAdminId], references: [id], onDelete: SetNull)
+  id               String                  @id @default(cuid())
+  userId           String
+  planId           String?
+  companyName      String?
+  contactName      String?
+  contactEmail     String
+  phone            String?
+  estimatedSeats   Int?
+  useCase          String?
+  message          String
+  status           CustomPlanRequestStatus @default(NEW)
+  adminNotes       String?
+  handledByAdminId String?
+  handledAt        DateTime?
+  emailSentAt      DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan             BillingPlan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
+  handledByAdmin   User?                   @relation("CustomPlanRequestHandler", fields: [handledByAdminId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -620,29 +953,84 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+/// How recurring is billed. Existing rows = LEGACY_NATIVE.
+enum BillingMode {
+  LEGACY_NATIVE
+  ATOMS_HYBRID
+}
+
+enum PaymentAttemptType {
+  INITIAL
+  RENEWAL
+  RETRY
+}
+
+enum PaymentAttemptStatus {
+  CREATED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
 model Subscription {
   id                       String             @id @default(cuid())
   userId                   String
   planId                   String
   pendingPlanId            String?
   status                   SubscriptionStatus @default(PENDING)
+  /// LEGACY_NATIVE = hosted Safepay plan/sub_*. ATOMS_HYBRID = Atoms first pay + pm_*.
+  billingMode              BillingMode        @default(LEGACY_NATIVE)
   safepaySubscriptionToken String?
   safepayCustomerRef       String?
+  /// Safepay Atoms card-on-file id (e.g. pm_…). Never PAN/CVV.
+  safepayPaymentMethodRef  String?
   checkoutReference        String?            @unique
+  currentPeriodStart       DateTime?
   currentPeriodEnd         DateTime?
   cancelAtPeriodEnd        Boolean            @default(false)
   canceledAt               DateTime?
   activatedAt              DateTime?
   lastPaymentAt            DateTime?
   lastWebhookAt            DateTime?
+  realtimeVersion          Int                @default(0)
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
   user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan                     BillingPlan        @relation("SubscriptionPlan", fields: [planId], references: [id], onDelete: Restrict)
   pendingPlan              BillingPlan?       @relation("SubscriptionPendingPlan", fields: [pendingPlanId], references: [id], onDelete: SetNull)
+  paymentAttempts          PaymentAttempt[]
 
   @@index([userId, status])
   @@index([userId, createdAt])
+  @@index([billingMode, status, currentPeriodEnd])
+}
+
+model PaymentAttempt {
+  id                String               @id @default(cuid())
+  userId            String
+  subscriptionId    String?
+  planId            String
+  provider          BillingProvider      @default(SAFEPAY)
+  /// Internal correlation (also used as metadata / reference where supported).
+  checkoutReference String               @unique
+  trackerToken      String?
+  customerRef       String?
+  instrumentRef     String?
+  amount            Int
+  currency          String               @default("PKR")
+  type              PaymentAttemptType   @default(INITIAL)
+  status            PaymentAttemptStatus @default(CREATED)
+  failureCode       String?
+  failureMessage    String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  subscription      Subscription?        @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([subscriptionId, status])
+  @@index([trackerToken])
+  @@index([status, createdAt])
 }
 
 enum BillingProvider {
@@ -654,6 +1042,71 @@ enum BillingEventProcessingStatus {
   PROCESSED
   IGNORED
   FAILED
+}
+
+enum RealtimeVisibility {
+  OWNER
+  PUBLIC
+  BOTH
+}
+
+model RealtimeSession {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenId     String    @unique
+  deviceLabel String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  lastSeenAt  DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model RealtimeOutboxEvent {
+  id               String             @id @default(cuid())
+  eventId          String             @unique
+  eventType        String
+  schemaVersion    Int                @default(1)
+  visibility       RealtimeVisibility
+  userId           String?
+  workspaceId      String?
+  agentId          String?
+  conversationId   String?
+  aggregateType    String
+  aggregateVersion Int
+  payload          Json
+  createdAt        DateTime           @default(now())
+  availableAt      DateTime           @default(now())
+  publishedAt      DateTime?
+  deadLetteredAt   DateTime?
+  attempts         Int                @default(0)
+  lastError        String?
+  leaseOwner       String?
+  leaseUntil       DateTime?
+
+  @@index([publishedAt, availableAt])
+  @@index([leaseUntil])
+  @@index([conversationId, aggregateVersion])
+  @@index([workspaceId, createdAt])
+}
+
+model PublicConversationAccess {
+  id                  String       @id @default(cuid())
+  conversationId      String
+  tokenHash           String       @unique
+  customerSubjectHash String?
+  originHash          String?
+  createdAt           DateTime     @default(now())
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  lastUsedAt          DateTime?
+  conversation        Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, revokedAt])
+  @@index([expiresAt])
 }
 
 model BillingEvent {
@@ -715,4 +1168,50 @@ model UserOnboarding {
   @@index([completedAt])
   @@index([interestCompletedAt])
   @@index([crawlStatus])
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  PASSWORD_RESET_OTP
+  PASSWORD_RESET_TICKET
+}
+
+enum EmailDeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model EmailToken {
+  id           String         @id @default(cuid())
+  userId       String
+  type         EmailTokenType
+  tokenHash    String
+  expiresAt    DateTime
+  usedAt       DateTime?
+  attemptCount Int            @default(0)
+  createdAt    DateTime       @default(now())
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, usedAt])
+  @@index([expiresAt])
+}
+
+model EmailDeliveryLog {
+  id                String              @id @default(cuid())
+  template          String
+  toEmail           String
+  userId            String?
+  status            EmailDeliveryStatus @default(QUEUED)
+  providerMessageId String?
+  errorMessage      String?
+  idempotencyKey    String?             @unique
+  metadata          Json?
+  createdAt         DateTime            @default(now())
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([template, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }

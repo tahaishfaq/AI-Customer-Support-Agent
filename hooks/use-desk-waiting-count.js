@@ -1,44 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getInboxWaitingCount } from "@/lib/api/desk";
 import { DESK_NAV_BADGE_POLL_MS } from "@/lib/desk/desk-config";
+import {
+  REALTIME_CLIENT_EVENTS,
+  REALTIME_CLIENT_STATUS,
+} from "@/lib/realtime/client-events";
+import { queryKeys } from "@/lib/query/keys";
 
-const POLL_MS = DESK_NAV_BADGE_POLL_MS;
 export const DESK_INBOX_SEEN_EVENT = "hapy-desk-inbox-seen";
 
 export function useDeskWaitingCount() {
-  const [waiting, setWaiting] = useState(0);
+  const queryClient = useQueryClient();
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const { data } = useQuery({
+    queryKey: queryKeys.desk.waiting,
+    queryFn: getInboxWaitingCount,
+    refetchInterval: realtimeConnected ? false : DESK_NAV_BADGE_POLL_MS,
+  });
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const data = await getInboxWaitingCount();
-        if (!cancelled) setWaiting(Number(data.unread ?? data.waiting) || 0);
-      } catch {
-        if (!cancelled) setWaiting(0);
-      }
-    }
-
-    load();
-    const id = setInterval(load, POLL_MS);
     function onSeen(event) {
       const unread = event?.detail?.unread;
       if (typeof unread === "number") {
-        setWaiting(unread);
+        queryClient.setQueryData(queryKeys.desk.waiting, (current) => ({
+          ...(current || {}),
+          unread,
+        }));
         return;
       }
-      load();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.desk.waiting });
     }
-    window.addEventListener(DESK_INBOX_SEEN_EVENT, onSeen);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-      window.removeEventListener(DESK_INBOX_SEEN_EVENT, onSeen);
-    };
-  }, []);
 
-  return waiting;
+    function onRealtimeStatus(event) {
+      const connected =
+        event?.detail?.status === REALTIME_CLIENT_STATUS.CONNECTED;
+      setRealtimeConnected(connected);
+    }
+
+    window.addEventListener(DESK_INBOX_SEEN_EVENT, onSeen);
+    window.addEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+    return () => {
+      window.removeEventListener(DESK_INBOX_SEEN_EVENT, onSeen);
+      window.removeEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
+    };
+  }, [queryClient]);
+
+  return Number(data?.totalWaiting ?? data?.waiting ?? data?.unread) || 0;
 }

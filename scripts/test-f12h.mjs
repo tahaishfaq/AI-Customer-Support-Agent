@@ -21,7 +21,7 @@ function read(rel) {
 }
 
 function testPhaseHDoc() {
-  const f12 = read("docs/features/F12_HUMAN_DESK.md");
+  const f12 = read("docs/shipped/F12_HUMAN_DESK.md");
   assert(/Phase H — Production testing ✅/.test(f12), "Phase H marked done");
 
   const checks = [

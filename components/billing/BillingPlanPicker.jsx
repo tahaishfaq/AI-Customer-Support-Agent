@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
@@ -25,53 +26,69 @@ import {
 } from "@/lib/billing/plan-labels";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query/keys";
 
 export function BillingPlanPicker({
   mode = "signup",
   currentPlanId = null,
   currentPlan = null,
   pendingCheckout = null,
+  initialPlans = null,
+  initialPaymentsAvailable = false,
+  initialCheckoutMode = "legacy",
 }) {
   const router = useRouter();
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const plansQuery = useQuery({
+    queryKey: queryKeys.billing.plans,
+    queryFn: getBillingPlans,
+    enabled: !Array.isArray(initialPlans),
+    staleTime: 5 * 60_000,
+  });
+  const plans = Array.isArray(initialPlans)
+    ? initialPlans
+    : plansQuery.data?.plans || [];
+  const loading = !Array.isArray(initialPlans) && plansQuery.isPending;
   const [busyId, setBusyId] = useState("");
   const [customPlanId, setCustomPlanId] = useState(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [billingInterval, setBillingInterval] = useState("month");
-  const [paymentsAvailable, setPaymentsAvailable] = useState(false);
+  const paymentsAvailable = Array.isArray(initialPlans)
+    ? Boolean(initialPaymentsAvailable)
+    : Boolean(plansQuery.data?.paymentsAvailable);
+  const checkoutMode = Array.isArray(initialPlans)
+    ? initialCheckoutMode === "atoms"
+      ? "atoms"
+      : "legacy"
+    : plansQuery.data?.checkoutMode === "atoms"
+      ? "atoms"
+      : "legacy";
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getBillingPlans();
-        if (!cancelled) {
-          setPlans(Array.isArray(data) ? data : data.plans || []);
-          setPaymentsAvailable(Boolean(data?.paymentsAvailable));
-        }
-      } catch (err) {
-        if (!cancelled) toast.error(err.message || "Unable to load plans");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (plansQuery.error) {
+      toast.error(plansQuery.error.message || "Unable to load plans");
+    }
+  }, [plansQuery.error]);
 
   async function onBasic(plan) {
     if (mode === "change" && plan.id === currentPlanId) return;
     setBusyId(plan.id);
     try {
-      await subscribeFreePlan(plan.id);
-      toast.success(
-        mode === "change" ? "Plan updated" : `${BASIC_PLAN_NAME} plan activated`
-      );
-      router.push("/dashboard");
+      const result = await subscribeFreePlan(plan.id);
+      if (result?.scheduledDowngrade) {
+        toast.success(
+          `${BASIC_PLAN_NAME} will start when your current paid period ends. Paid access stays until then.`
+        );
+        router.push("/settings/billing");
+      } else {
+        toast.success(
+          mode === "change"
+            ? "Plan updated"
+            : `${BASIC_PLAN_NAME} plan activated`
+        );
+        router.push("/dashboard");
+      }
       router.refresh();
     } catch (err) {
       toast.error(err.message || "Unable to activate plan");
@@ -100,9 +117,13 @@ export function BillingPlanPicker({
     }
     setBusyId(plan.id);
     try {
+      if (checkoutMode === "atoms") {
+        router.push(`/billing/pay?planId=${encodeURIComponent(plan.id)}`);
+        return;
+      }
       const { url } = await startPaidCheckout(plan.id);
       if (url) {
-        window.location.href = url;
+        window.location.assign(url);
         return;
       }
       toast.error("No checkout URL returned");

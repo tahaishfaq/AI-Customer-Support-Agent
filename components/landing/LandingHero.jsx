@@ -146,22 +146,22 @@ export function LandingHero() {
           Deploy AI agents that work for you, 24/7.
         </h1>
 
-        <p className="landing-fade-up-delay-2 mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--landing-muted)] sm:text-base">
+        <p className="landing-fade-up-delay-2 mx-auto mt-5 hidden max-w-xl text-[15px] leading-relaxed text-[var(--landing-muted)] sm:block sm:text-base">
           AIDE helps teams build chatbots, support agents, and workflow
           automations — all in one intelligent platform.
         </p>
 
-        <div className="landing-fade-up-delay-2 mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+        <div className="landing-fade-up-delay-2 mx-auto mt-8 flex w-full max-w-[22rem] flex-row items-center justify-center gap-2 sm:max-w-none sm:gap-5">
           <Link
             href="/register"
-            className="landing-btn-ink inline-flex h-11 items-center gap-1.5 rounded-md px-6 text-sm font-medium transition-opacity hover:opacity-90"
+            className="landing-btn-ink inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-3 text-sm font-medium transition-opacity hover:opacity-90 sm:flex-none sm:gap-1.5 sm:px-6"
           >
             Get started
             <ArrowUpRight className="size-4" />
           </Link>
           <a
             href="#contact"
-            className="inline-flex h-11 items-center gap-1.5 rounded-md border border-[var(--landing-ink)]/25 bg-white px-6 text-sm font-medium text-[var(--landing-ink)] transition-colors hover:border-[var(--landing-ink)]/40 hover:bg-[#faf9f7]"
+            className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-[var(--landing-ink)]/25 bg-white px-3 text-sm font-medium text-[var(--landing-ink)] transition-colors hover:border-[var(--landing-ink)]/40 hover:bg-[#faf9f7] sm:flex-none sm:gap-1.5 sm:px-6"
           >
             Talk to sales
             <ArrowUpRight className="size-4" />
@@ -169,17 +169,17 @@ export function LandingHero() {
         </div>
         </div>
 
-      <LandingReveal className="relative z-10 mt-12 lg:mt-14">
-        <div className="landing-dot-frame grid gap-0 lg:grid-cols-[1.65fr_1fr]">
+      <LandingReveal className="relative z-10 mx-auto mt-12 w-full max-w-[46rem] lg:mt-14 lg:max-w-none">
+        <div className="landing-dot-frame mx-auto grid w-full gap-0 lg:grid-cols-[1.65fr_1fr]">
         <div className="landing-dot-b relative min-h-[300px] overflow-hidden sm:min-h-[340px] landing-dot-b-lg-none landing-dot-r-lg">
           <img
             src={HERO_IMAGE}
             alt=""
-            className="absolute inset-0 size-full object-cover"
+            className="absolute inset-0 size-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
 
-          <div className="absolute inset-x-4 bottom-4 top-auto sm:inset-x-6 sm:bottom-6 sm:top-[18%]">
+          <div className="absolute left-1/2 top-1/2 h-[min(68%,20rem)] min-h-[16rem] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 sm:bottom-6 sm:top-[18%] sm:h-auto sm:min-h-0 sm:w-[calc(100%-3rem)] sm:translate-y-0">
             <div className="landing-dot-frame mx-auto flex h-full max-w-xl flex-col overflow-hidden bg-white/95 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] backdrop-blur-md">
               <div className="landing-dot-b flex items-center gap-2 px-4 py-3">
                 <span className="inline-flex h-5 items-center rounded-full bg-black/[0.05] px-2 py-0.5">
@@ -216,19 +216,19 @@ export function LandingHero() {
           </div>
         </div>
 
-        <aside className="flex min-h-[300px] flex-col justify-between bg-[#f3f1ee] p-6 sm:min-h-[340px] sm:p-7">
+        <aside className="flex min-h-0 flex-col justify-between bg-[#f3f1ee] p-4 sm:min-h-[340px] sm:p-7">
           <div>
             <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] text-[var(--landing-muted)] uppercase">
               4.9
               <Star className="size-3 fill-[var(--landing-ink)] text-[var(--landing-ink)]" />
               Rating
             </div>
-            <blockquote className="landing-display mt-8 text-[1.35rem] leading-[1.3] text-[var(--landing-ink)] sm:text-[1.5rem]">
+            <blockquote className="landing-display mt-8 hidden text-[1.35rem] leading-[1.3] text-[var(--landing-ink)] sm:block sm:text-[1.5rem]">
               “AIDE replaced our automation workflows and gave our team
               real-time visibility across every customer touch.”
             </blockquote>
           </div>
-          <div className="mt-10 flex items-center justify-between gap-3">
+          <div className="mt-6 flex items-center justify-between gap-3 sm:mt-10">
             <div className="flex items-center gap-3">
               <span className="flex size-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white">
                 MA

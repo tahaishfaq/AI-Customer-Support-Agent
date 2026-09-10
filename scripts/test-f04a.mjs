@@ -1,5 +1,5 @@
 /**
- * F04 Phase A smoke — scope & identity locked; surface files + teal tokens present.
+ * F04 Phase A smoke — scope & identity locked; surface files + brand tokens present.
  * Run: npm run test:f04a
  */
 import fs from "node:fs";
@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 import { featureDoc } from "./lib/shipped-doc.mjs";
-
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -20,6 +19,18 @@ function read(rel) {
 
 function exists(rel) {
   return fs.existsSync(path.join(root, rel));
+}
+
+/** Current brand: orange oklch primary (landing redesign). Legacy teal hex also OK. */
+function hasAidePrimary(css) {
+  if (/--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css)) return true;
+  if (
+    /--primary:\s*oklch\(\s*0\.6717\s+0\.2205\s+37\.8105\s*\)/i.test(css) &&
+    /--color-primary:\s*var\(--primary\)/.test(css)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function main() {
@@ -43,7 +54,7 @@ function main() {
     "F04-A must name out-of-scope IA redesign + dark-mode-as-default"
   );
   assert(
-    /Teal CSS variables/i.test(f04) &&
+    /Teal CSS variables|Brand-first auth/i.test(f04) &&
       /Brand-first auth/i.test(f04) &&
       /Studio ≠ canvas|no.*canvas/i.test(f04),
     "F04-A identity guardrails"
@@ -82,33 +93,31 @@ function main() {
   }
 
   const css = read("app/globals.css");
-  // D0 redesign: light primary #0d7377 (legacy was #0b5f58); dark may use #0f766e
   assert(
-    /--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css),
-    "globals must keep Aide teal --color-primary (#0d7377 family)"
+    hasAidePrimary(css),
+    "globals must keep Aide brand --color-primary (orange oklch or legacy teal)"
   );
   assert(
     /--font-display/i.test(css) && /--font-sans/i.test(css),
     "globals must keep display + sans font tokens"
   );
   const lightPrimary =
+    css.match(/:root\s*\{[\s\S]*?--primary:\s*([^;]+)/)?.[1]?.trim() ||
     css.match(/:root\s*\{[\s\S]*?--color-primary:\s*([^;]+)/)?.[1]?.trim() ||
     "";
   assert(
-    !/#7c3aed/i.test(lightPrimary),
+    !/#7c3aed/i.test(lightPrimary) && !/purple/i.test(lightPrimary),
     "primary must not be purple"
   );
 
   const authPanel = read("components/auth/AuthVisualPanel.jsx");
   assert(
-    /Aide/i.test(authPanel) &&
-      (/--color-primary/.test(authPanel) ||
-        /#0d7377|#0b5f58/i.test(authPanel)),
-    "AuthVisualPanel should brand with Aide + primary teal"
+    /Aide/i.test(authPanel) && /--color-primary/.test(authPanel),
+    "AuthVisualPanel should brand with Aide + primary token"
   );
 
   console.log("ok  F04-A doc scope + surface files");
-  console.log("ok  teal tokens still in globals.css");
+  console.log("ok  brand primary tokens still in globals.css");
   console.log("\nF04-A smoke passed");
 }
 

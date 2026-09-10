@@ -5,6 +5,8 @@ import { originFromRequest } from "@/lib/utils/request-origin";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { safeLogError } from "@/lib/observability/safe-log";
+import prisma from "@/lib/prisma";
+import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
 
 export async function POST(request, { params }) {
   const requestId = resolveRequestId(request);
@@ -30,6 +32,21 @@ export async function POST(request, { params }) {
       });
     }
 
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { conversationId: true, conversation: { select: { agentId: true } } },
+    });
+    if (!message || message.conversation.agentId !== agent.id) {
+      return jsonError(request, 404, "Message not found");
+    }
+
+    await requirePublicConversationAccess({
+      request,
+      conversationId: message.conversationId,
+      agentId: agent.id,
+      origin: originFromRequest(request),
+    });
+
     const result = await setMessageFeedback(messageId, rating, {
       agentId: agent.id,
       reason: body.reason,
@@ -37,7 +54,7 @@ export async function POST(request, { params }) {
     return jsonOk(request, result, 200);
   } catch (error) {
     if (error.status) {
-      return jsonError(request, error.status, error.message);
+      return jsonError(request, error.status, error.message, error.details || {});
     }
     safeLogError("POST /api/public/agents/[publicKey]/feedback", {
       requestId,

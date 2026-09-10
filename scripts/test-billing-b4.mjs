@@ -46,12 +46,27 @@ async function main() {
     "subscription service must expire stale pending checkouts"
   );
   assert(
-    subscription.includes("subscription.cancel(token)"),
-    "paid→free must cancel SafePay before switching"
+    subscription.includes("BILLING_DOWNGRADE_SCHEDULED") ||
+      subscription.includes("scheduledDowngrade"),
+    "paid→Basic must schedule period-end downgrade (not immediate entitlement drop)"
+  );
+  assert(
+    subscription.includes("applyDuePeriodEndTransitions"),
+    "period-end job must apply scheduled downgrades without webhook"
   );
   assert(
     subscription.includes("Cancellation is already scheduled"),
     "cancel must reject double cancel"
+  );
+  assert(
+    subscription.includes("subscription.cancel(token)"),
+    "paid cancel/downgrade must call SafePay cancel when token present"
+  );
+  assert(
+    subscription.includes("Keep paid planId") ||
+      subscription.includes("keep paid entitlements") ||
+      subscription.includes("Period-end downgrade"),
+    "paid→Basic comment/path must keep paid entitlements until period end"
   );
 
   assert(
