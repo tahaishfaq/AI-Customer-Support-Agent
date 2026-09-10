@@ -10,7 +10,8 @@ import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { durationHeaders, durationMsSince } from "@/lib/observability/duration";
 import { safeLogError } from "@/lib/observability/safe-log";
-import { formatSseEvent, streamingChatEnabled } from "@/lib/chat/sse";
+import { streamingChatEnabled } from "@/lib/chat/sse";
+import { createChatServerStream } from "@/lib/chat/server-stream";
 
 /** Keep above OPENAI_TIMEOUT_MS (default 45s). */
 export const maxDuration = 60;
@@ -60,16 +61,8 @@ export async function POST(request, { params }) {
       (request.headers.get("accept") || "").includes("text/event-stream");
 
     if (wantsStream) {
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          const emit = (event) => {
-            controller.enqueue(
-              encoder.encode(formatSseEvent(event.type, event.data))
-            );
-          };
-          try {
-            await sendChatMessage(agentId, authResult.user.id, {
+      const stream = createChatServerStream(async ({ emit, signal }) => {
+            return sendChatMessage(agentId, authResult.user.id, {
               message: parsed.data.message,
               conversationId: parsed.data.conversationId,
               resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
@@ -79,21 +72,12 @@ export async function POST(request, { params }) {
                 request.headers.get("x-identity-token") ||
                 null,
               requestId,
-              signal: request.signal,
+              signal,
               stream: { emit },
             });
-          } catch (error) {
-            emit({
-              type: "error",
-              data: {
-                message: error.message || "Unable to process chat",
-                code: error?.details?.code || error?.code || null,
-              },
-            });
-          } finally {
-            controller.close();
-          }
-        },
+      }, {
+        signal: request.signal,
+        onError: () => safeLogError("chat stream failed", { requestId, agentId, route: "studio-chat", status: 500 }),
       });
 
       return new Response(stream, {
@@ -103,6 +87,7 @@ export async function POST(request, { params }) {
           "Cache-Control": "no-cache, no-transform",
           Connection: "keep-alive",
           "X-Accel-Buffering": "no",
+          "x-request-id": requestId,
           ...durationHeaders(started),
         },
       });

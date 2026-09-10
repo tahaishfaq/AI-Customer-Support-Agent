@@ -29,7 +29,7 @@ function testLoopStreaming() {
 function testChannelWiring() {
   const chat = read("lib/services/chat.service.js");
   assert(
-    /canTokenStream = wantStream && !publicAccess/.test(chat),
+    /canTokenStream = wantStream && Boolean\(streamEmit\)/.test(chat),
     "stream allowed with tools (studio)"
   );
   assert(/onEvent:\s*canTokenStream/.test(chat), "passes onEvent into runTurn");

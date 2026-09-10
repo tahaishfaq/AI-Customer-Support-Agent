@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Cable, ChevronRight, Play, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import {
   Tabs,
   TabsContent,
@@ -40,6 +42,8 @@ import {
   listAgentToolRuns,
   testAgentAction,
   updateAgentAction,
+  createAgentActionDraftRevision,
+  publishAgentActionRevision,
 } from "@/lib/api/actions";
 import { listAgentConfirmations } from "@/lib/api/confirmations";
 import {
@@ -51,6 +55,12 @@ import { updateAgent } from "@/lib/api/agents";
 import { ACTION_TEMPLATES } from "@/lib/actions/action-config";
 import { inferAccessClass } from "@/lib/actions/access-class";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateActionsQuery } from "@/lib/query/invalidation";
+import {
+  createAgentConnection,
+  listAgentConnections,
+} from "@/lib/api/connections";
 
 function demoOriginUrl(pathWithArg) {
   if (typeof window === "undefined") {
@@ -68,15 +78,24 @@ function schemaText(schema) {
 }
 
 function blankForm() {
-  const inputSchemaJson = { campaignId: "string" };
+  const inputSchemaJson = {};
   return {
     name: "",
     description: "",
     method: "GET",
-    urlTemplate: "http://127.0.0.1:8000/api/v1/campaigns/{{campaignId}}",
+    urlTemplate: "",
     headersJsonText: '{\n  "Accept": "application/json"\n}',
+    requestContentType: "application/json",
+    requestBodyTemplate: null,
+    requestBodyTemplateJsonText: "{}",
+    parameterBindings: null,
+    connectionId: "",
     inputSchemaJson,
     inputSchemaJsonText: schemaText(inputSchemaJson),
+    outputSchemaJson: null,
+    outputSchemaJsonText: "{}",
+    responseProjectionJson: null,
+    responseProjectionJsonText: "",
     enabled: true,
     timeoutMs: 8000,
     credentialId: "",
@@ -86,7 +105,7 @@ function blankForm() {
     identityMode: "NONE",
     accessClass: "PUBLIC_READ",
     idempotent: true,
-    testArgsText: '{\n  "campaignId": "6a7229b34a438ace7e21e325"\n}',
+    testArgsText: "{}",
   };
 }
 
@@ -104,8 +123,17 @@ function formFromTemplate(template) {
     method: template.method,
     urlTemplate,
     headersJsonText: JSON.stringify(template.headersJson || {}, null, 2),
+    requestContentType: template.requestContentType || "application/json",
+    requestBodyTemplate: template.requestBodyTemplate || null,
+    requestBodyTemplateJsonText: schemaText(template.requestBodyTemplate || {}),
+    parameterBindings: template.parameterBindings || null,
+    connectionId: template.connectionId || "",
     inputSchemaJson,
     inputSchemaJsonText: schemaText(inputSchemaJson),
+    outputSchemaJson: template.outputSchemaJson || null,
+    outputSchemaJsonText: schemaText(template.outputSchemaJson || {}),
+    responseProjectionJson: template.responseProjectionJson || null,
+    responseProjectionJsonText: (template.responseProjectionJson?.fields || []).join("\n"),
     enabled: true,
     timeoutMs: 8000,
     credentialId: "",
@@ -145,11 +173,9 @@ function formFromAction(action) {
   } else if (keys.includes("query")) {
     testArgs = { query: "Hel" };
   } else if (keys.length) {
-    testArgs = Object.fromEntries(keys.map((k) => [k, ""]));
+    testArgs = Object.fromEntries(keys.map((k) => [k, "test"]));
   }
-  const inputSchemaJson = Object.keys(schema).length
-    ? schema
-    : { campaignId: "string" };
+  const inputSchemaJson = schema;
   return {
     name: action.name,
     description: action.description,
@@ -158,8 +184,17 @@ function formFromAction(action) {
     headersJsonText: action.headersJson
       ? JSON.stringify(action.headersJson, null, 2)
       : "{}",
+    requestContentType: action.requestContentType || "application/json",
+    requestBodyTemplate: action.requestBodyTemplate || null,
+    requestBodyTemplateJsonText: schemaText(action.requestBodyTemplate || {}),
+    parameterBindings: action.parameterBindings || null,
+    connectionId: action.connectionId || "",
     inputSchemaJson,
     inputSchemaJsonText: schemaText(inputSchemaJson),
+    outputSchemaJson: action.outputSchemaJson || null,
+    outputSchemaJsonText: schemaText(action.outputSchemaJson || {}),
+    responseProjectionJson: action.responseProjectionJson || null,
+    responseProjectionJsonText: (action.responseProjectionJson?.fields || []).join("\n"),
     enabled: Boolean(action.enabled),
     timeoutMs: action.timeoutMs || 8000,
     credentialId: action.credentialId || "",
@@ -198,6 +233,14 @@ function parseJsonObject(text, label) {
   return value;
 }
 
+function parseProjectionText(text) {
+  const fields = String(text || "")
+    .split(/[\n,]/)
+    .map((field) => field.trim())
+    .filter(Boolean);
+  return fields.length ? { fields: [...new Set(fields)] } : null;
+}
+
 export function ActionsForm({
   agentId,
   agentName,
@@ -208,11 +251,27 @@ export function ActionsForm({
   onPendingCreateConsumed,
 }) {
   const [tab, setTab] = useState("http");
-  const [actions, setActions] = useState([]);
-  const [credentials, setCredentials] = useState([]);
-  const [runs, setRuns] = useState([]);
-  const [confirmations, setConfirmations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const actionsQuery = useQuery({
+    queryKey: queryKeys.actions.list(agentId),
+    queryFn: async () => {
+      const [actions, runs, credentials, confirmations, connections] = await Promise.all([
+        listAgentActions(agentId),
+        listAgentToolRuns(agentId, { take: 20 }).catch(() => []),
+        listAgentCredentials(agentId).catch(() => []),
+        listAgentConfirmations(agentId, { take: 20 }).catch(() => []),
+        listAgentConnections(agentId).catch(() => []),
+      ]);
+      return { actions, runs, credentials, confirmations, connections };
+    },
+    enabled: Boolean(agentId),
+  });
+  const actions = actionsQuery.data?.actions || [];
+  const credentials = actionsQuery.data?.credentials || [];
+  const runs = actionsQuery.data?.runs || [];
+  const confirmations = actionsQuery.data?.confirmations || [];
+  const connections = actionsQuery.data?.connections || [];
+  const loading = actionsQuery.isPending;
   const [saving, setSaving] = useState(false);
   const [killBusy, setKillBusy] = useState(false);
   const [testingId, setTestingId] = useState(null);
@@ -228,39 +287,24 @@ export function ActionsForm({
     headerName: "X-API-KEY",
   });
   const [credBusy, setCredBusy] = useState(false);
+  const [connectionBusy, setConnectionBusy] = useState(false);
+  const [connectionForm, setConnectionForm] = useState({
+    name: "",
+    baseOrigin: "",
+    environment: "sandbox",
+  });
   const [confirmState, setConfirmState] = useState(null);
   const killOn = Boolean(actionsEnabled);
 
   const activeCreds = useMemo(
-    () => credentials.filter((c) => !c.revokedAt),
-    [credentials]
+    () => (actionsQuery.data?.credentials || []).filter((c) => !c.revokedAt),
+    [actionsQuery.data?.credentials]
   );
   const primaryCred = activeCreds[0] || null;
 
-  const load = useCallback(async () => {
-    if (!agentId) return;
-    setLoading(true);
-    try {
-      const [list, recentRuns, creds, recentConfirmations] = await Promise.all([
-        listAgentActions(agentId),
-        listAgentToolRuns(agentId, { take: 20 }).catch(() => []),
-        listAgentCredentials(agentId).catch(() => []),
-        listAgentConfirmations(agentId, { take: 20 }).catch(() => []),
-      ]);
-      setActions(list);
-      setRuns(recentRuns);
-      setCredentials(creds);
-      setConfirmations(recentConfirmations);
-    } catch (err) {
-      toast.error(err.message || "Unable to load actions");
-    } finally {
-      setLoading(false);
-    }
-  }, [agentId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  async function refreshActions() {
+    await invalidateActionsQuery(queryClient, agentId);
+  }
 
   function patchForm(partial) {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -335,11 +379,25 @@ export function ActionsForm({
       });
       toast.success("API key saved");
       setCredForm((p) => ({ ...p, secret: "" }));
-      await load();
+      await refreshActions();
     } catch (err) {
       toast.error(err.message || "Unable to save API key");
     } finally {
       setCredBusy(false);
+    }
+  }
+
+  async function handleCreateConnection() {
+    setConnectionBusy(true);
+    try {
+      await createAgentConnection(agentId, connectionForm);
+      toast.success("Connected system saved");
+      setConnectionForm({ name: "", baseOrigin: "", environment: "sandbox" });
+      await refreshActions();
+    } catch (err) {
+      toast.error(err.message || "Unable to save connected system");
+    } finally {
+      setConnectionBusy(false);
     }
   }
 
@@ -353,7 +411,7 @@ export function ActionsForm({
         try {
           await revokeAgentCredential(agentId, cred.id);
           toast.success("API key revoked");
-          await load();
+          await refreshActions();
         } catch (err) {
           toast.error(err.message || "Unable to revoke key");
           throw err;
@@ -382,19 +440,34 @@ export function ActionsForm({
     setSaving(true);
     try {
       const headersJson = parseJsonObject(form.headersJsonText, "Headers");
+      const requestBodyTemplate = parseJsonObject(
+        form.requestBodyTemplateJsonText,
+        "Request body"
+      );
       const inputSchemaJson =
         parseJsonObject(form.inputSchemaJsonText, "Inputs") ||
         form.inputSchemaJson ||
         {};
+      const outputSchemaJson =
+        parseJsonObject(form.outputSchemaJsonText, "Output schema") || null;
+      const responseProjectionJson = parseProjectionText(
+        form.responseProjectionJsonText
+      );
       const payload = {
         name: form.name,
         description: form.description,
         method: form.method,
         urlTemplate: form.urlTemplate.trim(),
         headersJson,
+        requestContentType: form.requestContentType || "application/json",
+        requestBodyTemplate,
+        parameterBindings: form.parameterBindings || null,
+        connectionId: form.connectionId || null,
         enabled: form.enabled,
         timeoutMs: Number(form.timeoutMs) || 8000,
         inputSchemaJson,
+        outputSchemaJson,
+        responseProjectionJson,
         credentialId: form.credentialId || null,
         riskLevel: form.riskLevel || "READ",
         requiresConfirmation: Boolean(form.requiresConfirmation),
@@ -406,7 +479,11 @@ export function ActionsForm({
         idempotent: form.idempotent !== false,
       };
 
-      if (editingId) {
+      const editingAction = actions.find((action) => action.id === editingId);
+      if (editingId && editingAction?.publishedRevisionId) {
+        await createAgentActionDraftRevision(agentId, editingId, payload);
+        toast.success("Draft revision saved. Publish it when ready.");
+      } else if (editingId) {
         const updated = await updateAgentAction(agentId, editingId, payload);
         const saved = updated?.id ? updated : updated?.action || payload;
         toast.success("HTTP tool updated");
@@ -431,7 +508,7 @@ export function ActionsForm({
       }
       setTestResult(null);
       setEditorOpen(true);
-      await load();
+      await refreshActions();
     } catch (err) {
       const detail = Object.values(err.details || {}).find(Boolean);
       toast.error(
@@ -456,7 +533,7 @@ export function ActionsForm({
           if (editingId === action.id) {
             closeEditor();
           }
-          await load();
+          await refreshActions();
         } catch (err) {
           toast.error(err.message || "Unable to delete action");
           throw err;
@@ -468,9 +545,27 @@ export function ActionsForm({
   async function handleToggle(action) {
     try {
       await updateAgentAction(agentId, action.id, { enabled: !action.enabled });
-      await load();
+      await refreshActions();
     } catch (err) {
       toast.error(err.message || "Unable to update action");
+    }
+  }
+
+  async function handlePublish(action) {
+    setSaving(true);
+    try {
+      const draft = action.currentDraftRevisionId
+        ? { id: action.currentDraftRevisionId }
+        : await createAgentActionDraftRevision(agentId, action.id, {});
+      const revisionId = draft?.id || draft?.revision?.id;
+      if (!revisionId) throw new Error("Draft revision was not created");
+      await publishAgentActionRevision(agentId, action.id, revisionId);
+      toast.success("HTTP tool published");
+      await refreshActions();
+    } catch (err) {
+      toast.error(err.message || "Unable to publish HTTP tool");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -478,23 +573,28 @@ export function ActionsForm({
     setTestingId(action.id);
     setTestResult(null);
     try {
+      const schema =
+        action.inputSchemaJson &&
+        typeof action.inputSchemaJson === "object" &&
+        !Array.isArray(action.inputSchemaJson)
+          ? action.inputSchemaJson
+          : {};
+      const fallbackArgs = Object.fromEntries(
+        Object.keys(schema).map((key) => [key, "test"])
+      );
+      const templateArgs =
+        ACTION_TEMPLATES.find((t) => t.name === action.name)?.testArgs ||
+        fallbackArgs;
       const argsSource =
         editingId === action.id
           ? form.testArgsText
-          : JSON.stringify(
-              ACTION_TEMPLATES.find((t) => t.name === action.name)?.testArgs ||
-                {},
-              null,
-              2
-            );
+          : JSON.stringify(templateArgs, null, 2);
       const args = parseJsonObject(argsSource, "Test args") || {};
       const data = await testAgentAction(agentId, action.id, args);
       setTestResult(data.result);
       if (data.result?.ok) toast.success("Action test ok");
       else toast.error(data.result?.bodyText || "Action test failed");
-      listAgentToolRuns(agentId, { take: 20 })
-        .then(setRuns)
-        .catch(() => {});
+      await refreshActions();
     } catch (err) {
       toast.error(err.message || "Unable to test action");
     } finally {
@@ -523,11 +623,68 @@ export function ActionsForm({
         </TabsList>
 
         <TabsContent value="integrations" className="mt-4">
-          <EmptyState
-            icon={Cable}
-            title="Channel integrations coming soon"
-            description="WhatsApp, Slack, Monday, Jira, and other connectors will land here. Business starter packs are under Customization → Packs. Use HTTP tools for live APIs now."
-          />
+          <FormSection title="Connected systems">
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground">
+                Save an API origin once, then select it from multiple HTTP tools.
+                Destination and credential checks stay server-side.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1.5fr_9rem_auto]">
+                <Input
+                  value={connectionForm.name}
+                  onChange={(event) =>
+                    setConnectionForm((current) => ({ ...current, name: event.target.value }))
+                  }
+                  placeholder="brandly_api"
+                  aria-label="Connected system name"
+                  disabled={connectionBusy}
+                />
+                <select
+                  value={connectionForm.environment}
+                  onChange={(event) =>
+                    setConnectionForm((current) => ({ ...current, environment: event.target.value }))
+                  }
+                  className="flex h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  aria-label="Connected system environment"
+                  disabled={connectionBusy}
+                >
+                  <option value="sandbox">Sandbox</option>
+                  <option value="production">Production</option>
+                </select>
+                <Input
+                  value={connectionForm.baseOrigin}
+                  onChange={(event) =>
+                    setConnectionForm((current) => ({ ...current, baseOrigin: event.target.value }))
+                  }
+                  placeholder="https://api.example.com"
+                  aria-label="Connected system base origin"
+                  disabled={connectionBusy}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleCreateConnection}
+                  disabled={connectionBusy || !connectionForm.name.trim() || !connectionForm.baseOrigin.trim()}
+                >
+                  {connectionBusy ? <Spinner data-icon="inline-start" /> : null}
+                  Save system
+                </Button>
+              </div>
+              {connections.length ? (
+                <ul className="mt-4 space-y-2 border-t border-border pt-3">
+                  {connections.map((connection) => (
+                    <li key={connection.id} className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-medium">{connection.name}</span>
+                      <span className="text-muted-foreground">{connection.environment}</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
+                        {connection.currentRevision?.baseOrigin || "No origin"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </FormSection>
         </TabsContent>
 
         <TabsContent value="mcp" className="mt-4">
@@ -567,6 +724,148 @@ export function ActionsForm({
               </Button>
             </div>
           </div>
+
+          <FormSection title="API credentials">
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <p className="text-xs text-muted-foreground">
+                Store a server-side credential once, then attach it to a tool
+                from the Auth tab. Secrets are encrypted and never shown
+                again.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1.5 text-xs font-medium">
+                  Name
+                  <Input
+                    value={credForm.name}
+                    onChange={(event) =>
+                      setCredForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="aide_local_test"
+                    disabled={credBusy}
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-medium">
+                  Authentication
+                  <select
+                    value={credForm.type}
+                    onChange={(event) =>
+                      setCredForm((current) => ({
+                        ...current,
+                        type: event.target.value,
+                      }))
+                    }
+                    className="flex h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                    disabled={credBusy}
+                  >
+                    <option value="API_KEY_HEADER">API key header</option>
+                    <option value="BEARER">Bearer token</option>
+                  </select>
+                </label>
+                {credForm.type === "API_KEY_HEADER" ? (
+                  <label className="grid gap-1.5 text-xs font-medium">
+                    Header name
+                    <Input
+                      value={credForm.headerName}
+                      onChange={(event) =>
+                        setCredForm((current) => ({
+                          ...current,
+                          headerName: event.target.value,
+                        }))
+                      }
+                      placeholder="X-AIDE-API-KEY"
+                      disabled={credBusy}
+                    />
+                  </label>
+                ) : null}
+                <label className="grid gap-1.5 text-xs font-medium">
+                  Secret
+                  <Input
+                    type="password"
+                    value={credForm.secret}
+                    onChange={(event) =>
+                      setCredForm((current) => ({
+                        ...current,
+                        secret: event.target.value,
+                      }))
+                    }
+                    placeholder="Paste the API secret"
+                    disabled={credBusy}
+                    autoComplete="new-password"
+                  />
+                </label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleCreateCredential}
+                  disabled={credBusy || !credForm.name.trim() || !credForm.secret}
+                >
+                  {credBusy ? <Spinner data-icon="inline-start" /> : null}
+                  Save credential
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Attach it later from HTTP tool → Auth.
+                </span>
+              </div>
+              {activeCreds.length > 0 ? (
+                <div className="mt-4 space-y-2 border-t border-border pt-3">
+                  <p className="text-xs font-medium">Saved credentials</p>
+                  {activeCreds.map((credential) => (
+                    <div
+                      key={credential.id}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {credential.name}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {credential.type === "API_KEY_HEADER"
+                          ? credential.headerName || "API key header"
+                          : "Bearer token"}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-destructive"
+                        onClick={() => handleRevoke(credential)}
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </FormSection>
+
+          <FormSection title="Starter actions">
+            <p className="mb-3 text-xs text-muted-foreground">
+              Start from a safe template, then review access, response fields, and test inputs.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {ACTION_TEMPLATES.slice(0, 6).map((template) => (
+                <Button
+                  key={template.id}
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-start whitespace-normal px-3 py-2 text-left"
+                  onClick={() => openCreate(template)}
+                >
+                  <span>
+                    <span className="block text-xs font-medium">{template.label || template.name}</span>
+                    <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                      {template.description || "Review this starter before saving."}
+                    </span>
+                  </span>
+                </Button>
+              ))}
+            </div>
+          </FormSection>
 
           {loading ? (
             <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
@@ -660,6 +959,11 @@ export function ActionsForm({
                             Confirm
                           </Badge>
                         ) : null}
+                        {action.currentDraftRevisionId ? (
+                          <Badge variant="secondary" className="rounded-full text-[10px]">
+                            Draft ready
+                          </Badge>
+                        ) : null}
                       </div>
                       <CardDescription className="mt-1 line-clamp-2">
                         {action.description || "No description"}
@@ -698,6 +1002,21 @@ export function ActionsForm({
                       )}
                       Test
                     </Button>
+                    {!action.publishedRevisionId ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="default"
+                        disabled={saving || !killOn}
+                        onClick={() => handlePublish(action)}
+                      >
+                        Publish
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="ml-auto rounded-full">
+                        Published
+                      </Badge>
+                    )}
                     <Button
                       type="button"
                       size="sm"
@@ -874,6 +1193,7 @@ export function ActionsForm({
             editorTab={editorTab}
             onEditorTabChange={setEditorTab}
             activeCreds={activeCreds}
+            connections={connections}
             saving={saving}
             onSave={handleSave}
             onDelete={

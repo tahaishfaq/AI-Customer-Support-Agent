@@ -15,12 +15,13 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { generateTestQuestions, sendChatMessage, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { generateTestQuestions, sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { useChatActivity } from "@/hooks/use-chat-activity";
 import {
   isConversationLimitError,
 } from "@/components/billing/BillingPlansUsage";
 import { refreshConversationQuota } from "@/hooks/use-conversation-quota";
-import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
+import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
@@ -260,6 +261,7 @@ export function AgentTestStudio({ agent }) {
   const isWideLayout = useMinWidth(1280);
   const conversationIdRef = useRef(null);
   const sendingRef = useRef(false);
+  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
   const runRef = useRef({ status: "idle", index: 0, queue: [] });
   const runActive = runStatus === "running" || runStatus === "paused";
   const sessionLogEntries = useMemo(
@@ -285,6 +287,9 @@ export function AgentTestStudio({ agent }) {
   }
 
   const resetThread = useCallback(() => {
+    clearActivities();
+    sendingRef.current = false;
+    setSending(false);
     runRef.current.status = "stopped";
     setRunStatus((current) =>
       current === "running" || current === "paused" ? "stopped" : current
@@ -297,7 +302,7 @@ export function AgentTestStudio({ agent }) {
     setLastPrompt("");
     setPauseReason("");
     setChatExtras([]);
-  }, [agent]);
+  }, [agent, clearActivities]);
 
   async function send(text, meta = {}) {
     const prompt = text.trim();
@@ -308,17 +313,31 @@ export function AgentTestStudio({ agent }) {
     setSending(true);
     setError("");
     setLastPrompt(prompt);
+    const activityRequest = beginActivity();
     const optimisticId = `local-user-${Date.now()}`;
+    const streamingId = `streaming-assistant-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: prompt, local: true },
     ]);
 
     try {
-      const result = await sendChatMessage(agent.id, {
+      const result = await sendChatMessageStream(agent.id, {
+        signal: activityRequest.controller.signal,
         message: prompt,
         conversationId: conversationIdRef.current || undefined,
+        onTool: data => receiveActivity(activityRequest, data),
+        onDelta: delta => {
+          if (!isCurrentActivity(activityRequest)) return;
+          setMessages(previous => {
+            if (previous.some(item => item.id === streamingId)) {
+              return previous.map(item => item.id === streamingId ? { ...item, content: `${item.content}${delta}` } : item);
+            }
+            return [...previous, { id: streamingId, role: "ASSISTANT", content: delta, streaming: true }];
+          });
+        },
       });
+      if (!isCurrentActivity(activityRequest)) return { ok: false, reason: "Conversation changed" };
       conversationIdRef.current = result.conversationId;
       setConversationId(result.conversationId);
       refreshConversationQuota();
@@ -326,7 +345,7 @@ export function AgentTestStudio({ agent }) {
       const toolSteps = result.toolSteps || [];
       const pendingConfirmations = result.pendingConfirmations || [];
       setMessages((prev) => {
-        const withoutOptimistic = prev.filter((m) => m.id !== optimisticId);
+        const withoutOptimistic = prev.filter((m) => m.id !== optimisticId && m.id !== streamingId);
         return [
           ...withoutOptimistic,
           {
@@ -351,6 +370,7 @@ export function AgentTestStudio({ agent }) {
       });
       setHistoryKey((k) => k + 1);
       setSending(false);
+      clearActivities();
       sendingRef.current = false;
       if (customization.features.notificationSound) {
         playNotificationBeep();
@@ -392,7 +412,9 @@ export function AgentTestStudio({ agent }) {
       }
       return { ok: true };
     } catch (err) {
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      if (!isCurrentActivity(activityRequest)) return { ok: false, reason: "Conversation changed" };
+      clearActivities();
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId && m.id !== streamingId));
       const status = err.status;
       const limit = isConversationLimitError(err);
       const message = limit
@@ -441,6 +463,7 @@ export function AgentTestStudio({ agent }) {
   }
 
   async function handleConfirmDecision(confirmation, decision) {
+    if (activityBusy()) throw new Error("Wait for the current response to finish.");
     const cid =
       confirmation.conversationId ||
       conversationIdRef.current ||
@@ -448,11 +471,17 @@ export function AgentTestStudio({ agent }) {
     if (!cid || !confirmation?.id) {
       throw new Error("Missing conversation");
     }
+    const activityRequest = beginActivity();
+    const streamingId = `confirmation-stream-${Date.now()}`;
+    setSending(true);
+    sendingRef.current = true;
+    try {
     const updated = await resolveConversationConfirmation(
       cid,
       confirmation.id,
       decision
     );
+    if (!isCurrentActivity(activityRequest)) return;
     setMessages((prev) =>
       prev.map((m) => ({
         ...m,
@@ -476,10 +505,16 @@ export function AgentTestStudio({ agent }) {
         const result = await resumeChatAfterConfirmation(agent.id, {
           conversationId: cid,
           confirmationId: confirmation.id,
+          signal: activityRequest.controller.signal,
+          onTool: data => receiveActivity(activityRequest, data),
+          onDelta: delta => {
+            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
+          },
         });
+        if (!isCurrentActivity(activityRequest)) return;
         conversationIdRef.current = result.conversationId;
         setConversationId(result.conversationId);
-        setMessages((prev) => mergeAssistantReply(prev, result));
+        setMessages((prev) => mergeAssistantReply(prev.filter(message => message.id !== streamingId), result));
         setHistoryKey((k) => k + 1);
         if (customization.features.notificationSound && result.message) {
           playNotificationBeep();
@@ -488,9 +523,16 @@ export function AgentTestStudio({ agent }) {
           setError("Generation failed — Try again");
         }
       } catch (err) {
+        if (!isCurrentActivity(activityRequest)) return;
         setError(err.message || "Unable to continue after approval");
         throw err;
-      } finally {
+      }
+    }
+
+    } finally {
+      if (isCurrentActivity(activityRequest)) {
+        setMessages(previous => previous.filter(message => message.id !== streamingId));
+        clearActivities();
         setSending(false);
         sendingRef.current = false;
       }
@@ -700,12 +742,17 @@ export function AgentTestStudio({ agent }) {
       activeId={conversationId}
       refreshKey={historyKey}
       onSelect={async (id) => {
+        clearActivities();
+        const version = activityVersion();
+        sendingRef.current = false;
+        setSending(false);
         setHistoryOpen(false);
         setConversationId(id);
         conversationIdRef.current = id;
         setError("");
         try {
           const data = await getConversation(id);
+          if (version !== activityVersion()) return;
           setMessages(
             (data.messages || []).map((m) => ({
               id: m.id,
@@ -716,6 +763,7 @@ export function AgentTestStudio({ agent }) {
             }))
           );
         } catch (err) {
+          if (version !== activityVersion()) return;
           setError(err.message || "Unable to open conversation");
         }
       }}
@@ -731,6 +779,7 @@ export function AgentTestStudio({ agent }) {
         <MessageList
           messages={messages}
           loading={sending}
+          activeActivities={activeActivities}
           compact={false}
           themed
           showFeedback={customization.features.messageFeedback}

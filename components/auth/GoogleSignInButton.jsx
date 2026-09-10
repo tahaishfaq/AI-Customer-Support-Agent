@@ -92,9 +92,12 @@ export function GoogleSignInButton({
   const onErrorRef = useRef(onError);
   const onSuccessRef = useRef(onSuccess);
   const loginRef = useRef(loginWithGoogle);
-  onErrorRef.current = onError;
-  onSuccessRef.current = onSuccess;
-  loginRef.current = loginWithGoogle;
+
+  useLayoutEffect(() => {
+    onErrorRef.current = onError;
+    onSuccessRef.current = onSuccess;
+    loginRef.current = loginWithGoogle;
+  }, [loginWithGoogle, onError, onSuccess]);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const label = labelFor(text);

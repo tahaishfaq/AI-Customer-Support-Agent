@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bot,
   Clock,
@@ -18,6 +18,7 @@ import {
 } from "@/components/motion/soft-motion";
 import { cn } from "@/lib/utils";
 import { selectionChipClass } from "@/lib/ui/selection-chip";
+import { queryKeys } from "@/lib/query/keys";
 
 export const ANALYTICS_RANGES = [
   { id: "1d", label: "Today" },
@@ -152,47 +153,24 @@ export function useAnalyticsDashboard({
   agentId,
   range,
   loader,
+  scope = "workspace",
   enabled = true,
   keepPrevious = true,
 }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    if (!enabled) return undefined;
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const dashboard = loader
-          ? await loader({ agentId, range })
-          : await getDashboard({ agentId, range });
-        if (!cancelled) setData(dashboard);
-      } catch (err) {
-        if (!cancelled) {
-          if (!keepPrevious) setData(null);
-          setError(err.message || "Unable to load analytics");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [agentId, range, loader, enabled, keepPrevious, reloadKey]);
+  const query = useQuery({
+    queryKey: queryKeys.analytics.dashboard({ scope, agentId, range }),
+    queryFn: () =>
+      loader ? loader({ agentId, range }) : getDashboard({ agentId, range }),
+    enabled,
+    staleTime: 60_000,
+    placeholderData: keepPrevious ? (previous) => previous : undefined,
+  });
 
   return {
-    data,
-    loading,
-    error,
-    reload: () => setReloadKey((k) => k + 1),
+    data: query.data ?? null,
+    loading: query.isPending,
+    error: query.error?.message || "",
+    reload: query.refetch,
   };
 }
 

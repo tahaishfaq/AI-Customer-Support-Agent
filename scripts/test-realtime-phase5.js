@@ -107,10 +107,12 @@ assert.doesNotMatch(chatService, /checkoutReference.*payload/);
 
 const gateway = fs.readFileSync(new URL("../realtime-gateway/attach.js", import.meta.url), "utf8");
 const quotaHook = fs.readFileSync(new URL("../hooks/use-conversation-quota.js", import.meta.url), "utf8");
+const queryProvider = fs.readFileSync(new URL("../components/query/QueryProvider.jsx", import.meta.url), "utf8");
 assert.match(gateway, /parseOwnerBusinessEvent/);
 assert.match(gateway, /isOwnerBusinessEventType/);
-assert.match(quotaHook, /lastRealtimeVersions/);
-assert.match(quotaHook, /aggregateVersion/);
-assert.match(quotaHook, /setInterval\(onRefreshEvent, 60_000\)/);
+assert.match(queryProvider, /BILLING_SUBSCRIPTION_UPDATED/);
+assert.match(queryProvider, /BILLING_QUOTA_UPDATED/);
+assert.match(quotaHook, /refetchInterval/);
+assert.match(quotaHook, /REALTIME_CLIENT_STATUS.CONNECTED/);
 
 console.log("Phase 5.0 billing and owner-event contracts passed");

@@ -24,7 +24,7 @@ module.exports = defineConfig({
     ...devices["Desktop Chrome"],
   },
   webServer: {
-    command: `NODE_ENV=production PORT=${port} REALTIME_URL=http://127.0.0.1:${port} REALTIME_ALLOWED_ORIGINS=http://127.0.0.1:${port} REALTIME_STREAM_NAME=${realtimeStream} REALTIME_CONSUMER_GROUP=${realtimeConsumerGroup} REALTIME_CONSUMER_NAME=${realtimeConsumerName} npm run start`,
+    command: `NODE_ENV=production PORT=${port} REALTIME_URL=http://127.0.0.1:${port} REALTIME_ALLOWED_ORIGINS=http://127.0.0.1:${port},http://localhost:${port},http://0.0.0.0:${port} REALTIME_STREAM_NAME=${realtimeStream} REALTIME_CONSUMER_GROUP=${realtimeConsumerGroup} REALTIME_CONSUMER_NAME=${realtimeConsumerName} npm run start`,
     url: `http://127.0.0.1:${port}/readyz`,
     reuseExistingServer: false,
     timeout: 120_000,

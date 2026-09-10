@@ -51,7 +51,7 @@ function main() {
   );
 
   const shared = read("components/analytics/analytics-shared.jsx");
-  assert(/reloadKey/.test(shared) && /reload:/.test(shared), "analytics reload");
+  assert(/reload:\s*query\.refetch/.test(shared), "analytics reload");
   assert(/onRetry/.test(shared), "AnalyticsError onRetry");
 
   const workspace = read("components/analytics/WorkspaceAnalytics.jsx");
@@ -62,7 +62,10 @@ function main() {
   assert(/onRetry=\{reload\}/.test(admin), "admin analytics retry");
 
   const dash = read("app/(app)/dashboard/page.jsx");
-  assert(/InlineAlert/.test(dash) && /reloadKey/.test(dash), "dashboard retry");
+  assert(
+    /InlineAlert/.test(dash) && /overviewQuery\.refetch/.test(dash),
+    "dashboard retry"
+  );
 
   const inbox = read("components/conversations/ConversationsShell.jsx");
   assert(/Try again/.test(inbox) && /reloadKey/.test(inbox), "inbox retry");

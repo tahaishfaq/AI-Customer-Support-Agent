@@ -1,52 +1,41 @@
 "use client";
 
-import { Check, CircleAlert, LoaderCircle } from "lucide-react";
+import { Check, CircleAlert, Pause } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { activityLabel, normalizeActivityEvent } from "@/lib/chat/activity-state";
 import { cn } from "@/lib/utils";
 
-const LABELS = {
-  knowledge: "Checking the knowledge base",
-  http: "Checking your connected service",
-  mcp: "Checking connected tools",
-  web_search: "Searching the web",
-  hybrid: "Comparing store and online information",
-};
-
-function labelFor(activity) {
-  return activity?.label || LABELS[activity?.mode] || "Working on your request";
-}
-
-export function AgentActivityBubble({ activities = [], compact = false }) {
-  if (!activities.length) return null;
-  const active = activities.find((item) => item.phase === "running" || item.phase === "selected");
+export function AgentActivityBubble({ activities = [], compact = false, themed = false }) {
+  const visible = activities.filter(item => normalizeActivityEvent(item) && item.mode !== "preparation");
+  if (!visible.length) return null;
 
   return (
     <div
       className={cn(
-        "flex w-full items-start gap-2 rounded-xl border px-3 py-2 text-[12px]",
-        "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
+        "flex w-full min-w-0 flex-col gap-1 rounded-xl border px-3 py-2 text-xs",
         compact ? "max-w-full" : "max-w-md"
       )}
+      style={{
+        borderColor: themed ? "var(--wc-border)" : "var(--color-border)",
+        background: themed ? "var(--wc-shell)" : "var(--color-surface)",
+        color: themed ? "var(--wc-shell-fg)" : "var(--color-text)",
+      }}
       role="status"
       aria-live="polite"
+      aria-atomic="true"
+      data-testid="agent-activity"
     >
-      {active ? (
-        <LoaderCircle className="mt-0.5 size-3.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      ) : (
-        <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-[var(--color-text)]">
-          {active ? labelFor(active) : "Completed checks"}
-        </p>
-        {activities.length > 1 ? (
-          <p className="mt-0.5 truncate text-[11px]">
-            {activities.map(labelFor).join(" · ")}
-          </p>
-        ) : null}
-      </div>
-      {activities.some((item) => item.phase === "failed") ? (
-        <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-label="Some checks failed" />
-      ) : null}
+      {visible.map(item => {
+        const running = ["selected", "validating", "running"].includes(item.phase);
+        const paused = ["needs_confirmation", "needs_identity", "cancelled"].includes(item.phase);
+        const Icon = running ? Spinner : paused ? Pause : item.phase === "failed" ? CircleAlert : Check;
+        return (
+          <div key={item.activityId} className="flex min-w-0 items-start gap-2" data-phase={item.phase}>
+            <Icon className="mt-0.5 size-3.5 shrink-0 motion-reduce:animate-none" aria-hidden="true" role="presentation" />
+            <span className="min-w-0 break-words">{activityLabel(item)}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

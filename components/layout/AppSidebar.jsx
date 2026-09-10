@@ -173,20 +173,24 @@ export function AppSidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "flex h-12 w-full min-w-0 items-center gap-2 rounded-lg px-3 text-left outline-none transition-[gap,padding,width] duration-300 ease-[var(--ease-ui)] focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              "relative flex h-12 w-full min-w-0 items-center overflow-visible rounded-lg px-3 text-left outline-none transition-colors duration-300 ease-[var(--ease-ui)] focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               !collapsed && "hover:bg-sidebar-accent",
-              collapsed && "justify-center gap-0 px-0"
             )}
             aria-label="Open account menu"
           >
-            <Avatar size="sm" className="shrink-0">
+            <Avatar
+              size="sm"
+              className={cn(
+                "absolute top-1/2 left-0 z-10 h-6 w-6 shrink-0 -translate-y-1/2"
+              )}
+            >
               <AvatarFallback className="bg-primary text-[11px] font-semibold text-primary-foreground">
                 {initials(user?.name)}
               </AvatarFallback>
             </Avatar>
             <span
               className={cn(
-                "min-w-0 flex-1 transition-[opacity,width] duration-200",
+                "ml-10 min-w-0 flex-1 transition-[opacity,width] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
                 collapsed && "pointer-events-none w-0 flex-none opacity-0"
               )}
             >
@@ -200,6 +204,7 @@ export function AppSidebar() {
             <ChevronUp
               className={cn(
                 "size-4 shrink-0 text-sidebar-foreground/60 transition-opacity duration-200",
+                "ml-auto",
                 collapsed && "w-0 opacity-0"
               )}
             />

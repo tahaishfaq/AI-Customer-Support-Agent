@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Search, Users } from "lucide-react";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query/keys";
 
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
@@ -105,12 +107,16 @@ export function AdminUsersDirectory() {
   const page = parsePage(searchParams.get("page"));
 
   const [qInput, setQInput] = useState(q);
-  const [users, setUsers] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
+  const usersQuery = useQuery({
+    queryKey: queryKeys.admin.users({ q, status, role, page, pageSize: 20 }),
+    queryFn: () => listAdminUsers({ q, status, role, page, pageSize: 20 }),
+    placeholderData: (previous) => previous,
+  });
+  const users = usersQuery.data?.users || [];
+  const total = usersQuery.data?.total || 0;
+  const totalPages = usersQuery.data?.totalPages || 1;
+  const loading = usersQuery.isPending;
+  const error = usersQuery.error?.message || "";
 
   useEffect(() => {
     setQInput(q);
@@ -141,37 +147,10 @@ export function AdminUsersDirectory() {
   }, [qInput, q, replaceQuery]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const result = await listAdminUsers({
-          q,
-          status,
-          role,
-          page,
-          pageSize: 20,
-        });
-        if (cancelled) return;
-        setUsers(result.users);
-        setTotal(result.total);
-        setTotalPages(result.totalPages);
-        if (result.totalPages > 0 && page > result.totalPages) {
-          replaceQuery({
-            page: result.totalPages === 1 ? null : result.totalPages,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Unable to load users");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [q, status, role, page, replaceQuery, reloadKey]);
+    if (totalPages > 0 && page > totalPages) {
+      replaceQuery({ page: totalPages === 1 ? null : totalPages });
+    }
+  }, [page, replaceQuery, totalPages]);
 
   const rangeStart = total === 0 ? 0 : (page - 1) * 20 + 1;
   const rangeEnd = Math.min(page * 20, total);
@@ -272,7 +251,7 @@ export function AdminUsersDirectory() {
       {error ? (
         <InlineAlert
           className="mt-4"
-          onRetry={() => setReloadKey((n) => n + 1)}
+          onRetry={() => usersQuery.refetch()}
         >
           {error}
         </InlineAlert>

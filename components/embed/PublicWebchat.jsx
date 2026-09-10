@@ -29,10 +29,12 @@ import { cn } from "@/lib/utils";
 import { formatRelative } from "@/components/conversations/format";
 import { resolvePublicConfirmation } from "@/lib/api/confirmations";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
-import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
+import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
 import { resumePublicChatAfterConfirmation, sendPublicChatMessageStream } from "@/lib/api/chat";
 import { useEmbedDesk } from "@/hooks/use-embed-desk";
 import { usePublicRealtime } from "@/hooks/use-public-realtime";
+import { useChatActivity } from "@/hooks/use-chat-activity";
+import { useEmbedFrame } from "@/hooks/use-embed-frame";
 import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 
 import { DESK_WAIT_TIMEOUT_MESSAGE } from "@/lib/desk/conversation-desk";
@@ -99,7 +101,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const [csatBusy, setCsatBusy] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedText, setLastFailedText] = useState("");
-  const [activeActivities, setActiveActivities] = useState([]);
+  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
+  const setDeskMessages = useCallback((next) => {
+    if (!activityBusy()) setMessages(next);
+  }, [activityBusy]);
   const [publicRealtimeConnected, setPublicRealtimeConnected] = useState(false);
   const [realtimeAccessToken, setRealtimeAccessToken] = useState(null);
   /** F14-C — host setUser session (subject / accessToken / displayName). */
@@ -146,7 +151,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     agent,
     conversationId,
     messages,
-    setMessages,
+    setMessages: setDeskMessages,
+    messageBusy: activityBusy,
+    messageVersion: activityVersion,
     realtimeConnected: publicRealtimeConnected,
     realtimeAccessToken,
   });
@@ -274,6 +281,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   const restoreActiveSession = useCallback(
     async (userSubject = null, { preserveInMemory = false } = {}) => {
+      if (activityBusy()) return;
+      const version = activityVersion();
       const subject =
         typeof userSubject === "string" && userSubject.trim()
           ? userSubject.trim()
@@ -309,6 +318,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
+        if (activityBusy() || version !== activityVersion()) return;
         applyDeskState(data);
         if (data.handoffAt) setHandoffAt(data.handoffAt);
         if (Array.isArray(data.messages) && data.messages.length) {
@@ -326,7 +336,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         // keep welcome until next send
       }
     },
-    [agent, historyEnabled, resetMode, applyDeskState]
+    [agent, historyEnabled, resetMode, applyDeskState, activityBusy, activityVersion]
   );
 
   const bindOrRestoreUserSession = useCallback(
@@ -474,8 +484,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     deploy.proactiveEnabled &&
     (deploy.proactiveMessage || "Hi! Need help?");
 
+  const frameLayout = useEmbedFrame({
+    enabled: isFloatingEmbed, open: widgetOpen, proactive: Boolean(proactive),
+    customLauncher: deploy.chatLauncher === "custom", position: widgetPosition, parentOrigin,
+  });
+
   const postFrame = useCallback(() => {
-    if (!bubbleMode || window.parent === window) return;
+    if (!bubbleMode || isFloatingEmbed || window.parent === window) return;
     const host = hostRef.current;
     const el = host?.firstElementChild ?? host;
     if (!el) return;
@@ -498,23 +513,24 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       },
       parentOrigin || "*"
     );
-  }, [bubbleMode, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
 
   useLayoutEffect(() => {
-    if (!bubbleMode) return undefined;
+    if (!bubbleMode || isFloatingEmbed) return undefined;
     postFrame();
     const id = requestAnimationFrame(() => postFrame());
     return () => cancelAnimationFrame(id);
-  }, [bubbleMode, widgetOpen, historyOpen, proactive, postFrame]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, historyOpen, proactive, postFrame]);
 
   useEffect(() => {
+    if (isFloatingEmbed) return undefined;
     postFrame();
     const el = hostRef.current;
     if (!el || typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver(() => postFrame());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [postFrame]);
+  }, [postFrame, isFloatingEmbed]);
 
   const persist = useCallback(
     (nextId, nextMessages) => {
@@ -541,12 +557,12 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   );
 
   async function send(text) {
-    if (sending) return;
+    if (sending || activityBusy()) return;
     unlockNotificationAudio();
     setSending(true);
     setError("");
     setLastFailedText("");
-    setActiveActivities([]);
+    const activityRequest = beginActivity();
     setHistoryOpen(false);
     const optimisticId = `local-${Date.now()}`;
     const streamingId = `streaming-assistant-${Date.now()}`;
@@ -564,11 +580,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
             }
           : undefined;
       const data = await sendPublicChatMessageStream(agent.publicKey, {
+        signal: activityRequest.controller.signal,
         message: text,
         conversationId: conversationId || undefined,
         userSession,
         realtimeAccessToken: realtimeAccessTokenRef.current,
         onDelta: (delta) => {
+          if (!isCurrentActivity(activityRequest)) return;
           setMessages((prev) => {
             const existing = prev.find((item) => item.id === streamingId);
             if (existing) {
@@ -585,14 +603,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           });
         },
         onTool: (activity) => {
-          if (activity?.kind !== "agent_activity") return;
-          setActiveActivities((previous) => [
-            ...previous.filter((item) => item.activityId !== activity.activityId),
-            activity,
-          ]);
+          receiveActivity(activityRequest, activity);
         },
       });
-      setActiveActivities([]);
+      if (!isCurrentActivity(activityRequest)) return;
       setConversationId(data.conversationId);
       rememberRealtimeAccess(data.conversationId, data.realtimeAccessToken);
       applyDeskState(data);
@@ -615,6 +629,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         )
           .then((r) => r.json().catch(() => ({})))
           .catch(() => null);
+        if (!isCurrentActivity(activityRequest)) return;
         if (full?.messages?.length) {
           applyDeskState(full);
           setMessages(full.messages);
@@ -642,6 +657,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           persist(data.conversationId, next);
         }
         setSending(false);
+        clearActivities();
         return;
       }
 
@@ -673,7 +689,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         setLastFailedText(text);
       }
       setSending(false);
+      clearActivities();
     } catch (err) {
+      if (!isCurrentActivity(activityRequest)) return;
       const code = err?.details?.code;
       if (
         err?.status === 401 &&
@@ -683,17 +701,23 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       }
       setError(err.message || "Unable to send message");
       setLastFailedText(text);
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-      setActiveActivities([]);
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId && m.id !== streamingId));
+      clearActivities();
       setSending(false);
     }
   }
 
   async function handleConfirmDecision(confirmation, decision) {
+    if (activityBusy()) throw new Error("Wait for the current response to finish.");
     const cid = confirmation.conversationId || conversationId;
     if (!cid || !confirmation?.id) {
       throw new Error("Missing conversation");
     }
+    const activityRequest = beginActivity();
+    const streamingId = `confirmation-stream-${Date.now()}`;
+    setSending(true);
+
+    try {
     const updated = await resolvePublicConfirmation(
       agent.publicKey,
       confirmation.id,
@@ -709,6 +733,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         realtimeAccessToken: realtimeAccessTokenRef.current,
       }
     );
+    if (!isCurrentActivity(activityRequest)) return;
     setMessages((prev) =>
       prev.map((m) => ({
         ...m,
@@ -735,9 +760,15 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         const data = await resumePublicChatAfterConfirmation(agent.publicKey, {
           conversationId: cid,
           confirmationId: confirmation.id,
+          signal: activityRequest.controller.signal,
+          onTool: data => receiveActivity(activityRequest, data),
+          onDelta: delta => {
+            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
+          },
           userSession,
           realtimeAccessToken: realtimeAccessTokenRef.current,
         });
+        if (!isCurrentActivity(activityRequest)) return;
         setConversationId(data.conversationId);
         rememberRealtimeAccess(data.conversationId, data.realtimeAccessToken);
         applyDeskState(data);
@@ -749,7 +780,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           if (data.handoffAt) setHandoffAt(data.handoffAt);
         }
         setMessages((prev) => {
-          const next = mergeAssistantReply(prev, data);
+          const next = mergeAssistantReply(prev.filter(message => message.id !== streamingId), data);
           persist(data.conversationId, next);
           return next;
         });
@@ -758,15 +789,26 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           setError("Generation failed — Try again");
         }
       } catch (err) {
+        if (!isCurrentActivity(activityRequest)) return;
         setError(err.message || "Unable to continue after approval");
         throw err;
-      } finally {
+      }
+    }
+
+    } finally {
+      if (isCurrentActivity(activityRequest)) {
+        setMessages(previous => previous.filter(message => message.id !== streamingId));
+        clearActivities();
         setSending(false);
+
       }
     }
   }
 
   async function openPastChat(id) {
+    clearActivities();
+    const version = activityVersion();
+    setSending(false);
     setError("");
     try {
       const res = await fetch(
@@ -779,6 +821,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
+      if (version !== activityVersion()) return;
       setConversationId(id);
       applyDeskState(data);
       if (Array.isArray(data.messages)) {
@@ -787,6 +830,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       setHistoryOpen(false);
       persist(id, data.messages || []);
     } catch (err) {
+      if (version !== activityVersion()) return;
       setError(err.message || "Unable to open chat");
     }
   }
@@ -905,6 +949,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   }
 
   function resetChat() {
+    clearActivities();
+    setSending(false);
     setConversationId(null);
     realtimeAccessTokenRef.current = null;
     setRealtimeAccessToken(null);
@@ -1066,6 +1112,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   return (
     <div
       ref={hostRef}
+      style={isFloatingEmbed ? { position: "fixed", inset: 0, width: "100%", maxWidth: "none", height: "100%" } : undefined}
       data-realtime-status={publicRealtimeConnected ? "connected" : "offline"}
       data-realtime-conversation={conversationId || ""}
       className={
@@ -1091,7 +1138,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         }}
         fullPage={fullPage}
         fillHost={bubbleMode}
-        align={positionToChatAlign(widgetPosition)}
+        coordinatedFrame={isFloatingEmbed}
+        panelReady={frameLayout.panelReady}
+        align={positionToChatAlign(isFloatingEmbed ? frameLayout.position : widgetPosition)}
         historyOpen={historyOpen}
         onHistoryToggle={
           historyEnabled

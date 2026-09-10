@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { getSession, signIn, signOut } from "next-auth/react";
 import { apiFetch } from "@/lib/api-client";
+import { logClientAuthTiming } from "@/lib/observability/auth-client-timing";
 
 function emailFromIdToken(idToken) {
   try {
@@ -129,11 +130,13 @@ export const useAuthStore = create((set, get) => ({
   },
 
   login: async (email, password) => {
+    const startedAt = performance.now();
     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+    logClientAuthTiming("credentials.sign_in", startedAt);
 
     if (result?.error) {
       const rateLimited =
@@ -162,42 +165,45 @@ export const useAuthStore = create((set, get) => ({
       });
     }
 
-    const user = await get().hydrate();
-    if (!user) {
-      throw new Error("Unable to login");
-    }
-    return user;
+    // The server-side /auth/continue hop is the trusted destination resolver.
+    // Avoid waiting for a second getSession() request here; AuthHydrate loads
+    // the same session once the protected app shell mounts.
+    return null;
   },
 
   register: async (payload) => {
+    const registerStartedAt = performance.now();
     await apiFetch("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    logClientAuthTiming("register.api", registerStartedAt);
 
+    const signInStartedAt = performance.now();
     const result = await signIn("credentials", {
       email: payload.email,
       password: payload.password,
       redirect: false,
     });
+    logClientAuthTiming("register.sign_in", signInStartedAt);
 
     if (result?.error) {
       throw new Error("Account created but login failed. Please log in.");
     }
 
-    const user = await get().hydrate();
-    if (!user) {
-      throw new Error("Account created but session failed. Please log in.");
-    }
-    return user;
+    // /billing/onboarding performs its own server-side auth check. The client
+    // does not need a second session fetch before navigating there.
+    return null;
   },
 
   loginWithGoogle: async (idToken) => {
     const email = emailFromIdToken(idToken);
+    const startedAt = performance.now();
     const result = await signIn("google-id-token", {
       idToken,
       redirect: false,
     });
+    logClientAuthTiming("google.sign_in", startedAt);
 
     if (result?.error) {
       const signupsClosed =

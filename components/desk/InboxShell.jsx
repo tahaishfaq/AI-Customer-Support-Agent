@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Headphones, Inbox, Search } from "lucide-react";
 import { listInbox, getDeskStats, markInboxSeen } from "@/lib/api/desk";
 import { ConversationRow } from "@/components/conversations/ConversationRow";
@@ -23,11 +24,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { DESK_INBOX_POLL_MS } from "@/lib/desk/desk-config";
 import { DESK_INBOX_SEEN_EVENT } from "@/hooks/use-desk-waiting-count";
-import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 import {
   REALTIME_CLIENT_EVENTS,
   REALTIME_CLIENT_STATUS,
 } from "@/lib/realtime/client-events";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateDeskQueries } from "@/lib/query/invalidation";
 
 const PAGE_SIZE = 20;
 const LIST_POLL_MS = DESK_INBOX_POLL_MS;
@@ -48,33 +50,46 @@ const PRIORITY_FILTERS = [
 ];
 
 export function InboxShell({ selectedId, children }) {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState("WAITING_HUMAN");
   const [priority, setPriority] = useState("ALL");
   const [query, setQuery] = useState("");
-  const [conversations, setConversations] = useState([]);
-  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
-  const [stats, setStats] = useState(null);
+  const [localError, setLocalError] = useState("");
   const [markingRead, setMarkingRead] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
-  const inboxRequestRef = useRef(0);
+
+  const inboxQueryKey = queryKeys.desk.inbox({ status, priority });
+  const inboxQuery = useQuery({
+    queryKey: inboxQueryKey,
+    queryFn: () => listInbox({ status, priority, limit: PAGE_SIZE, offset: 0 }),
+    refetchInterval: realtimeConnected ? false : LIST_POLL_MS,
+    placeholderData: (previous) => previous,
+  });
+  const statsQuery = useQuery({
+    queryKey: queryKeys.desk.stats(7),
+    queryFn: () => getDeskStats(7),
+  });
+  const conversations = inboxQuery.data?.conversations || [];
+  const total = inboxQuery.data?.total || 0;
+  const stats = statsQuery.data;
+  const loading = inboxQuery.isPending;
+  const error = inboxQuery.error?.message || localError;
 
   const hideListOnMobile = Boolean(selectedId);
 
   async function markAllRead() {
     setMarkingRead(true);
-    setError("");
+    setLocalError("");
     try {
       const data = await markInboxSeen();
       window.dispatchEvent(
         new CustomEvent(DESK_INBOX_SEEN_EVENT, { detail: data })
       );
+      await invalidateDeskQueries(queryClient);
     } catch (err) {
-      setError(err.message || "Unable to mark inbox as read");
+      setLocalError(err.message || "Unable to mark inbox as read");
     } finally {
       setMarkingRead(false);
     }
@@ -82,115 +97,30 @@ export function InboxShell({ selectedId, children }) {
 
   useEffect(() => {
     markInboxSeen()
-      .then((data) =>
+      .then((data) => {
         window.dispatchEvent(
           new CustomEvent(DESK_INBOX_SEEN_EVENT, { detail: data })
-        )
-      )
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    getDeskStats(7)
-      .then((data) => {
-        if (!cancelled) setStats(data);
+        );
+        return invalidateDeskQueries(queryClient);
       })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const requestId = ++inboxRequestRef.current;
-      setLoading(true);
-      setError("");
-      setOffset(0);
-      try {
-        const data = await listInbox({
-          status,
-          priority,
-          limit: PAGE_SIZE,
-          offset: 0,
-        });
-        if (cancelled || requestId !== inboxRequestRef.current) return;
-        setConversations(data.conversations || []);
-        setTotal(data.total || 0);
-      } catch (err) {
-        if (!cancelled && requestId === inboxRequestRef.current) {
-          setError(err.message || "Unable to load inbox");
-        }
-      } finally {
-        if (!cancelled && requestId === inboxRequestRef.current) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [status, priority, reloadKey]);
+  }, [queryClient]);
 
   useEffect(() => {
     function onRealtimeStatus(event) {
       const connected =
         event?.detail?.status === REALTIME_CLIENT_STATUS.CONNECTED;
       setRealtimeConnected(connected);
-      if (connected) setReloadKey((value) => value + 1);
-    }
-    function onRealtimeEvent(event) {
-      const type = event?.detail?.eventType;
-      if (
-        [
-          REALTIME_EVENT_TYPES.HANDOFF_CREATED,
-          REALTIME_EVENT_TYPES.MESSAGE_CREATED,
-          REALTIME_EVENT_TYPES.CLAIM_UPDATED,
-          REALTIME_EVENT_TYPES.STATUS_UPDATED,
-          REALTIME_EVENT_TYPES.PRIORITY_UPDATED,
-          REALTIME_EVENT_TYPES.INBOX_SEEN_UPDATED,
-        ].includes(type)
-      ) {
-        setReloadKey((value) => value + 1);
-      }
     }
     window.addEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
-    window.addEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
     return () => {
       window.removeEventListener(REALTIME_CLIENT_EVENTS.STATUS, onRealtimeStatus);
-      window.removeEventListener(REALTIME_CLIENT_EVENTS.EVENT, onRealtimeEvent);
     };
   }, []);
 
-  useEffect(() => {
-    if (realtimeConnected) return undefined;
-    const id = setInterval(async () => {
-      const requestId = ++inboxRequestRef.current;
-      try {
-        const data = await listInbox({
-          status,
-          priority,
-          limit: PAGE_SIZE,
-          offset: 0,
-        });
-        if (requestId !== inboxRequestRef.current) return;
-        setConversations(data.conversations || []);
-        setTotal(data.total || 0);
-      } catch {
-        // keep last list
-      }
-    }, LIST_POLL_MS);
-    return () => clearInterval(id);
-  }, [status, priority, realtimeConnected]);
-
   async function loadMore() {
     setLoadingMore(true);
-    setError("");
+    setLocalError("");
     try {
       const nextOffset = offset + PAGE_SIZE;
       const data = await listInbox({
@@ -199,11 +129,17 @@ export function InboxShell({ selectedId, children }) {
         limit: PAGE_SIZE,
         offset: nextOffset,
       });
-      setConversations((prev) => [...prev, ...(data.conversations || [])]);
-      setTotal(data.total || 0);
+      queryClient.setQueryData(inboxQueryKey, (current) => ({
+        ...(current || {}),
+        conversations: [
+          ...(current?.conversations || []),
+          ...(data.conversations || []),
+        ],
+        total: data.total || 0,
+      }));
       setOffset(nextOffset);
     } catch (err) {
-      setError(err.message || "Unable to load more");
+      setLocalError(err.message || "Unable to load more");
     } finally {
       setLoadingMore(false);
     }
@@ -357,7 +293,12 @@ export function InboxShell({ selectedId, children }) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setReloadKey((k) => k + 1)}
+                onClick={() => {
+                  void Promise.all([
+                    inboxQuery.refetch(),
+                    statsQuery.refetch(),
+                  ]);
+                }}
               >
                 Try again
               </Button>

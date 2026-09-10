@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
   Check,
   Clock,
   ExternalLink,
+  Eye,
   FlaskConical,
   Globe,
   MessageSquare,
@@ -45,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { monogram } from "@/components/conversations/format";
+import { SystemPromptPreviewDialog } from "@/components/agents/SystemPromptPreviewDialog";
 import { cn } from "@/lib/utils";
 
 function formatResponseTime(ms) {
@@ -174,6 +176,7 @@ export function AgentOverview({
   feedback = null,
   actions = [],
 }) {
+  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false);
   const customization = useMemo(
     () => resolveCustomization(agent),
     [agent]
@@ -389,20 +392,56 @@ export function AgentOverview({
                   </Button>
                 </TabsContent>
                 <TabsContent value="prompt" className="flex flex-col gap-3">
-                  <ScrollArea className="max-h-48 rounded-xl bg-muted/60">
-                    <p className="whitespace-pre-wrap px-3.5 py-3 text-[13px] leading-relaxed text-muted-foreground">
-                      {agent.systemPrompt || "No system prompt yet."}
-                    </p>
-                  </ScrollArea>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-fit rounded-full"
-                    render={<Link href={`/agents/${agent.id}/edit`} />}
-                    nativeButton={false}
-                  >
-                    Edit prompt
-                  </Button>
+                  <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-muted/70 via-muted/35 to-background">
+                    <div className="flex items-center justify-between gap-3 border-b border-border/80 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Sparkles className="size-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">Role instructions</p>
+                          <p className="text-xs text-muted-foreground">
+                            {agent.systemPrompt?.trim().length || 0} characters
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="shrink-0 rounded-full">
+                        Protected rules on
+                      </Badge>
+                    </div>
+                    <ScrollArea className="max-h-44">
+                      <p className="whitespace-pre-wrap px-4 py-4 font-mono text-[12px] leading-6 text-muted-foreground">
+                        {agent.systemPrompt || "No system prompt yet."}
+                      </p>
+                    </ScrollArea>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => setPromptPreviewOpen(true)}
+                    >
+                      <Eye data-icon="inline-start" />
+                      Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      render={<Link href={`/agents/${agent.id}/edit`} />}
+                      nativeButton={false}
+                    >
+                      Edit prompt
+                    </Button>
+                  </div>
+                  <SystemPromptPreviewDialog
+                    open={promptPreviewOpen}
+                    onOpenChange={setPromptPreviewOpen}
+                    agentName={displayName}
+                    welcomeMessage={agent.welcomeMessage}
+                    systemPrompt={agent.systemPrompt}
+                  />
                 </TabsContent>
               </CardContent>
             </Tabs>

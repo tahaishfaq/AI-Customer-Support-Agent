@@ -499,7 +499,9 @@ the UI update and never grants product access.
 **Status:** PHASE 6.0 IMPLEMENTED — runtime hardening and executable validation
 are in place. Capacity ceilings, per-identity limits, connection-attempt rate
 limiting, metrics, Redis consumer retry/recovery, publisher retry/recovery, and
-the `/metrics` endpoint are implemented. Final production exit still requires
+the `/metrics` endpoint are implemented. The gateway also emits safe
+connect/disconnect/rejection lifecycle logs and exposes disconnect totals and
+last safe rejection/disconnect reasons. Final production exit still requires
 live two-replica chaos/load evidence, alert wiring, rollback rehearsal, and
 runbook review.
 

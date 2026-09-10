@@ -39,10 +39,10 @@ export function MessageList({
       )}
     >
       {intro ? (
-        <div className="mb-2 flex justify-center px-2 py-3">
+        <div className="mb-1 flex justify-center px-2 py-2.5">
           <div
             className={cn(
-              "w-full max-w-sm rounded-2xl border px-4 py-3.5 text-center shadow-sm",
+              "w-full max-w-2xl rounded-xl border px-5 py-3 text-center shadow-[0_2px_12px_rgba(15,23,42,0.08)]",
               themed
                 ? "border-[var(--wc-border)] bg-[var(--wc-shell)]"
                 : "border-[var(--color-border)] bg-[var(--color-surface)]"
@@ -76,7 +76,7 @@ export function MessageList({
       {messages.map((msg) => (
         <div key={msg.id} className="flex w-full flex-col items-start gap-2">
           {msg.streaming && activeActivities.length ? (
-            <AgentActivityBubble activities={activeActivities} compact={compact} />
+            <AgentActivityBubble activities={activeActivities} compact={compact} themed={themed} />
           ) : null}
           <MessageBubble
           role={msg.role}
@@ -101,6 +101,9 @@ export function MessageList({
           />
         </div>
       ))}
+      {loading && !messages.some((m) => m.streaming) && activeActivities.length ? (
+        <AgentActivityBubble activities={activeActivities} compact={compact} themed={themed} />
+      ) : null}
       {loading && !messages.some((m) => m.streaming) ? (
         <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
       ) : null}

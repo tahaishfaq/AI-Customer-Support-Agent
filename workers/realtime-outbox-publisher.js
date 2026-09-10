@@ -15,6 +15,12 @@ const leaseSeconds = Number(process.env.REALTIME_PUBLISH_LEASE_SECONDS) || 30;
 const retryMaxSeconds = Number(process.env.REALTIME_RETRY_MAX_SECONDS) || 300;
 const dlqAfterSeconds = Number(process.env.REALTIME_DLQ_AFTER_SECONDS) || 86400;
 const streamMaxLen = Number(process.env.REALTIME_STREAM_MAXLEN) || 100000;
+// Test-only narrowing keeps integration fixtures isolated from unrelated stale rows.
+// Production workers always publish the complete eligible outbox.
+const publishOnlyEventId =
+  process.env.NODE_ENV !== "production"
+    ? process.env.REALTIME_PUBLISH_ONLY_EVENT_ID?.trim() || null
+    : null;
 const owner = `publisher-${process.pid}-${randomUUID()}`;
 
 const pool = new Pool({ connectionString: databaseUrl, max: 3, connectionTimeoutMillis: 10000 });
@@ -55,16 +61,19 @@ async function claimBatch() {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const filter = publishOnlyEventId ? 'AND "eventId" = $2' : "";
+    const params = publishOnlyEventId ? [batchSize, publishOnlyEventId] : [batchSize];
     const { rows } = await client.query(
       `SELECT * FROM "RealtimeOutboxEvent"
        WHERE "publishedAt" IS NULL
          AND "deadLetteredAt" IS NULL
          AND "availableAt" <= NOW()
          AND ("leaseUntil" IS NULL OR "leaseUntil" < NOW())
+         ${filter}
        ORDER BY "createdAt" ASC
        LIMIT $1
        FOR UPDATE SKIP LOCKED`,
-      [batchSize]
+      params
     );
     for (const row of rows) {
       await client.query(

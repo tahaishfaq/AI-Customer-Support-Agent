@@ -1,6 +1,6 @@
 # AIDE — TanStack Query (Frontend Cache) Plan
 
-**Status:** PLANNED (not started)  
+**Status:** Q0 COMPLETE · Q1 BILLING/DESK COMPLETE · agent/dashboard migrations remain
 **Created:** 2026-09-05  
 **Stack fit:** Next.js App Router · `lib/api/*` + `apiFetch` · Zustand auth · custom poll hooks  
 **Pairs with:** [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md) (invalidate / `setQueryData` on push) · [`REDIS_BULLMQ_ENTERPRISE_PLAN.md`](REDIS_BULLMQ_ENTERPRISE_PLAN.md) (server cache — **different layer**)  
@@ -218,9 +218,9 @@ Keep a tiny helper `invalidateBillingStatus(qc)` for call sites that today impor
 
 ### Phase Q0 — Foundation (½ day)
 
-- [ ] `npm i @tanstack/react-query` (+ optional `@tanstack/react-query-devtools` devOnly)  
-- [ ] `lib/query/client.js` + `lib/query/keys.js`  
-- [ ] `components/query/QueryProvider.jsx` · wire in `components/providers.jsx`  
+- [x] `npm i @tanstack/react-query`
+- [x] `lib/query/client.js` + `lib/query/keys.js`
+- [x] `components/query/QueryProvider.jsx` · wire in `components/providers.jsx`
 - [ ] Devtools behind `NODE_ENV === "development"`  
 - [ ] Doc: this file + `OPEN_SEQUENCE`  
 
@@ -230,52 +230,71 @@ Keep a tiny helper `invalidateBillingStatus(qc)` for call sites that today impor
 
 ### Phase Q1 — Replace hand-rolled shared caches (highest ROI)
 
-- [ ] Migrate `use-conversation-quota` → `useQuery(billing.status)`  
-- [ ] Replace `refreshConversationQuota()` with `invalidateQueries` helper  
-- [ ] Migrate `use-desk-waiting-count` → `useQuery` + `refetchInterval`  
-- [ ] Migrate `use-agent-studio` → `useQuery(agents.detail)` · drop module `Map`  
+- [x] Migrate `use-conversation-quota` → `useQuery(billing.status)`
+- [x] Replace `refreshConversationQuota()` behavior with `invalidateQueries`
+- [x] Migrate `use-desk-waiting-count` → `useQuery` + `refetchInterval`
+- [x] Migrate `use-agent-studio` → `useQuery(agents.detail)` · drop module `Map`
 - [ ] Smoke: AppShell badge, plans usage, studio tab switch  
 
 **Done when:** custom SyncExternalStore quota store deleted or thin re-export only.
+
+Billing and desk badge are now Query-backed. The existing exported
+`refreshConversationQuota()` event remains as a compatibility bridge for
+checkout/chat call sites, but it invalidates the shared Query cache instead of
+maintaining a second in-memory store.
 
 ---
 
 ### Phase Q2 — App shell lists & dashboard
 
-- [ ] Agents list + workspaces switcher  
-- [ ] Dashboard overview / conversations list  
-- [ ] Billing plans page  
-- [ ] Analytics queries with longer `staleTime`  
+- [x] Agents list + workspaces switcher
+- [x] Dashboard overview / conversations list
+- [x] Billing plans page
+- [x] Analytics queries with longer `staleTime`
 
 **Done when:** navigating Agents ↔ Dashboard does not flash full empty state when cache warm.
 
 ---
 
-### Phase Q3 — Desk + customization mutations
+### Phase Q3 — Desk + customization mutations ✅
 
-- [ ] Inbox list + thread queries (keep poll intervals as `refetchInterval`)  
-- [ ] Mutations: claim, reply, resolve, mark seen → invalidate desk keys  
-- [ ] Knowledge / actions / MCP list queries + save mutations  
-- [ ] Admin overview queries (optional same phase)  
+- [x] Inbox list + thread queries (keep poll intervals as `refetchInterval`)
+- [x] Mutations: claim, reply, resolve, mark seen → invalidate desk keys
+- [x] Knowledge / actions / MCP list queries + save mutations
+- [x] Admin overview queries and primary admin list queries
 
 **Done when:** desk actions update badge without full page reload.
+
+Q3 is implemented with shared query keys, mutation invalidation, optimistic thread
+cache updates, and fallback polling for crawl/realtime-sensitive surfaces. The
+admin overview, users, and restore-request lists use isolated admin cache keys.
 
 ---
 
 ### Phase Q4 — Socket alignment (after Socket S1+)
 
-- [ ] On `inbox:changed` → `invalidateQueries(desk.*)` or `setQueryData`  
-- [ ] On `billing:activated` → invalidate billing status (stop success poll early)  
-- [ ] Reduce `refetchInterval` when socket connected (poll = fallback only)  
+- [x] On desk realtime events → `invalidateQueries(desk.*)` or `setQueryData`
+- [x] On billing subscription/quota events → invalidate billing status (stop success poll early)
+- [x] Reduce `refetchInterval` when socket connected (poll = fallback only)
+
+Q4 is implemented centrally in `RealtimeQuerySync`. All persisted desk event
+types reconcile waiting, inbox, stats, and the affected thread; billing events
+reconcile the shared billing status query. Polling remains enabled only while
+the socket is disconnected or unavailable.
 
 ---
 
-### Phase Q5 — Hardening
+### Phase Q5 — Hardening ✅
 
-- [ ] Consistent error boundaries / toast on mutation fail  
-- [ ] Prefetch on hover (agent row → detail) optional  
-- [ ] Bundle check: Query + Devtools not in embed `/w/*` if unused  
-- [ ] No secrets in query cache (profiles = public fields only — matches Redis profile rules)
+- [x] Consistent error boundary / toast on mutation fail
+- [x] Prefetch on hover/focus (agent row → detail)
+- [x] Embed runtime isolation: QueryProvider is not mounted for `/w/*`
+- [x] Query cache remains limited to authorized API responses; credentials/tokens are not query sources
+
+Q5 hardening is implemented. The public embed does not mount the owner
+QueryProvider, agent detail navigation prefetches only the authorized agent
+endpoint, and mutation failures have a shared toast fallback plus a recoverable
+render boundary.
 
 ---
 

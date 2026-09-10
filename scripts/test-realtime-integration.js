@@ -84,15 +84,6 @@ try {
     }
   });
 
-  publisher = spawn(process.execPath, ["workers/realtime-outbox-publisher.js"], {
-    cwd: root,
-    env: { ...process.env, REALTIME_CONSUMER_NAME: `publisher-${process.pid}` },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  publisher.stderr.on("data", (chunk) => {
-    publisherErrors += chunk.toString();
-  });
-
   const user = await prisma.user.findFirst({
     where: { status: "ACTIVE" },
     select: { id: true },
@@ -163,6 +154,22 @@ try {
     select: { id: true },
   });
   outboxId = outbox.id;
+
+  // Publish only this fixture event. The shared database may contain older
+  // unpublished rows from unrelated local runs; they must not delay this gate.
+  publisher = spawn(process.execPath, ["workers/realtime-outbox-publisher.js"], {
+    cwd: root,
+    env: {
+      ...process.env,
+      REALTIME_CONSUMER_NAME: `publisher-${process.pid}`,
+      REALTIME_PUBLISH_ONLY_EVENT_ID: event.eventId,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  publisher.stderr.on("data", (chunk) => {
+    publisherErrors += chunk.toString();
+  });
+
   const delivered = await received;
   assert.equal(delivered.eventId, event.eventId);
   await waitFor(async () => {

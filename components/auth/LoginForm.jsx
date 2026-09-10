@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
@@ -41,10 +41,12 @@ export function LoginForm({
   const [restoreStatus, setRestoreStatus] = useState(null);
   const clearedRef = useRef(false);
 
-  if (!clearedRef.current && (sessionExpired || suspendedProp)) {
-    clearedRef.current = true;
-    queueMicrotask(() => logout());
-  }
+  useEffect(() => {
+    if (!clearedRef.current && (sessionExpired || suspendedProp)) {
+      clearedRef.current = true;
+      void logout();
+    }
+  }, [logout, sessionExpired, suspendedProp]);
 
   function goHome(user) {
     const dest = resolveFastPostAuthPath(user, next);

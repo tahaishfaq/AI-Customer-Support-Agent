@@ -351,13 +351,13 @@ export function CustomizationStudio({ agent, onAgentChange }) {
             className={cn(
               "overflow-hidden border-l border-border bg-muted/30 transition-[width,opacity] duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
               previewOpen
-                ? "w-[min(320px,30vw)] opacity-100"
+                ? "w-[min(420px,34vw)] opacity-100"
                 : "w-0 border-l-0 opacity-0"
             )}
           >
             <div
               className={cn(
-                "h-full w-[min(320px,30vw)] p-4 transition-transform duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
+                "h-full w-[min(420px,34vw)] p-4 transition-transform duration-300 ease-[var(--ease-ui)] motion-reduce:transition-none",
                 previewOpen ? "translate-x-0" : "translate-x-4"
               )}
             >

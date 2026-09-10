@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Inbox, MessageSquareText, Send, StickyNote } from "lucide-react";
 import { getConversation } from "@/lib/api/conversations";
@@ -52,6 +53,8 @@ import {
   REALTIME_CLIENT_STATUS,
 } from "@/lib/realtime/client-events";
 import { useRealtime } from "@/components/realtime/RealtimeProvider";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateDeskQueries } from "@/lib/query/invalidation";
 
 const POLL_MS = DESK_EMBED_POLL_MS;
 
@@ -220,8 +223,16 @@ function DeskReplyComposer({
 
 export function DeskThread({ conversation: initial, onResolved }) {
   const { joinRoom, leaveRoom, emitEphemeral } = useRealtime();
-  const [conversation, setConversation] = useState(initial);
-  const [messages, setMessages] = useState(initial.messages || []);
+  const queryClient = useQueryClient();
+  const threadQuery = useQuery({
+    queryKey: queryKeys.desk.thread(initial.id),
+    queryFn: () => getConversation(initial.id),
+    initialData: initial,
+  });
+  const [conversation, setConversation] = useState(threadQuery.data || initial);
+  const [messages, setMessages] = useState(
+    (threadQuery.data || initial).messages || []
+  );
   const [sending, setSending] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -255,10 +266,11 @@ export function DeskThread({ conversation: initial, onResolved }) {
       if (requestId !== refreshRequestRef.current) return;
       setConversation(data);
       setMessages(data.messages || []);
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), data);
     } catch {
       // keep last good state during poll
     }
-  }, [conversation.id]);
+  }, [conversation.id, queryClient]);
 
   useEffect(() => {
     const room = `conversation:${conversation.id}:owner`;
@@ -446,6 +458,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
         ];
       });
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setError(
@@ -473,6 +489,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
       const result = await resolveConversation(conversation.id, { resumeAi });
       setConversation((prev) => applyDeskPatch(prev, result));
       onResolved?.(result);
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
       setResolving(false);
     } catch (err) {
       setError(err.message || "Unable to resolve");
@@ -486,6 +506,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
     try {
       const result = await claimConversation(conversation.id, claim);
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setError(err.message || "Unable to update claim");
     } finally {
@@ -500,6 +524,10 @@ export function DeskThread({ conversation: initial, onResolved }) {
     try {
       const result = await setConversationPriority(conversation.id, next);
       setConversation((prev) => applyDeskPatch(prev, result));
+      queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+        applyDeskPatch(prev || conversation, result)
+      );
+      void invalidateDeskQueries(queryClient, conversation.id);
     } catch (err) {
       setError(err.message || "Unable to set priority");
     } finally {
@@ -526,9 +554,19 @@ export function DeskThread({ conversation: initial, onResolved }) {
               {monogram(conversation.agent?.name)}
             </span>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">
-                {conversation.agent?.name || "Agent"}
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-sm font-semibold tracking-tight text-foreground">
+                  {conversation.agent?.name || "Agent"}
+                </h1>
+                {conversation.source === "STUDIO" ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-violet-500/35 px-2 py-0 text-[10px] text-violet-700 dark:text-violet-300"
+                  >
+                    Test · not billed
+                  </Badge>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {waiting
                   ? `Waiting since ${formatRelative(conversation.handoffAt || conversation.startedAt)}`

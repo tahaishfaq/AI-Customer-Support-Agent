@@ -23,6 +23,8 @@ export function useEmbedDesk({
   setMessages,
   realtimeConnected = false,
   realtimeAccessToken = null,
+  messageBusy,
+  messageVersion,
 }) {
   const [waitingForHuman, setWaitingForHuman] = useState(false);
   const [handoffAt, setHandoffAt] = useState(null);
@@ -90,7 +92,8 @@ export function useEmbedDesk({
   }, []);
 
   const refreshConversation = useCallback(async () => {
-    if (!conversationId || !agent.publicKey) return null;
+    if (!conversationId || !agent.publicKey || messageBusy?.()) return null;
+    const version = messageVersion?.();
     const requestId = ++refreshRequestRef.current;
     try {
       const res = await fetch(
@@ -104,6 +107,7 @@ export function useEmbedDesk({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return null;
       if (requestId !== refreshRequestRef.current) return null;
+      if (messageBusy?.() || version !== messageVersion?.()) return null;
       applyDeskState(data);
       if (data.handoffAt) setHandoffAt(data.handoffAt);
       if (Array.isArray(data.messages)) {
@@ -114,14 +118,17 @@ export function useEmbedDesk({
           if (prev.length === next.length && prevLast && prevLast === nextLast) {
             return prev;
           }
-          return next;
+          return next.map(message => {
+            const previous = prev.find(item => item.id === message.id);
+            return previous ? { ...previous, ...message } : message;
+          });
         });
       }
       return data;
     } catch {
       return null;
     }
-  }, [agent, conversationId, applyDeskState, realtimeAccessToken, setMessages]);
+  }, [agent, conversationId, applyDeskState, realtimeAccessToken, setMessages, messageBusy, messageVersion]);
 
   const resetDeskState = useCallback(() => {
     setWaitingForHuman(false);

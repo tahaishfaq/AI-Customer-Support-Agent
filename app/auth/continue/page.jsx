@@ -7,13 +7,19 @@ import { resolveActiveWorkspace } from "@/lib/services/workspace.service";
 import { withWorkspaceSlug } from "@/lib/workspace-path";
 import { isEmailVerificationRequired } from "@/lib/email/constants";
 import prisma from "@/lib/prisma";
+import {
+  logAuthTiming,
+  startAuthTiming,
+} from "@/lib/observability/auth-timing";
 
 /**
  * Post-login hop: one gate query → correct destination.
  * Avoids landing on /dashboard (and its APIs) before onboarding/plans.
  */
 export default async function AuthContinuePage({ searchParams }) {
+  const startedAt = startAuthTiming();
   const session = await auth();
+  logAuthTiming("continue.auth", startedAt, { route: "/auth/continue" });
   if (!session?.user?.id) {
     redirect("/login");
   }
@@ -23,7 +29,11 @@ export default async function AuthContinuePage({ searchParams }) {
     redirect("/admin");
   }
 
+  const gateStartedAt = startAuthTiming();
   const gate = await getAppAccessGate(session.user.id, role);
+  logAuthTiming("continue.access_gate", gateStartedAt, {
+    route: "/auth/continue",
+  });
   redirectForSessionUser(gate.row);
 
   const params = await searchParams;
@@ -58,8 +68,12 @@ export default async function AuthContinuePage({ searchParams }) {
 
   if (isProductAppPath(dest)) {
     // RSC page cannot set cookies; API routes persist the active workspace later.
+    const workspaceStartedAt = startAuthTiming();
     const workspace = await resolveActiveWorkspace(session.user.id, {
       persistCookie: false,
+    });
+    logAuthTiming("continue.workspace", workspaceStartedAt, {
+      route: "/auth/continue",
     });
     redirect(withWorkspaceSlug(dest, workspace.slug));
   }

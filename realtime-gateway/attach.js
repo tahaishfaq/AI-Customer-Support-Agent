@@ -44,12 +44,15 @@ export async function attachRealtimeGateway(httpServer) {
   let stopped = false;
   const metrics = {
     connectionsAccepted: 0,
+    connectionsClosed: 0,
     connectionsRejected: 0,
     authRejected: 0,
     roomJoinRejected: 0,
     streamEventsDelivered: 0,
     streamEventsRejected: 0,
     redisErrors: 0,
+    lastConnectionRejectionReason: null,
+    lastDisconnectReason: null,
   };
   const connectionAttempts = new Map();
 
@@ -96,6 +99,17 @@ export async function attachRealtimeGateway(httpServer) {
     }
   }
 
+  function rejectionReason(error) {
+    const message = String(error?.message || "unknown").toLowerCase();
+    if (message.includes("rate limit")) return "rate_limited";
+    if (message.includes("capacity")) return "capacity";
+    if (message.includes("origin")) return "origin_not_allowed";
+    if (message.includes("session") || message.includes("token") || message.includes("auth")) {
+      return "authentication_failed";
+    }
+    return "rejected";
+  }
+
   io.use(async (socket, next) => {
     try {
       const ip = socket.handshake.address || "unknown";
@@ -140,15 +154,23 @@ export async function attachRealtimeGateway(httpServer) {
       next();
     } catch (error) {
       metrics.connectionsRejected += 1;
-      if (String(error.message).toLowerCase().includes("auth") || String(error.message).toLowerCase().includes("session") || String(error.message).toLowerCase().includes("token")) {
+      const reason = rejectionReason(error);
+      metrics.lastConnectionRejectionReason = reason;
+      if (reason === "authentication_failed") {
         metrics.authRejected += 1;
       }
+      console.warn("[realtime] connection rejected", { reason });
       next(new Error("Realtime authentication failed"));
     }
   });
 
   io.on("connection", (socket) => {
     const claims = socket.data.claims;
+    console.info("[realtime] connected", {
+      socketId: socket.id,
+      connectionType: claims.typ,
+      activeConnections: io.engine.clientsCount,
+    });
     const expiryTimer = setTimeout(
       () => socket.disconnect(true, "token-expired"),
       Math.max(1, socket.data.expiresAt - Date.now())
@@ -317,7 +339,15 @@ export async function attachRealtimeGateway(httpServer) {
       callback({ ok: true, room });
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
+      metrics.connectionsClosed += 1;
+      metrics.lastDisconnectReason = reason || "unknown";
+      console.info("[realtime] disconnected", {
+        socketId: socket.id,
+        connectionType: claims.typ,
+        reason: reason || "unknown",
+        activeConnections: io.engine.clientsCount,
+      });
       clearTimeout(expiryTimer);
       if (revocationTimer) clearInterval(revocationTimer);
       typingLeases.clear((leaseKey) => {

@@ -20,10 +20,12 @@ assert.match(loop, /responsesStreamTurn/);
 assert.match(loop, /sourceDecision\.route === "MIXED"/);
 assert.match(loop, /STORE PREFLIGHT ONLY/);
 assert.match(loop, /<store_data>/);
-assert.match(chatApi, /text\/event-stream/);
+assert.match(chatApi, /requestChatStream/);
+assert.match(fs.readFileSync(new URL("../lib/chat/read-chat-response.js", import.meta.url), "utf8"), /text\/event-stream/);
 assert.match(workspace, /sendChatMessageStream/);
 assert.match(workspace, /activeActivities/);
-assert.match(activity, /Searching the web/);
+assert.match(activity, /activityLabel\(item\)/);
+assert.match(fs.readFileSync(new URL("../lib/chat/activity-state.js", import.meta.url), "utf8"), /Searching the web/);
 assert.match(activity, /role="status"/);
 assert.match(plan, /two-phase execution/);
 
