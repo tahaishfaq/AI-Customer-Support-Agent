@@ -35,7 +35,7 @@ export function ActionConfirmCard({
   busy = false,
   onDecision,
 }) {
-  const [localStatus, setLocalStatus] = useState(confirmation?.status || "PENDING");
+  const [localStatus, setLocalStatus] = useState(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -75,17 +75,30 @@ export function ActionConfirmCard({
   return (
     <div
       className={cn(
-        "mt-2 max-w-[85%] rounded-xl border px-3 py-2.5 sm:max-w-[75%]",
-        themed
-          ? "border-[var(--wc-primary)]/25 bg-[var(--wc-assistant-bg)]"
-          : "border-border bg-muted/40"
+        "mt-3 min-w-0 max-w-[85%] rounded-xl border border-border bg-background p-3.5 text-foreground shadow-none sm:max-w-[75%]",
+        !themed && "bg-muted/40"
       )}
+      style={themed ? {
+        "--background": "var(--wc-shell)",
+        "--foreground": "var(--wc-shell-fg)",
+        "--muted": "var(--wc-input-bg)",
+        "--muted-foreground": "var(--wc-muted)",
+        "--border": "var(--wc-input-border)",
+        "--input": "var(--wc-input-border)",
+        "--primary": "var(--wc-shell-fg)",
+        "--primary-foreground": "var(--wc-shell)",
+        "--ring": "var(--wc-primary)",
+      } : undefined}
+      data-testid="action-confirm-card"
     >
-      <p className="text-xs font-medium text-foreground">
-        Confirm: {label}
+      <p className="text-xs font-semibold text-foreground">
+        {status === "PENDING" && !expired ? "Confirmation required" : "Confirmation"}
+      </p>
+      <p className="mt-1.5 break-words text-[13px] leading-relaxed text-foreground [overflow-wrap:anywhere]">
+        {label}
       </p>
       {preview ? (
-        <p className="mt-1 text-[11px] text-muted-foreground">{preview}</p>
+        <p className="mt-2 break-words text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{preview}</p>
       ) : null}
 
       {expired || status === "EXPIRED" ? (
@@ -97,10 +110,12 @@ export function ActionConfirmCard({
       ) : status === "DENIED" ? (
         <p className="mt-2 text-xs font-medium text-muted-foreground">Denied</p>
       ) : (
-        <div className="mt-2.5 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <Button
             type="button"
             size="sm"
+            variant="solid"
+            className="min-h-9 min-w-24 flex-1"
             disabled={pending || busy}
             onClick={() => handle("approve")}
           >
@@ -111,6 +126,7 @@ export function ActionConfirmCard({
             type="button"
             size="sm"
             variant="outline"
+            className="min-h-9 min-w-24 flex-1"
             disabled={pending || busy}
             onClick={() => handle("deny")}
           >
@@ -119,7 +135,7 @@ export function ActionConfirmCard({
         </div>
       )}
       {error ? (
-        <p className="mt-1.5 text-[11px] text-destructive">{error}</p>
+        <p role="alert" className="mt-2 break-words text-xs leading-relaxed text-destructive [overflow-wrap:anywhere]">{error}</p>
       ) : null}
     </div>
   );

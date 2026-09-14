@@ -211,88 +211,90 @@ export function FeatureLiveInsights() {
         ))}
       </div>
 
-      <DottedRule />
+      <div className="hidden sm:block">
+        <DottedRule />
 
-      <div className="px-4 py-4 sm:px-5 sm:py-5">
-        <motion.p
-          className="text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase"
-          initial={false}
-          animate={active ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.4, delay: active ? 0.55 : 0 }}
-        >
-          Top topics
-        </motion.p>
-        <ul className="mt-3 space-y-3">
-          {TOPICS.map((topic, index) => (
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
+          <motion.p
+            className="text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase"
+            initial={false}
+            animate={active ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.4, delay: active ? 0.55 : 0 }}
+          >
+            Top topics
+          </motion.p>
+          <ul className="mt-3 space-y-3">
+            {TOPICS.map((topic, index) => (
+              <motion.li
+                key={topic.label}
+                initial={false}
+                animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }}
+                transition={{
+                  duration: 0.45,
+                  ease: EASE,
+                  delay: active ? 0.62 + index * 0.09 : 0,
+                }}
+              >
+                <div className="flex items-center justify-between gap-3 text-[11px]">
+                  <span className="text-white/85">{topic.label}</span>
+                  <span className="shrink-0 tabular-nums text-white/45">
+                    {topic.pct}%
+                  </span>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <motion.div
+                    className="h-full rounded-full bg-[var(--color-primary)]"
+                    initial={false}
+                    animate={{ width: active ? `${topic.pct}%` : "0%" }}
+                    transition={{
+                      duration: 0.7,
+                      ease: EASE,
+                      delay: active ? 0.7 + index * 0.1 : 0,
+                    }}
+                  />
+                </div>
+              </motion.li>
+            ))}
+          </ul>
+        </div>
+
+        <DottedRule />
+
+        <ul>
+          {RECENT.map((item, index) => (
             <motion.li
-              key={topic.label}
+              key={item.topic}
+              className={cn(
+                "flex items-center justify-between gap-3 px-4 py-2.5 text-[11px] sm:px-5",
+                index < RECENT.length - 1 &&
+                  "border-b border-dotted border-white/15"
+              )}
               initial={false}
-              animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }}
+              animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
               transition={{
                 duration: 0.45,
                 ease: EASE,
-                delay: active ? 0.62 + index * 0.09 : 0,
+                delay: active ? 0.9 + index * 0.1 : 0,
               }}
             >
-              <div className="flex items-center justify-between gap-3 text-[11px]">
-                <span className="text-white/85">{topic.label}</span>
-                <span className="shrink-0 tabular-nums text-white/45">
-                  {topic.pct}%
+              <span className="truncate text-white/80">{item.topic}</span>
+              <span className="flex shrink-0 items-center gap-2 text-white/45">
+                <span
+                  className={cn(
+                    "rounded-full border border-dotted px-2 py-0.5 text-[9px] font-medium tracking-wide uppercase",
+                    item.status === "Resolved"
+                      ? "border-emerald-400/35 text-emerald-300"
+                      : "border-[var(--color-primary)]/35 text-[var(--color-primary)]"
+                  )}
+                >
+                  {item.status}
                 </span>
-              </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <motion.div
-                  className="h-full rounded-full bg-[var(--color-primary)]"
-                  initial={false}
-                  animate={{ width: active ? `${topic.pct}%` : "0%" }}
-                  transition={{
-                    duration: 0.7,
-                    ease: EASE,
-                    delay: active ? 0.7 + index * 0.1 : 0,
-                  }}
-                />
-              </div>
+                {item.time}
+              </span>
             </motion.li>
           ))}
         </ul>
       </div>
-
-      <DottedRule />
-
-      <ul>
-        {RECENT.map((item, index) => (
-          <motion.li
-            key={item.topic}
-            className={cn(
-              "flex items-center justify-between gap-3 px-4 py-2.5 text-[11px] sm:px-5",
-              index < RECENT.length - 1 &&
-                "border-b border-dotted border-white/15"
-            )}
-            initial={false}
-            animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-            transition={{
-              duration: 0.45,
-              ease: EASE,
-              delay: active ? 0.9 + index * 0.1 : 0,
-            }}
-          >
-            <span className="truncate text-white/80">{item.topic}</span>
-            <span className="flex shrink-0 items-center gap-2 text-white/45">
-              <span
-                className={cn(
-                  "rounded-full border border-dotted px-2 py-0.5 text-[9px] font-medium tracking-wide uppercase",
-                  item.status === "Resolved"
-                    ? "border-emerald-400/35 text-emerald-300"
-                    : "border-[var(--color-primary)]/35 text-[var(--color-primary)]"
-                )}
-              >
-                {item.status}
-              </span>
-              {item.time}
-            </span>
-          </motion.li>
-        ))}
-      </ul>
     </motion.div>
   );
 }

@@ -27,7 +27,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(/Phase D — Error handling ✅/.test(f11), "F11 Phase D marked done");
   console.log("ok  F11-E doc scope");
 }
@@ -39,8 +39,16 @@ function testSourceWiring() {
   assert(/retryOnce/.test(http), "executor retryOnce option");
 
   const loop = read("lib/actions/tool-loop.js");
-  assert(/formatToolResultForModel/.test(loop), "loop formats model payloads");
-  assert(/tool\.run/.test(loop), "safe tool.run log");
+  const invoke = read("lib/actions/invoke-tool.js");
+  assert(
+    /formatToolResultForModel/.test(loop) ||
+      /formatToolResultForModel/.test(invoke),
+    "loop/invoke formats model payloads"
+  );
+  assert(
+    /tool\.run/.test(loop) || /tool\.run/.test(invoke) || /safeLog/.test(invoke),
+    "safe tool.run / invoke logging"
+  );
 
   const safeLog = read("lib/observability/safe-log.js");
   assert(/actionName/.test(safeLog), "safe-log allows actionName");

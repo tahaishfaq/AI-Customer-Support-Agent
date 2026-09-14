@@ -1,17 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { BookOpen, Plus } from "lucide-react";
-import { listKnowledge } from "@/lib/api/knowledge";
 import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 import { AddTextKnowledgeDialog } from "@/components/knowledge/AddTextKnowledgeDialog";
 import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
+import { listKnowledge } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateKnowledgeQuery } from "@/lib/query/invalidation";
 
 function CrawlStatusBadge({ status }) {
   if (!status) return null;
@@ -48,51 +51,35 @@ export function KnowledgeList({
   onCrawlScheduleChange,
   onWebSearchChange,
 }) {
-  const [documents, setDocuments] = useState([]);
-  const [latestCrawl, setLatestCrawl] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [textOpen, setTextOpen] = useState(false);
-
-  const load = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) {
-      setLoading(true);
-      setError("");
-    }
-    try {
-      const data = await listKnowledge(agentId);
-      setDocuments(data.documents);
-      setLatestCrawl(data.latestCrawl);
-    } catch (err) {
-      if (!quiet) {
-        setError(err.message || "Unable to load knowledge");
-      }
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, [agentId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const queryClient = useQueryClient();
+  const knowledgeQuery = useQuery({
+    queryKey: queryKeys.knowledge.list(agentId),
+    queryFn: () => listKnowledge(agentId),
+    enabled: Boolean(agentId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.latestCrawl?.status;
+      return status === "QUEUED" || status === "RUNNING" ? 3000 : false;
+    },
+  });
+  const documents = knowledgeQuery.data?.documents || [];
+  const latestCrawl = knowledgeQuery.data?.latestCrawl || null;
+  const loading = knowledgeQuery.isPending;
+  const error = knowledgeQuery.error?.message || "";
 
   const crawlActive =
     latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING";
 
-  useEffect(() => {
-    if (!crawlActive) return undefined;
-    const timer = setInterval(() => {
-      load({ quiet: true });
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [crawlActive, load]);
-
-  function handleCreated(doc) {
-    setDocuments((prev) => [doc, ...prev]);
+  function handleCreated() {
+    void invalidateKnowledgeQuery(queryClient, agentId);
   }
 
   function handleDeleted(id) {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
+      ...(previous || { latestCrawl: null }),
+      documents: (previous?.documents || []).filter((doc) => doc.id !== id),
+    }));
+    void invalidateKnowledgeQuery(queryClient, agentId);
   }
 
   if (loading) {
@@ -190,7 +177,7 @@ export function KnowledgeList({
           <p className="text-sm text-destructive">{error}</p>
           <button
             type="button"
-            onClick={() => load()}
+            onClick={() => knowledgeQuery.refetch()}
             className="mt-2 text-sm font-medium text-primary underline"
           >
             Try again

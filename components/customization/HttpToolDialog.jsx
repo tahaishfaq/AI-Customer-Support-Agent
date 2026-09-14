@@ -145,6 +145,7 @@ export function HttpToolDialog({
   editorTab,
   onEditorTabChange,
   activeCreds = [],
+  connections = [],
   saving = false,
   onSave,
   onDelete,
@@ -163,7 +164,7 @@ export function HttpToolDialog({
     [form.headersJsonText]
   );
   const hasAuth = Boolean(form.credentialId);
-  const requestTab = ["params", "body", "auth", "headers"].includes(editorTab)
+  const requestTab = ["params", "body", "auth", "headers", "response"].includes(editorTab)
     ? editorTab
     : "params";
   const [showDevMode, setShowDevMode] = useState(false);
@@ -196,6 +197,28 @@ export function HttpToolDialog({
     });
   }
 
+  function addParameter() {
+    const usedNames = new Set(inputs.map((input) => String(input.name || "")));
+    let index = inputs.length + 1;
+    let name = `parameter${index}`;
+    while (usedNames.has(name)) {
+      index += 1;
+      name = `parameter${index}`;
+    }
+    let testArgs = {};
+    try {
+      const parsed = JSON.parse(String(form.testArgsText || "{}"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        testArgs = parsed;
+      }
+    } catch {
+      // Replace invalid test JSON with a usable starter value.
+    }
+    if (testArgs[name] === undefined) testArgs[name] = "test";
+    setInputs([...inputs, { name, type: "string" }]);
+    patchForm({ testArgsText: JSON.stringify(testArgs, null, 2) });
+  }
+
   function onAccessClassChange(nextId) {
     const mapped = applyAccessClass(nextId);
     if (!mapped) return;
@@ -205,7 +228,7 @@ export function HttpToolDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[min(90vh,720px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+        className="flex max-h-[min(92vh,820px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
         showCloseButton
       >
         <DialogHeader className="shrink-0 border-b border-border px-5 py-3.5 pr-12">
@@ -264,6 +287,25 @@ export function HttpToolDialog({
               </FieldDescription>
             </Field>
 
+            <Field>
+              <FieldLabel>Connected system</FieldLabel>
+              <select
+                value={form.connectionId || ""}
+                onChange={(e) => patchForm({ connectionId: e.target.value })}
+                className={cn(selectClass, "w-full")}
+              >
+                <option value="">Custom origin / legacy mode</option>
+                {connections.map((connection) => (
+                  <option key={connection.id} value={connection.id}>
+                    {connection.name} — {connection.environment}
+                  </option>
+                ))}
+              </select>
+              <FieldDescription>
+                Connected systems freeze allowed origins and credentials on the server.
+              </FieldDescription>
+            </Field>
+
             <Tabs
               value={requestTab}
               onValueChange={(next) => {
@@ -282,7 +324,7 @@ export function HttpToolDialog({
                   ) : null}
                 </TabsTrigger>
                 <TabsTrigger value="body" className="px-2.5 text-xs">
-                  Body
+                  Test args
                 </TabsTrigger>
                 <TabsTrigger value="auth" className="px-2.5 text-xs">
                   Auth
@@ -296,6 +338,10 @@ export function HttpToolDialog({
                     <span className="text-muted-foreground">(0)</span>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="response" className="px-2.5 text-xs">
+                  Response
+                  <TabDot on={Boolean(form.responseProjectionJsonText?.trim())} />
+                </TabsTrigger>
               </TabsList>
 
               {/* Stable panel height — same size for every request tab */}
@@ -306,9 +352,10 @@ export function HttpToolDialog({
                     className="mt-0 flex flex-col gap-2 outline-none"
                   >
                     {params.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        No query parameters yet.
-                      </p>
+                      <div className="rounded-lg border border-dashed border-border bg-background/60 px-3 py-2.5 text-xs text-muted-foreground">
+                        No query parameters yet. Add one when the API expects
+                        values in the URL.
+                      </div>
                     ) : (
                       params.map((row, idx) => (
                         <div
@@ -350,29 +397,49 @@ export function HttpToolDialog({
                         </div>
                       ))
                     )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-fit px-0 text-muted-foreground hover:text-foreground"
-                      onClick={() =>
-                        setParams([...params, { key: "", value: "" }])
-                      }
-                    >
-                      <Plus data-icon="inline-start" />
-                      Add parameter
-                    </Button>
                   </TabsContent>
 
                   <TabsContent value="body" className="mt-0 outline-none">
+                    <Field className="mb-3">
+                      <FieldLabel>Request content type</FieldLabel>
+                      <select
+                        value={form.requestContentType || "application/json"}
+                        onChange={(e) =>
+                          patchForm({ requestContentType: e.target.value })
+                        }
+                        className={cn(selectClass, "w-full")}
+                      >
+                        <option value="application/json">JSON</option>
+                        <option value="application/x-www-form-urlencoded">
+                          Form URL encoded
+                        </option>
+                      </select>
+                    </Field>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Request body template. Exact {"{{variable}}"} values keep
+                      their type; missing optional fields are omitted.
+                    </p>
+                    <Textarea
+                      value={form.requestBodyTemplateJsonText || "{}"}
+                      onChange={(e) =>
+                        patchForm({ requestBodyTemplateJsonText: e.target.value })
+                      }
+                      className="mb-3 h-24 min-h-0 resize-none font-mono text-xs"
+                      placeholder='{"subject":"{{subject}}","priority":"{{priority}}"}'
+                      aria-label="Request body template JSON"
+                    />
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Test inputs used when you press Test. They also resolve
+                      URL, headers, and body variables.
+                    </p>
                     <Textarea
                       value={form.testArgsText}
                       onChange={(e) =>
                         patchForm({ testArgsText: e.target.value })
                       }
                       className="h-36 min-h-0 resize-none font-mono text-xs"
-                      placeholder='{\n  "campaignId": "…"\n}'
-                      aria-label="Request body JSON"
+                      placeholder='{\n  "parameter1": "test"\n}'
+                      aria-label="Test arguments JSON"
                     />
                   </TabsContent>
 
@@ -380,6 +447,12 @@ export function HttpToolDialog({
                     value="auth"
                     className="mt-0 flex flex-col gap-2 outline-none"
                   >
+                    {activeCreds.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-border bg-background/60 px-3 py-2.5 text-xs text-muted-foreground">
+                        No credentials saved yet. Close this dialog and add
+                        one in the API credentials section above.
+                      </div>
+                    ) : null}
                     <Field>
                       <FieldLabel>Credential</FieldLabel>
                       <select
@@ -422,6 +495,43 @@ export function HttpToolDialog({
                       }
                       className="h-28 min-h-0 resize-none font-mono text-xs"
                     />
+                  </TabsContent>
+
+                  <TabsContent
+                    value="response"
+                    className="mt-0 flex flex-col gap-2 outline-none"
+                  >
+                    <Field>
+                      <FieldLabel>Fields to return</FieldLabel>
+                      <FieldDescription>
+                        Optional safe projection. Add one response path per line;
+                        only these fields reach the agent.
+                      </FieldDescription>
+                      <Textarea
+                        value={form.responseProjectionJsonText || ""}
+                        onChange={(e) =>
+                          patchForm({ responseProjectionJsonText: e.target.value })
+                        }
+                        className="h-20 min-h-0 resize-none font-mono text-xs"
+                        placeholder={"id\nstatus\neta"}
+                        aria-label="Response projection fields"
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Required output types</FieldLabel>
+                      <FieldDescription>
+                        Optional JSON map, for example {"{ status: string }"}.
+                      </FieldDescription>
+                      <Textarea
+                        value={form.outputSchemaJsonText || "{}"}
+                        onChange={(e) =>
+                          patchForm({ outputSchemaJsonText: e.target.value })
+                        }
+                        className="h-20 min-h-0 resize-none font-mono text-xs"
+                        placeholder={'{\n  "status": "string"\n}'}
+                        aria-label="Output schema JSON"
+                      />
+                    </Field>
                   </TabsContent>
                 </div>
               </div>
@@ -511,8 +621,30 @@ export function HttpToolDialog({
             ) : null}
 
             <Field>
-              <FieldLabel>Inputs</FieldLabel>
-              {inputs.length === 0 ? null : (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <FieldLabel>Parameters</FieldLabel>
+                  <FieldDescription>
+                    Values the agent must provide for this request.
+                  </FieldDescription>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={addParameter}
+                >
+                  <Plus data-icon="inline-start" />
+                  Add parameter
+                </Button>
+              </div>
+              {inputs.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
+                  No parameters. This request can run without agent-provided
+                  values.
+                </div>
+              ) : (
                 <div className="mb-1.5 flex flex-col gap-2">
                   {inputs.map((row, idx) => (
                     <div
@@ -558,18 +690,6 @@ export function HttpToolDialog({
                   ))}
                 </div>
               )}
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-8 w-fit px-0 text-muted-foreground hover:text-foreground"
-                onClick={() =>
-                  setInputs([...inputs, { name: "", type: "string" }])
-                }
-              >
-                <Plus data-icon="inline-start" />
-                Add input
-              </Button>
               <FieldDescription>
                 Variables the LLM must provide. Use them as {"{{variable}}"}{" "}
                 anywhere in the request.

@@ -29,10 +29,11 @@ function main() {
   );
 
   const css = read("app/globals.css");
-  assert(
-    /--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css),
-    "teal primary (#0d7377 family)"
-  );
+  const primaryOk =
+    /--color-primary:\s*#(0d7377|0b5f58|0f766e)/i.test(css) ||
+    (/--primary:\s*oklch\(\s*0\.6717\s+0\.2205\s+37\.8105\s*\)/i.test(css) &&
+      /--color-primary:\s*var\(--primary\)/.test(css));
+  assert(primaryOk, "Aide brand primary (orange oklch or legacy teal)");
   assert(/--text-sm:/.test(css) && /--font-display:/.test(css), "type tokens");
 
   const theme = read("lib/customization/theme.js");

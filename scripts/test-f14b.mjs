@@ -73,7 +73,7 @@ function main() {
   assert(/listAgentConfirmations/.test(form), "form loads confirmations");
   assert(/evidenceId/.test(form), "form shows evidenceId");
 
-  const plan = read("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
+  const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
   assert(/Phase B/.test(plan) && /✅/.test(plan), "F14 plan marks B done");
 
   console.log("ok  evidence fields + migration");

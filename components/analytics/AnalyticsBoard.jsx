@@ -31,6 +31,7 @@ export function AnalyticsBoard({ agentId }) {
   const { data, loading, error, reload } = useAnalyticsDashboard({
     agentId,
     range,
+    scope: "agent",
   });
 
   return (

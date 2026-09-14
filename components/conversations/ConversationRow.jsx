@@ -84,6 +84,14 @@ export function ConversationRow({
               Claimed
             </Badge>
           ) : null}
+          {showDeskStatus && conversation.source === "STUDIO" ? (
+            <Badge
+              variant="outline"
+              className="rounded-full border-violet-500/35 text-violet-700 dark:text-violet-300"
+            >
+              Test · not billed
+            </Badge>
+          ) : null}
           {showDeskStatus &&
           !conversation.waitingForHuman &&
           conversation.status === "RESOLVED" ? (

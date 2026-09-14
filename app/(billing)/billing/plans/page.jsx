@@ -4,6 +4,9 @@ import { auth } from "@/auth";
 import { BillingPlanPicker } from "@/components/billing/BillingPlanPicker";
 import { SafepayCustomerKick } from "@/components/billing/SafepayCustomerKick";
 import { BASIC_PLAN_NAME } from "@/lib/billing/plan-labels";
+import { getBillingCheckoutMode } from "@/lib/billing/checkout-mode";
+import { isSafepayConfigured } from "@/lib/billing/safepay-client";
+import { listPublicBillingPlans } from "@/lib/billing/plans.service";
 import { getBillingSnapshot } from "@/lib/billing/subscription.service";
 import { needsUserOnboarding } from "@/lib/services/user-onboarding.service";
 
@@ -21,15 +24,11 @@ export default async function BillingPlansPage() {
     redirect("/admin");
   }
 
-  const billing = await getBillingSnapshot(
-    session.user.id,
-    session.user.role || "USER"
-  );
-
-  const needsOnboarding = await needsUserOnboarding(
-    session.user.id,
-    session.user.role || "USER"
-  );
+  const [billing, needsOnboarding, plans] = await Promise.all([
+    getBillingSnapshot(session.user.id, session.user.role || "USER"),
+    needsUserOnboarding(session.user.id, session.user.role || "USER"),
+    listPublicBillingPlans(),
+  ]);
   if (needsOnboarding) {
     redirect("/billing/onboarding");
   }
@@ -49,6 +48,8 @@ export default async function BillingPlansPage() {
         cancelAtPeriodEnd: Boolean(sub.cancelAtPeriodEnd),
       }
     : null;
+
+  const checkoutMode = getBillingCheckoutMode();
 
   return (
     <main className="aide-container mx-auto flex w-full max-w-[76rem] flex-col items-center px-6 py-10 sm:px-8 sm:py-14">
@@ -109,6 +110,9 @@ export default async function BillingPlansPage() {
             currentPlanId={currentPlanId}
             currentPlan={currentPlan}
             pendingCheckout={pendingCheckout}
+            initialPlans={plans}
+            initialPaymentsAvailable={isSafepayConfigured()}
+            initialCheckoutMode={checkoutMode}
           />
         </div>
       </div>

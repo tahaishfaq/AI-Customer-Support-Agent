@@ -104,7 +104,7 @@ export function FeatureLiveChat() {
   const sending = phase === "typingUser" && typedUser.length === scene.user.length;
 
   return (
-    <div className="flex h-[22.5rem] w-full max-w-[19.5rem] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md">
+    <div className="flex h-[20rem] w-full max-w-[19.5rem] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.5)] backdrop-blur-md sm:h-[22.5rem]">
       <div className="flex shrink-0 items-center justify-between border-b border-black/[0.06] px-3.5 py-2.5">
         <span className="inline-flex h-5 items-center rounded-full bg-black/[0.05] px-2 py-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}

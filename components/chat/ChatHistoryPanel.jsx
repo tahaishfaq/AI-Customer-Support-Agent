@@ -62,13 +62,13 @@ export function ChatHistoryPanel({
   }, [agentId, refreshKey]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f8fafc]">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] bg-white px-3 py-2.5">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--wc-chat-bg,#ffffff)] text-[var(--wc-shell-fg,#0f172a)]">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--wc-border,rgba(15,23,42,0.08))] bg-[var(--wc-shell,#ffffff)] px-3 py-2.5">
         <div>
-          <p className="text-[13px] font-semibold text-[var(--color-text)]">
+          <p className="text-[13px] font-semibold text-[var(--wc-shell-fg,#0f172a)]">
             Chat history
           </p>
-          <p className="text-[11px] text-[var(--color-muted)]">
+          <p className="text-[11px] text-[var(--wc-muted,#64748b)]">
             Open a past chat to resume
           </p>
         </div>
@@ -76,7 +76,7 @@ export function ChatHistoryPanel({
           type="button"
           size="sm"
           variant="outline"
-          className="gap-1"
+          className="gap-1 border-[var(--wc-border,rgba(15,23,42,0.08))] bg-transparent text-[var(--wc-shell-fg,#0f172a)] hover:bg-[var(--wc-assistant-bg,#f1f5f9)] hover:text-[var(--wc-assistant-fg,#0f172a)]"
           onClick={onNewChat}
         >
           <Plus className="size-3.5" />
@@ -87,28 +87,28 @@ export function ChatHistoryPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-2 p-3">
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
-            <Skeleton className="h-14 bg-[var(--color-border)]" />
+            <Skeleton className="h-14 bg-[var(--wc-border,rgba(148,163,184,0.22))]" />
+            <Skeleton className="h-14 bg-[var(--wc-border,rgba(148,163,184,0.22))]" />
+            <Skeleton className="h-14 bg-[var(--wc-border,rgba(148,163,184,0.22))]" />
           </div>
         ) : error ? (
-          <p className="px-4 py-8 text-center text-[12px] text-[var(--color-danger)]">
+          <p className="px-4 py-8 text-center text-[12px] text-red-500 dark:text-red-400">
             {error}
           </p>
         ) : items.length === 0 ? (
           <div className="px-4 py-10 text-center">
-            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-[var(--wc-primary)]/10 text-[var(--wc-primary)]">
               <MessageSquare className="size-4" />
             </span>
-            <p className="mt-3 text-[13px] font-medium text-[var(--color-text)]">
+            <p className="mt-3 text-[13px] font-medium text-[var(--wc-shell-fg,#0f172a)]">
               No chats yet
             </p>
-            <p className="mt-1 text-[12px] text-[var(--color-muted)]">
+            <p className="mt-1 text-[12px] text-[var(--wc-muted,#64748b)]">
               Start a new conversation to see it here.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-[var(--color-border)]">
+          <ul className="flex flex-col gap-2 p-3">
             {items.map((item) => {
               const active = item.id === activeId;
               return (
@@ -117,26 +117,26 @@ export function ChatHistoryPanel({
                     type="button"
                     onClick={() => onSelect(item.id)}
                     className={cn(
-                      "flex w-full flex-col gap-1 px-3 py-3 text-left transition-colors",
+                      "flex w-full flex-col gap-2 rounded-xl border px-3.5 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wc-primary)]/45",
                       active
-                        ? "bg-[var(--color-primary)]/8"
-                        : "hover:bg-white"
+                        ? "border-[var(--wc-primary)]/45 bg-[var(--wc-primary)]/10"
+                        : "border-[var(--wc-border,rgba(15,23,42,0.08))] bg-[var(--wc-shell,#ffffff)] hover:border-[var(--wc-primary)]/35 hover:bg-[var(--wc-assistant-bg,#f1f5f9)]"
                     )}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-medium text-[var(--color-text)]">
+                      <span className="min-w-0 truncate text-[13px] font-semibold text-[var(--wc-shell-fg,#0f172a)]">
                         {item.category || "Conversation"}
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
-                        <span className="text-[11px] text-[var(--color-muted)]">
+                        <span className="text-[11px] text-[var(--wc-muted,#64748b)]">
                           {formatRelative(item.startedAt)}
                         </span>
-                        <span className="text-[11px] font-semibold text-[var(--color-primary)]">
+                        <span className="rounded-full bg-[var(--wc-primary)]/12 px-2 py-0.5 text-[10px] font-semibold text-[var(--wc-primary)]">
                           Resume
                         </span>
                       </span>
                     </span>
-                    <span className="line-clamp-2 text-[12px] text-[var(--color-text-secondary)]">
+                    <span className="line-clamp-2 text-[12px] text-[var(--wc-assistant-fg,#0f172a)] opacity-75">
                       {previewText(item)}
                     </span>
                   </button>

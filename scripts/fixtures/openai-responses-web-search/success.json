@@ -1,0 +1,44 @@
+{
+  "id": "resp_fixture_001",
+  "output_text": "The current status is available from the official source.",
+  "output": [
+    {
+      "id": "ws_fixture_001",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "sources": [
+          { "title": "Official source", "url": "https://example.com/status" },
+          { "title": "Duplicate source", "url": "https://example.com/status#section" }
+        ]
+      }
+    },
+    {
+      "id": "msg_fixture_001",
+      "type": "message",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "The current status is available from the official source.",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "start_index": 39,
+              "end_index": 55,
+              "title": "Official source",
+              "url": "https://example.com/status"
+            },
+            {
+              "type": "url_citation",
+              "start_index": 39,
+              "end_index": 55,
+              "title": "",
+              "url": "javascript:alert(1)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

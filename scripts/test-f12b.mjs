@@ -21,7 +21,7 @@ function exists(rel) {
 }
 
 function main() {
-  const f12 = read("docs/features/F12_HUMAN_DESK.md");
+  const f12 = read("docs/shipped/F12_HUMAN_DESK.md");
   assert(/Phase B — Design & functionality ✅/.test(f12), "F12 Phase B marked done");
 
   const routes = [

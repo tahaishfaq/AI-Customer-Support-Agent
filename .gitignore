@@ -41,6 +41,9 @@ yarn-error.log*
 .env.*.local
 !.env.example
 
+# operator admin seed (passwords) — never commit
+/prisma/admins.local.json
+
 # vercel
 .vercel
 
@@ -52,7 +55,10 @@ next-env.d.ts
 .pchat-hapy-local.json
 .adversarial-hapy-local.json
 .f00-b26-hapy-local.json
+.f11u-live-d3-state.json
 
-# local tooling
+# local tooling / harness scratch (never commit)
 /tmp/
 tmp/
+.tmp/
+.local-embed-target.json

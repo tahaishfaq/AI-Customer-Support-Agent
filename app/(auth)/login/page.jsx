@@ -8,12 +8,13 @@ export default async function LoginPage({ searchParams }) {
   const query = await searchParams;
   const sessionExpired = query?.session === "expired";
   const suspended = query?.suspended === "1";
+  const resetOk = query?.reset === "1";
   const next = typeof query?.next === "string" ? query.next : "";
 
   return (
     <>
       <div className="mb-7 sm:mb-8">
-        <p className="auth-eyebrow">[ Sign in ]</p>
+        <p className="auth-eyebrow">Sign in</p>
         <h1 className="landing-display mt-3 text-[1.85rem] text-[var(--landing-ink)] sm:text-[2.15rem]">
           Welcome back
         </h1>
@@ -24,6 +25,7 @@ export default async function LoginPage({ searchParams }) {
       <LoginForm
         sessionExpired={sessionExpired}
         suspended={suspended}
+        resetOk={resetOk}
         next={next}
       />
     </>

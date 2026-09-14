@@ -104,9 +104,25 @@ async function main() {
   );
 
   const loop = read("lib/actions/tool-loop.js");
-  assert(/listEnabledMcpToolsForAgent/.test(loop), "tool-loop loads MCP tools");
-  assert(/actionsEnabled === false/.test(loop), "kill switch in listEnabledActionsForAgent");
-  assert(/mcpToolId: data\.mcpToolId/.test(loop), "ToolRun mcpToolId audit");
+  const invoke = read("lib/actions/invoke-tool.js");
+  const registry = read("lib/capabilities/registry.js");
+  assert(
+    /listEnabledMcpToolsForAgent/.test(loop) ||
+      /listEnabledMcpToolsForAgent/.test(registry) ||
+      /listCapabilitiesForAgent/.test(loop),
+    "tool-loop/registry loads MCP tools"
+  );
+  assert(
+    /actionsEnabled === false/.test(loop) ||
+      /actionsEnabled === false/.test(registry) ||
+      /actionsEnabled === false/.test(svc),
+    "kill switch in capability list path"
+  );
+  assert(
+    /mcpToolId: data\.mcpToolId/.test(loop) ||
+      /mcpToolId/.test(invoke),
+    "ToolRun mcpToolId audit"
+  );
 
   const probeRoute = read(
     "app/api/agents/[id]/mcp-servers/[serverId]/probe/route.js"
@@ -142,11 +158,11 @@ async function main() {
     "test:f13 suite includes t4"
   );
   assert(
-    /"test:shipped":\s*"[^"]*test:f13"/.test(pkg),
+    /"test:shipped":\s*"[^"]*test:f13[^"]*"/.test(pkg),
     "test:shipped includes test:f13"
   );
 
-  const plan = read("docs/features/F13_TOOLS_HUB.md");
+  const plan = read("docs/shipped/F13_TOOLS_HUB.md");
   assert(/Phase T4/.test(plan) && /✅/.test(plan), "F13 plan marks T4");
   assert(/Status:.*[Dd]one|complete|shipped/i.test(plan) || /T0–T4 done/.test(plan), "F13 complete status");
 

@@ -91,13 +91,13 @@ function testDocsAndScripts() {
     "test:shipped includes orchestrator"
   );
 
-  const arch = read("docs/features/ARCHITECTURE_ACTIONS_AND_DESK.md");
+  const arch = read("docs/shipped/ARCHITECTURE_ACTIONS_AND_DESK.md");
   assert(/Orchestrator|runTurn|5-layer|Capability/i.test(arch), "architecture updated");
 
   const open = read("docs/OPEN_SEQUENCE.md");
   assert(/O01|Orchestrator/i.test(open), "OPEN_SEQUENCE mentions O01");
 
-  const plan = read("docs/features/ORCHESTRATOR_LAYER_PLAN.md");
+  const plan = read("docs/shipped/ORCHESTRATOR_LAYER_PLAN.md");
   assert(/O5/.test(plan), "plan has O5");
   console.log("ok  O5 docs + CI wiring");
 }

@@ -9,7 +9,7 @@ export default function AuthError({ error, retry }) {
 
   return (
     <div className="space-y-4">
-      <p className="auth-eyebrow">[ Error ]</p>
+      <p className="auth-eyebrow">Error</p>
       <h2 className="landing-display mt-3 text-xl text-[var(--landing-ink)]">
         Something went wrong
       </h2>

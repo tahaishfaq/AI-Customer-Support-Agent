@@ -31,7 +31,7 @@ function StepCard({ step, index, active }) {
 
   return (
     <motion.li
-      className={cn("flex", STAGGER_CLASS[index])}
+      className={cn("relative flex pl-12 lg:pl-0", STAGGER_CLASS[index])}
       initial={false}
       animate={
         active
@@ -44,18 +44,19 @@ function StepCard({ step, index, active }) {
         delay: active ? 0.1 + index * 0.1 : 0,
       }}
     >
-      <article className="landing-dot-frame flex h-full w-full flex-col bg-white p-5 sm:p-6">
-        <span className="inline-flex w-fit rounded-full bg-[var(--landing-ink)] px-3 py-1 text-[11px] font-medium tracking-wide text-white">
-          Step {step.index}
+      <article className="landing-process-step flex h-full w-full flex-col py-1 lg:py-0">
+        <span className="absolute left-0 top-0 z-10 flex size-8 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--landing-panel)] text-[11px] font-semibold text-[var(--color-primary)] lg:static lg:size-auto lg:w-fit lg:justify-start lg:rounded-full lg:border-0 lg:bg-[var(--landing-ink)] lg:px-3 lg:py-1 lg:text-white">
+          <span className="hidden lg:inline">Step </span>
+          {step.index}
         </span>
 
-        <h3 className="landing-display mt-5 text-[1.35rem] text-[var(--landing-ink)] sm:text-[1.5rem]">
+        <h3 className="landing-display mt-4 text-[1.35rem] text-[var(--landing-ink)] sm:text-[1.5rem] lg:mt-5">
           {step.title}
         </h3>
 
-        <div className="landing-dot-b my-4" aria-hidden />
+        <div className="landing-dot-b my-3 sm:my-4" aria-hidden />
 
-        <p className="text-[14px] leading-relaxed text-[var(--landing-muted)] sm:text-[15px]">
+        <p className="hidden text-[14px] leading-relaxed text-[var(--landing-muted)] sm:block sm:text-[15px]">
           {step.body}
         </p>
       </article>
@@ -87,9 +88,9 @@ export function LandingHowItWorks() {
 
       <div
         ref={stepsRef}
-        className="px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12"
+        className="px-4 py-6 sm:px-6 sm:py-10 lg:px-8 lg:py-12"
       >
-        <ol className="grid gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+        <ol className="relative grid gap-5 before:absolute before:bottom-5 before:left-4 before:top-5 before:border-l before:border-dotted before:border-[var(--landing-dot)] sm:gap-6 lg:grid-cols-3 lg:gap-6 lg:before:hidden">
           {STEPS.map((step, index) => (
             <StepCard
               key={step.index}

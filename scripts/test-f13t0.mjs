@@ -76,7 +76,7 @@ function main() {
   const studio = read("components/customization/CustomizationStudio.jsx");
   assert(/label: "Tools"/.test(studio), "Tools section label");
 
-  const plan = read("docs/features/F13_TOOLS_HUB.md");
+  const plan = read("docs/shipped/F13_TOOLS_HUB.md");
   assert(/T0/.test(plan), "F13 plan");
 
   console.log("ok  F13-T0 site_demo_v1 templates + pack");

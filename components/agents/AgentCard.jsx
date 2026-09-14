@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart3,
@@ -39,6 +40,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { getAgent } from "@/lib/api/agents";
+import { queryKeys } from "@/lib/query/keys";
 
 export function AgentStatusBadge({ agent, className }) {
   const disabled = agent?.enabled === false;
@@ -101,13 +104,23 @@ function IconLink({ href, label, children }) {
 
 export function AgentCard({ agent, onDeleted, layout = "grid" }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const list = layout === "list";
   const updated = formatDate(agent.updatedAt || agent.createdAt);
+  function prefetchAgent() {
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.agents.detail(agent.id),
+      queryFn: () => getAgent(agent.id),
+      staleTime: 30_000,
+    });
+  }
 
   return (
     <>
       <Card
+        onMouseEnter={prefetchAgent}
+        onFocusCapture={prefetchAgent}
         size="sm"
         className={cn(
           "h-full transition-colors hover:bg-muted/30 hover:ring-foreground/15",

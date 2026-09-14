@@ -26,7 +26,7 @@ function exists(rel) {
 }
 
 function testDocScope() {
-  const f11 = read("docs/features/F11_AGENT_ACTIONS.md");
+  const f11 = read("docs/shipped/F11_AGENT_ACTIONS.md");
   assert(/Phase G — Infrastructure ✅/.test(f11), "Phase G done");
   assert(/Phase H — Production testing ✅/.test(f11), "Phase H done");
   assert(/\*\*Status:\*\*.*✅.*[Ss]hipped/s.test(f11) || /Status:.*✅ \*\*Shipped\*\*/.test(f11), "F11 shipped status");

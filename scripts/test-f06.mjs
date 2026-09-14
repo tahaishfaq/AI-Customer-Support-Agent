@@ -88,9 +88,10 @@ function main() {
   );
   assert(/reservedAdminEmail/.test(mig), "migration present");
 
-  const seed = read("prisma/seed-admin.js");
+  const seed = read("prisma/seed-admins.js");
   assert(/reservedAdminEmail/.test(seed), "seed writes reserved email");
-  assert(/Cannot seed a second admin|second admin/i.test(seed), "one-admin guard");
+  assert(/MAX_ADMINS|at most 3/i.test(seed), "admin seed cap");
+  assert(/admins\.local\.json/.test(seed), "seed reads local password file");
 
   const settings = read("lib/services/platform-settings.service.js");
   assert(/setReservedAdminEmail/.test(settings), "settings setter");
@@ -101,7 +102,7 @@ function main() {
 
   const readme = read("README.md");
   assert(
-    /Seed the one admin/i.test(readme) && /DATABASE_URL/i.test(readme),
+    /Seed platform admins/i.test(readme) && /DATABASE_URL/i.test(readme),
     "README seed section"
   );
   assert(/production Neon|prod DATABASE_URL|same DATABASE_URL/i.test(readme), "prod seed note");

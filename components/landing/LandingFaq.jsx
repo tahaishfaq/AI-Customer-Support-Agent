@@ -56,7 +56,7 @@ export function LandingFaq() {
             </h2>
           </LandingReveal>
           <LandingReveal delay={80}>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--landing-muted)] sm:text-base">
+            <p className="mt-4 hidden max-w-md text-[15px] leading-relaxed text-[var(--landing-muted)] sm:block sm:text-base">
               Everything teams ask before getting started. Still curious? Reach
               out — we usually reply within a business day.
             </p>
@@ -81,7 +81,7 @@ export function LandingFaq() {
                   type="button"
                   aria-expanded={isOpen}
                   onClick={() => setOpen(index)}
-                  className="flex h-[4.75rem] w-full items-center justify-between gap-4 px-3 text-left sm:h-[5rem] sm:px-4"
+                  className="flex min-h-[4.25rem] w-full items-center justify-between gap-4 px-3 py-4 text-left sm:h-[5rem] sm:px-4 sm:py-0"
                 >
                   <span className="flex min-w-0 items-start gap-3">
                     <span
@@ -94,7 +94,7 @@ export function LandingFaq() {
                     >
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className="text-[15px] font-medium leading-snug text-[var(--landing-ink)] sm:text-base">
+                    <span className="text-[14px] font-medium leading-6 text-[var(--landing-ink)] sm:text-base sm:leading-snug">
                       {item.q}
                     </span>
                   </span>
@@ -115,8 +115,8 @@ export function LandingFaq() {
                 </button>
 
                 {isOpen ? (
-                  <div className="h-[5.75rem] overflow-hidden px-3 pb-5 sm:h-[6rem] sm:px-4 sm:pb-6 sm:pl-[3.5rem]">
-                    <p className="max-w-xl text-[14px] leading-relaxed text-[var(--landing-muted)]">
+                  <div className="relative h-[7.5rem] overflow-hidden px-3 pb-5 pl-12 sm:h-[6rem] sm:px-4 sm:pb-6 sm:pl-[3.5rem]">
+                    <p className="border-l-2 border-[var(--color-primary)]/35 pl-3 text-[13px] leading-6 text-[var(--landing-muted)] sm:text-[14px] sm:leading-relaxed">
                       {item.a}
                     </p>
                   </div>

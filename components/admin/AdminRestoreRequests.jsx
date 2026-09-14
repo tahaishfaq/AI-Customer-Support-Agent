@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { selectionChipClass } from "@/lib/ui/selection-chip";
+import { queryKeys } from "@/lib/query/keys";
 
 function formatWhen(value) {
   if (!value) return "";
@@ -38,34 +40,26 @@ const OPEN_ALL_CAP = 10;
 
 export function AdminRestoreRequests() {
   const [status, setStatus] = useState("PENDING");
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
-
-  async function load(nextStatus = status) {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await listAdminRestoreRequests({ status: nextStatus });
-      setRows(data);
-    } catch (err) {
-      setError(err.message || "Unable to load requests");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load(status);
-  }, [status]);
+  const queryClient = useQueryClient();
+  const requestsQuery = useQuery({
+    queryKey: queryKeys.admin.restoreRequests(status),
+    queryFn: () => listAdminRestoreRequests({ status }),
+    placeholderData: (previous) => previous,
+  });
+  const rows = requestsQuery.data || [];
+  const loading = requestsQuery.isPending;
+  const error = requestsQuery.error?.message || "";
 
   async function onDecide(id, decision) {
     setBusyId(id);
     try {
       await decideAdminRestoreRequest(id, decision);
       toast.success(decision === "REJECT" ? "Request rejected" : "User restored");
-      await load();
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.restoreRequests(status),
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.overview });
     } catch (err) {
       toast.error(err.message || "Unable to update request");
     } finally {
@@ -127,7 +121,7 @@ export function AdminRestoreRequests() {
       </div>
 
       {error ? (
-        <InlineAlert className="mt-4" onRetry={() => load()}>
+        <InlineAlert className="mt-4" onRetry={() => requestsQuery.refetch()}>
           {error}
         </InlineAlert>
       ) : null}

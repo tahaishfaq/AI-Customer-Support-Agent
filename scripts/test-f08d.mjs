@@ -31,8 +31,11 @@ function main() {
   assert(/formatClarifyQuestion|resolveRetrieveQuery/.test(chat), "chat wires typo clarify");
   const prompts = read("lib/services/ai/prompt-builder.js");
   assert(
-    /don.t have knowledge for this agent yet/i.test(prompts),
-    "empty-KB reinforce in system rules"
+    /cannot verify/i.test(prompts) &&
+      (/don.t have knowledge for this agent yet/i.test(prompts) ||
+        /knowledge does not cover/i.test(prompts) ||
+        /If knowledge does not cover/i.test(prompts)),
+    "empty/missing-KB refuse reinforce in system rules"
   );
 
   const list = read("components/knowledge/KnowledgeList.jsx");

@@ -86,7 +86,7 @@ function main() {
 
   assert(exists("lib/actions/identity-ttl.js"), "identity-ttl module");
 
-  const plan = read("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
+  const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");
   assert(/Phase E/.test(plan) && /✅/.test(plan), "F14 E marked done");
 
   console.log("ok  identity TTL + expiry helpers");

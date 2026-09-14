@@ -20,9 +20,9 @@ const ACCOUNT = [
   { label: "Contact", href: "#contact" },
 ];
 
-function FooterTree({ title, items }) {
+function FooterTree({ title, items, className }) {
   return (
-    <div className="landing-footer-tree">
+    <div className={className ? `landing-footer-tree ${className}` : "landing-footer-tree"}>
       <p className="landing-footer-tree-label">{title}</p>
       <ul className="landing-footer-tree-list">
         {items.map((item) => (
@@ -56,13 +56,17 @@ export function LandingFooter() {
           href="/"
           variant="light"
           size="lg"
-          className="mb-10 shrink-0 lg:mb-0"
+          className="mb-8 shrink-0 sm:mb-10 lg:mb-0"
           markClassName="h-8 w-auto sm:h-9"
         />
 
-        <div className="grid flex-1 gap-8 sm:grid-cols-3 sm:gap-6 lg:max-w-3xl lg:gap-8">
+        <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 sm:gap-6 lg:max-w-3xl lg:gap-8">
           <FooterTree title="Contact" items={CONTACT} />
-          <FooterTree title="Navigation" items={NAVIGATION} />
+          <FooterTree
+            title="Navigation"
+            items={NAVIGATION}
+            className="row-span-2 sm:row-span-1"
+          />
           <FooterTree title="Account" items={ACCOUNT} />
         </div>
       </div>

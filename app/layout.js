@@ -1,6 +1,7 @@
 import { DM_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { GoogleGsiLoader } from "@/components/auth/GoogleGsiLoader";
+import { GlobalEmbedLoader } from "@/components/embed/GlobalEmbedLoader";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
       >
         <GoogleGsiLoader />
+        <GlobalEmbedLoader />
         <Providers>{children}</Providers>
       </body>
     </html>

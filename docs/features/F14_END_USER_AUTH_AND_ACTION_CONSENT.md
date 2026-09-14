@@ -1,15 +1,5 @@
-# F14 — End-user auth + in-chat consent (shipped)
+# F14 END USER AUTH AND ACTION CONSENT — moved
 
-**Status:** ✅ **Phases A–E shipped**  
-**Verify:** `npm run test:f14` · [`SHIPPED_FEATURES.md`](../SHIPPED_FEATURES.md)  
-**Open work:** none — see [`OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md)
+**This shipped plan lives in** [`../shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](../shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md).
 
-| Phase | Focus | Status |
-|-------|--------|--------|
-| **Phase A** | Chat Confirm UI | ✅ |
-| **Phase B** | Evidence model | ✅ |
-| **Phase C** | Host user token (`setUser`) | ✅ |
-| **Phase D** | Scoped credentials / identityMode | ✅ |
-| **Phase E** | TTL · refresh · rate-limit approve | ✅ |
-
-Embed confirm-all live calls also covered by F11-U U2.
+Active work: [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) · Realtime: [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md).

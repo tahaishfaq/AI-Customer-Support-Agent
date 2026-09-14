@@ -491,9 +491,9 @@ async function main() {
         join(dirname(fileURLToPath(import.meta.url)), "..", "README.md"),
         "utf8"
       );
-      assert(readme.includes("npm run seed:admin"), "missing seed:admin");
-      assert(readme.includes("ADMIN_BOOTSTRAP_EMAIL"), "missing bootstrap email");
-      assert(readme.includes("Seed the one admin"), "missing seed heading");
+      assert(readme.includes("npm run seed:admins"), "missing seed:admins");
+      assert(readme.includes("admins.local.json"), "missing local admin seed file");
+      assert(readme.includes("Seed platform admins"), "missing seed heading");
     });
 
     await test("admin pages 200", async () => {

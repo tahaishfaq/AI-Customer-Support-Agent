@@ -6,7 +6,8 @@ Tests ke liye technical detail alag file mein hai: `SHIPPED_FEATURES_TEST_APPEND
 
 **Check sab theek hai:** `npm run test:shipped` · Human desk: `npm run test:f12` · Actions: `npm run test:f11` · Universal: `npm run test:f11u` · Tools hub: `npm run test:f13`
 
-**Aage ka kaam:** **[F00 DoD/demo](features/F00_DOD_DEMO_BUFFER.md)** (live ticks + B26 rehearsal) · Alt: [F10 RAG](features/F10_SEMANTIC_RAG.md) if KB pain. OOS: [`ROADMAP_NEXT.md`](ROADMAP_NEXT.md) §4.
+**Aage ka kaam:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md). **Shipped plans (full archive):** [`shipped/`](shipped/README.md). Stand: [`FULL_PATH_STAGE6_TO_PRODUCTION.md`](FULL_PATH_STAGE6_TO_PRODUCTION.md). Realtime: [`features/SOCKET_REALTIME_PLAN.md`](features/SOCKET_REALTIME_PLAN.md).
+
 
 ---
 
@@ -284,13 +285,13 @@ Customer order status poochta hai — FAQ mein nahi hota ya purana hota hai. Bot
 | Random URL scrape | Sirf owner allowlisted URL |
 | Flow canvas setup | Form + Test button / capability toggles |
 
-**Detail:** [`features/F11_AGENT_ACTIONS.md`](features/F11_AGENT_ACTIONS.md) · `npm run test:f11` · `test:f11r` · `test:f11-ux2`–`ux4`
+**Detail:** [`features/F11_AGENT_ACTIONS.md`](shipped/F11_AGENT_ACTIONS.md) · `npm run test:f11` · `test:f11r` · `test:f11-ux2`–`ux4`
 
 ### O01 — Orchestrator layer (runtime)
 
 Chat ab **5-layer** model follow karta hai: Channel → Agent → **Orchestrator** (`runTurn`) → Capability Registry → Domain. HTTP/MCP/builtins ek contract pe; policy LLM ke bahar.
 
-**Detail:** [`features/ORCHESTRATOR_LAYER_PLAN.md`](features/ORCHESTRATOR_LAYER_PLAN.md) · `npm run test:orchestrator`
+**Detail:** [`features/ORCHESTRATOR_LAYER_PLAN.md`](shipped/ORCHESTRATOR_LAYER_PLAN.md) · `npm run test:orchestrator`
 
 ---
 
@@ -335,7 +336,7 @@ Kabhi AI jawab nahi de sakta — refund fight, “mujhe banda chahiye”, legal 
 
 **Tests:** `npm run test:f12` (smoke + live E2E)
 
-**Detail:** [`features/F12_HUMAN_DESK.md`](features/F12_HUMAN_DESK.md)
+**Detail:** [`features/F12_HUMAN_DESK.md`](shipped/F12_HUMAN_DESK.md)
 
 ---
 
@@ -363,7 +364,7 @@ F11 actions the, lekin owner ko **Integrations / MCP / HTTP** ek Botpress-jaisi 
 
 **Tests:** `npm run test:f13` (t0–t4) · `test:shipped` includes F13  
 
-**Detail:** [`features/F13_TOOLS_HUB.md`](features/F13_TOOLS_HUB.md)
+**Detail:** [`features/F13_TOOLS_HUB.md`](shipped/F13_TOOLS_HUB.md)
 
 ---
 
@@ -389,7 +390,7 @@ WRITE / confirm-gated tools pe model “please confirm” bol sakta tha, lekin e
 
 **Tests:** `npm run test:f14a`  
 
-**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
 
 ---
 
@@ -414,7 +415,7 @@ Confirm UI ke baad bhi owner ko durable proof nahi milta tha — kaun ne kab kis
 
 **Tests:** `npm run test:f14b` · `npm run test:f14`  
 
-**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
 
 ---
 
@@ -440,7 +441,7 @@ Embed visitor signed-in tha site pe, lekin Aide ko subject/token nahi milta tha 
 
 **Tests:** `npm run test:f14c` · `npm run test:f14`  
 
-**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
 
 ---
 
@@ -466,7 +467,7 @@ Identity boolean se owner vs visitor token clear nahi tha. Developers ko Test St
 
 **Tests:** `npm run test:f14d` · `npm run test:f14`  
 
-**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
 
 ---
 
@@ -486,7 +487,7 @@ Expired Confirm / stale identity sessions abuse risk — approve spam, zombie PE
 
 **Tests:** `npm run test:f14e` · `npm run test:f14`  
 
-**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
+**Detail:** [`features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md`](shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md)
 
 ---
 

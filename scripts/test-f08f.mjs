@@ -1,5 +1,5 @@
 /**
- * F08-F contract smoke — scaling notes (F10 threshold, no cache).
+ * F08-F contract smoke — scaling notes (F10 threshold, no knowledge cache).
  * Run: npm run test:f08f
  */
 import fs from "node:fs";
@@ -38,7 +38,10 @@ function main() {
   assert(F10_DOC_THRESHOLD === 40, "doc threshold value");
   assert(F10_CHARS_THRESHOLD === 80_000, "chars threshold value");
 
-  assert(!/"ioredis"|"@upstash\/redis"/.test(read("package.json")), "no redis dep for F08");
+  assert(
+    /"ioredis"|"@socket\.io\/redis-adapter"/.test(read("package.json")),
+    "realtime redis dependency"
+  );
   assert(/test:f08f/.test(read("package.json")), "npm script");
 
   console.log("ok  F08-F scaling / F10 threshold");

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { getAdminOverview, getAdminPlatformDashboard } from "@/lib/api/admin";
+import { queryKeys } from "@/lib/query/keys";
 import {
   AnalyticsError,
   embedSiteHost,
@@ -216,19 +218,12 @@ function SentimentSplit({ positive, negative }) {
 export function AdminPlatformAnalytics() {
   const [range, setRange] = useUrlTab("range", ANALYTICS_RANGE_IDS, "7d");
   const [chartsEnabled, setChartsEnabled] = useState(false);
-  const [shell, setShell] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    getAdminOverview()
-      .then((overview) => {
-        if (!cancelled) setShell(overview);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.admin.overview,
+    queryFn: getAdminOverview,
+    staleTime: 60_000,
+  });
+  const shell = overviewQuery.data;
 
   useEffect(() => {
     setChartsEnabled(false);
@@ -259,6 +254,7 @@ export function AdminPlatformAnalytics() {
   const { data, loading, error, reload } = useAnalyticsDashboard({
     range,
     loader,
+    scope: "admin",
     enabled: chartsEnabled,
     keepPrevious: true,
   });

@@ -9,8 +9,9 @@ import { updateAgent } from "@/lib/api/agents";
 import { FormSection } from "@/components/customization/CustomizationFields";
 
 /**
- * Knowledge → allow the agent to use general web / public knowledge when
- * uploaded docs are not enough (prompt policy; default off).
+ * Knowledge → enable hosted live web_search for the agent.
+ * Deployment rollout remains a separate server-side gate;
+ * store price/stock still must come from knowledge/store tools only.
  */
 export function WebSearchPanel({
   agentId,
@@ -36,8 +37,8 @@ export function WebSearchPanel({
       onSaved?.(value);
       toast.success(
         value
-          ? "Web search on — agent may use general knowledge when docs fall short"
-          : "Web search off — answers stay on your knowledge base"
+          ? "Live web search on — agent may call web_search for explicit online asks"
+          : "Live web search off — answers stay on knowledge and store tools"
       );
     } catch (err) {
       setEnabled(prev);
@@ -56,12 +57,13 @@ export function WebSearchPanel({
           </span>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">
-              Allow web / general knowledge
+              Allow live web search
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              When off, the agent only uses your uploaded knowledge (FAQ, PDF,
-              crawled site). When on, it may also use careful general public
-              knowledge if your docs don’t cover the question — and will say so.
+              When on, the agent can use the web_search tool for explicit
+              online/internet questions or store-vs-online comparisons. Store prices and stock still
+              come only from your knowledge and store tools — never from the open
+              web by default.
             </p>
           </div>
         </div>
@@ -71,7 +73,7 @@ export function WebSearchPanel({
             checked={enabled}
             disabled={busy || !agentId}
             onCheckedChange={(checked) => handleToggle(checked === true)}
-            aria-label="Allow web search"
+            aria-label="Allow live web search"
           />
         </div>
       </div>

@@ -1,4 +1,10 @@
-# F10 — Semantic RAG (later — P3)
+# F10 — Semantic RAG (LAST / only if needed)
+
+**Status:** Deferred — Stage 5.7 SKIP accepted. Open **only** if KB chunks wrong after go-live.  
+**Sequence:** [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) #13 · after sockets preferred.  
+**Rule:** Extends `knowledge-retrieve` — not an Orchestrator tool.
+
+---
 
 **Status:** **Not the default next.** After F00 / F11-U live, prefer **M01 MCP** before F10 unless KB pain is real. Open F10 only when [`ROADMAP_NEXT.md`](../ROADMAP_NEXT.md) §2/§3 says so **or** an agent hits the F08 soft threshold below.  
 **Goal:** Fin-grade **retrieve → (optional) rerank → generate** with citations — meaning-based chunk pick, not only keyword overlap.  

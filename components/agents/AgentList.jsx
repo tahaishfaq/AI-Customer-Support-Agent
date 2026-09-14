@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, LayoutGrid, List, Plus, Search } from "lucide-react";
 import { listAgents } from "@/lib/api/agents";
+import { queryKeys } from "@/lib/query/keys";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,28 +20,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 export function AgentList() {
-  const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const { data: agents = [], isPending: loading, error: queryError, refetch } = useQuery({
+    queryKey: queryKeys.agents.all,
+    queryFn: listAgents,
+  });
   const [query, setQuery] = useState("");
   const [view, setView] = useState("grid");
-
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await listAgents();
-      setAgents(data);
-    } catch (err) {
-      setError(err.message || "Unable to load agents");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const error = queryError?.message || "";
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -64,7 +52,7 @@ export function AgentList() {
 
   if (error) {
     return (
-      <InlineAlert onRetry={load} title="Couldn’t load agents">
+        <InlineAlert onRetry={() => refetch()} title="Couldn’t load agents">
         {error}
       </InlineAlert>
     );
@@ -145,7 +133,9 @@ export function AgentList() {
               agent={agent}
               layout={view}
               onDeleted={(id) =>
-                setAgents((prev) => prev.filter((item) => item.id !== id))
+                queryClient.setQueryData(queryKeys.agents.all, (current = []) =>
+                  current.filter((item) => item.id !== id)
+                )
               }
             />
           ))}

@@ -1264,7 +1264,7 @@ const HANDLERS = {
     assert(exists("app/embed.js/route.js"), "per-key iframe");
   },
   "CSP blocks iframe"() {
-    assert(exists("docs/features/F14_END_USER_AUTH_AND_ACTION_CONSENT.md"), "docs");
+    assert(exists("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md"), "docs");
   },
   "Mobile keyboard resize"() {
     const emb = read("app/embed.js/route.js");

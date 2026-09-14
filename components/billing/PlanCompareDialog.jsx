@@ -90,9 +90,9 @@ export function PlanCompareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,52rem)] w-[min(96vw,72rem)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden border-border bg-popover p-0 text-popover-foreground sm:max-w-[72rem]">
-        <DialogHeader className="shrink-0 border-b border-border px-5 py-4 sm:px-6">
-          <DialogTitle className="landing-display text-xl text-foreground sm:text-2xl">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-lg border-border bg-popover p-0 text-popover-foreground sm:max-h-[min(90vh,52rem)] sm:w-[min(96vw,72rem)] sm:max-w-[72rem] sm:rounded-xl">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-3 sm:px-6 sm:py-4">
+          <DialogTitle className="landing-display pr-8 text-lg text-foreground sm:text-2xl">
             Compare plans
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -101,18 +101,18 @@ export function PlanCompareDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-auto">
-          <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+        <div className="min-h-0 flex-1 touch-pan-x overflow-x-auto overflow-y-auto overscroll-contain">
+          <table className="w-full min-w-[36rem] border-collapse text-left text-sm sm:min-w-[40rem]">
             <thead className="sticky top-0 z-10 bg-popover">
               <tr className="border-b border-border">
-                <th className="w-[12rem] px-4 py-3 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:px-5">
+                <th className="sticky left-0 z-20 w-[8rem] min-w-[8rem] bg-popover px-3 py-3 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:static sm:w-[12rem] sm:min-w-0 sm:px-5">
                   Access
                 </th>
                 {ordered.map((plan) => (
                   <th
                     key={plan.id}
                     className={cn(
-                      "min-w-[8.5rem] px-3 py-3 sm:px-4",
+                      "min-w-[8rem] px-3 py-3 sm:min-w-[8.5rem] sm:px-4",
                       plan.isPopular && "bg-primary/5"
                     )}
                   >
@@ -141,7 +141,7 @@ export function PlanCompareDialog({
               </tr>
               {(ordered[0] ? getPlanLimitRows(ordered[0]) : []).map((row) => (
                 <tr key={row.key} className="border-b border-border">
-                  <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.label}</td>
+                  <td className="sticky left-0 z-10 min-w-[8rem] bg-popover px-3 py-3 text-muted-foreground sm:static sm:min-w-0 sm:px-5">{row.label}</td>
                   {ordered.map((plan) => {
                     const match = getPlanLimitRows(plan).find((r) => r.key === row.key);
                     return (
@@ -169,7 +169,7 @@ export function PlanCompareDialog({
               </tr>
               {FEATURE_KEYS.map((feature) => (
                 <tr key={feature.key} className="border-b border-border">
-                  <td className="px-4 py-3 text-muted-foreground sm:px-5">
+                  <td className="sticky left-0 z-10 min-w-[8rem] bg-popover px-3 py-3 text-muted-foreground sm:static sm:min-w-0 sm:px-5">
                     {feature.label}
                   </td>
                   {ordered.map((plan) => (
@@ -187,7 +187,7 @@ export function PlanCompareDialog({
               ))}
 
               <tr className="border-b border-border">
-                <td className="px-4 py-3 text-muted-foreground sm:px-5">Card required</td>
+                <td className="sticky left-0 z-10 min-w-[8rem] bg-popover px-3 py-3 text-muted-foreground sm:static sm:min-w-0 sm:px-5">Card required</td>
                 {ordered.map((plan) => (
                   <td
                     key={plan.id}

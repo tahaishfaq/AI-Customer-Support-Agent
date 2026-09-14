@@ -29,9 +29,13 @@ import { cn } from "@/lib/utils";
 import { formatRelative } from "@/components/conversations/format";
 import { resolvePublicConfirmation } from "@/lib/api/confirmations";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
-import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
-import { resumePublicChatAfterConfirmation } from "@/lib/api/chat";
+import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
+import { resumePublicChatAfterConfirmation, sendPublicChatMessageStream } from "@/lib/api/chat";
 import { useEmbedDesk } from "@/hooks/use-embed-desk";
+import { usePublicRealtime } from "@/hooks/use-public-realtime";
+import { useChatActivity } from "@/hooks/use-chat-activity";
+import { useEmbedFrame } from "@/hooks/use-embed-frame";
+import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 
 import { DESK_WAIT_TIMEOUT_MESSAGE } from "@/lib/desk/conversation-desk";
 
@@ -85,6 +89,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const sessionRestoredRef = useRef(false);
   const conversationIdRef = useRef(null);
   const messagesRef = useRef([]);
+  const realtimeAccessTokenRef = useRef(null);
 
   const [widgetOpen, setWidgetOpen] = useState(fullPage);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -96,8 +101,28 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const [csatBusy, setCsatBusy] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedText, setLastFailedText] = useState("");
+  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
+  const setDeskMessages = useCallback((next) => {
+    if (!activityBusy()) setMessages(next);
+  }, [activityBusy]);
+  const [publicRealtimeConnected, setPublicRealtimeConnected] = useState(false);
+  const [realtimeAccessToken, setRealtimeAccessToken] = useState(null);
   /** F14-C — host setUser session (subject / accessToken / displayName). */
   const [hostUser, setHostUser] = useState(null);
+
+  const realtimeAccessKey = (id) =>
+    `aide:realtime-access:${agent.publicKey}:${id}`;
+
+  const rememberRealtimeAccess = (id, token) => {
+    if (!id || !token) return;
+    realtimeAccessTokenRef.current = token;
+    setRealtimeAccessToken(token);
+    try {
+      localStorage.setItem(realtimeAccessKey(id), token);
+    } catch {
+      // Browser storage may be disabled; the in-memory token remains usable.
+    }
+  };
 
   const {
     waitingForHuman,
@@ -105,6 +130,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     handoffAt,
     setHandoffAt,
     humanTyping,
+    setHumanTyping,
     setDeskHumanReply,
     waitTimedOut,
     handoffEligible,
@@ -121,8 +147,91 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     resetDeskState,
     humanReplied,
     showWaitingBanner,
-  } = useEmbedDesk({ agent, conversationId, messages, setMessages });
+  } = useEmbedDesk({
+    agent,
+    conversationId,
+    messages,
+    setMessages: setDeskMessages,
+    messageBusy: activityBusy,
+    messageVersion: activityVersion,
+    realtimeConnected: publicRealtimeConnected,
+    realtimeAccessToken,
+  });
   const hostUserRef = useRef(null);
+
+  const onPublicRealtimeEvent = useCallback(
+    (event) => {
+      if (event?.ephemeral) {
+        if (event.eventName === REALTIME_EVENT_TYPES.TYPING_STARTED) {
+          setHumanTyping(event.payload?.actorType === "OWNER");
+        } else if (event.eventName === REALTIME_EVENT_TYPES.TYPING_STOPPED) {
+          setHumanTyping(false);
+        }
+        return;
+      }
+      if (
+        [
+          "conversation.handoff.created",
+          "conversation.message.created",
+          "conversation.status.updated",
+          "conversation.csat.updated",
+        ].includes(event?.eventType)
+      ) {
+        if (
+          event?.eventType === "conversation.message.created" &&
+          event?.payload?.role === "HUMAN" &&
+          !widgetOpen &&
+          features.notificationSound
+        ) {
+          playNotificationBeep();
+        }
+        void refreshConversation();
+      }
+    },
+    [features.notificationSound, refreshConversation, setHumanTyping, widgetOpen]
+  );
+
+  const onPublicRealtimeStatus = useCallback((status) => {
+    setPublicRealtimeConnected(status === "connected");
+    if (status !== "connected") setHumanTyping(false);
+    if (status === "connected") void refreshConversation();
+  }, [refreshConversation, setHumanTyping]);
+
+  const { emitEphemeral: emitPublicEphemeral } = usePublicRealtime({
+    agentPublicKey: agent.publicKey,
+    conversationId,
+    accessToken: realtimeAccessToken,
+    customerSubject: hostUser?.subject || null,
+    onEvent: onPublicRealtimeEvent,
+    onStatus: onPublicRealtimeStatus,
+  });
+
+  const handlePublicComposerChange = useCallback(
+    (text) => {
+      if (!conversationId || !realtimeAccessToken) return;
+      const eventType = String(text || "").trim()
+        ? REALTIME_EVENT_TYPES.TYPING_STARTED
+        : REALTIME_EVENT_TYPES.TYPING_STOPPED;
+      void emitPublicEphemeral(eventType, {
+        conversationId,
+        expiresAt:
+          eventType === REALTIME_EVENT_TYPES.TYPING_STARTED
+            ? new Date(Date.now() + 5000).toISOString()
+            : null,
+      });
+    },
+    [conversationId, emitPublicEphemeral, realtimeAccessToken]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (!conversationId || !realtimeAccessToken) return;
+      void emitPublicEphemeral(REALTIME_EVENT_TYPES.TYPING_STOPPED, {
+        conversationId,
+        expiresAt: null,
+      });
+    };
+  }, [conversationId, emitPublicEphemeral, realtimeAccessToken]);
 
   useLayoutEffect(() => {
     hostUserRef.current = hostUser;
@@ -172,6 +281,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   const restoreActiveSession = useCallback(
     async (userSubject = null, { preserveInMemory = false } = {}) => {
+      if (activityBusy()) return;
+      const version = activityVersion();
       const subject =
         typeof userSubject === "string" && userSubject.trim()
           ? userSubject.trim()
@@ -188,11 +299,26 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
       setConversationId(stored.activeId);
       try {
+        let accessToken = realtimeAccessTokenRef.current;
+        try {
+          accessToken =
+            localStorage.getItem(realtimeAccessKey(stored.activeId)) || accessToken;
+          realtimeAccessTokenRef.current = accessToken;
+          if (accessToken) setRealtimeAccessToken(accessToken);
+        } catch {
+          // Continue with the in-memory capability.
+        }
         const res = await fetch(
-          `/api/public/agents/${agent.publicKey}/conversations/${stored.activeId}`
+          `/api/public/agents/${agent.publicKey}/conversations/${stored.activeId}`,
+          {
+            headers: {
+              "x-aide-conversation-access-token": accessToken || "",
+            },
+          }
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
+        if (activityBusy() || version !== activityVersion()) return;
         applyDeskState(data);
         if (data.handoffAt) setHandoffAt(data.handoffAt);
         if (Array.isArray(data.messages) && data.messages.length) {
@@ -210,7 +336,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         // keep welcome until next send
       }
     },
-    [agent, historyEnabled, resetMode, applyDeskState]
+    [agent, historyEnabled, resetMode, applyDeskState, activityBusy, activityVersion]
   );
 
   const bindOrRestoreUserSession = useCallback(
@@ -260,6 +386,15 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   useEffect(() => {
     if (!conversationId) return;
+    try {
+      const storedToken =
+        localStorage.getItem(realtimeAccessKey(conversationId)) ||
+        realtimeAccessTokenRef.current;
+      realtimeAccessTokenRef.current = storedToken;
+      setRealtimeAccessToken(storedToken);
+    } catch {
+      // Continue with the in-memory capability.
+    }
     const subject = hostUserRef.current?.subject || null;
     const { conversations } = touchActiveConversation(
       agent.publicKey,
@@ -349,8 +484,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     deploy.proactiveEnabled &&
     (deploy.proactiveMessage || "Hi! Need help?");
 
+  const frameLayout = useEmbedFrame({
+    enabled: isFloatingEmbed, open: widgetOpen, proactive: Boolean(proactive),
+    customLauncher: deploy.chatLauncher === "custom", position: widgetPosition, parentOrigin,
+  });
+
   const postFrame = useCallback(() => {
-    if (!bubbleMode || window.parent === window) return;
+    if (!bubbleMode || isFloatingEmbed || window.parent === window) return;
     const host = hostRef.current;
     const el = host?.firstElementChild ?? host;
     if (!el) return;
@@ -373,23 +513,24 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       },
       parentOrigin || "*"
     );
-  }, [bubbleMode, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
 
   useLayoutEffect(() => {
-    if (!bubbleMode) return undefined;
+    if (!bubbleMode || isFloatingEmbed) return undefined;
     postFrame();
     const id = requestAnimationFrame(() => postFrame());
     return () => cancelAnimationFrame(id);
-  }, [bubbleMode, widgetOpen, historyOpen, proactive, postFrame]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, historyOpen, proactive, postFrame]);
 
   useEffect(() => {
+    if (isFloatingEmbed) return undefined;
     postFrame();
     const el = hostRef.current;
     if (!el || typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver(() => postFrame());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [postFrame]);
+  }, [postFrame, isFloatingEmbed]);
 
   const persist = useCallback(
     (nextId, nextMessages) => {
@@ -416,13 +557,15 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   );
 
   async function send(text) {
-    if (sending) return;
+    if (sending || activityBusy()) return;
     unlockNotificationAudio();
     setSending(true);
     setError("");
     setLastFailedText("");
+    const activityRequest = beginActivity();
     setHistoryOpen(false);
     const optimisticId = `local-${Date.now()}`;
+    const streamingId = `streaming-assistant-${Date.now()}`;
     const nextUser = [...messages, { id: optimisticId, role: "USER", content: text, local: true }];
     setMessages(nextUser);
 
@@ -436,29 +579,36 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
               ...(user.displayName ? { displayName: user.displayName } : {}),
             }
           : undefined;
-      const res = await fetch(`/api/public/agents/${agent.publicKey}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          conversationId: conversationId || undefined,
-          ...(userSession ? { userSession } : {}),
-        }),
+      const data = await sendPublicChatMessageStream(agent.publicKey, {
+        signal: activityRequest.controller.signal,
+        message: text,
+        conversationId: conversationId || undefined,
+        userSession,
+        realtimeAccessToken: realtimeAccessTokenRef.current,
+        onDelta: (delta) => {
+          if (!isCurrentActivity(activityRequest)) return;
+          setMessages((prev) => {
+            const existing = prev.find((item) => item.id === streamingId);
+            if (existing) {
+              return prev.map((item) =>
+                item.id === streamingId
+                  ? { ...item, content: `${item.content}${delta}` }
+                  : item
+              );
+            }
+            return [
+              ...prev,
+              { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
+            ];
+          });
+        },
+        onTool: (activity) => {
+          receiveActivity(activityRequest, activity);
+        },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const code = data?.error?.details?.code || data?.error?.code;
-        if (
-          res.status === 401 &&
-          (code === "IDENTITY_EXPIRED" ||
-            code === "IDENTITY_INVALID" ||
-            /expired|identity/i.test(data?.error?.message || ""))
-        ) {
-          notifyAuthRefreshRequired(code || "IDENTITY_EXPIRED");
-        }
-        throw new Error(data?.error?.message || "Unable to send message");
-      }
+      if (!isCurrentActivity(activityRequest)) return;
       setConversationId(data.conversationId);
+      rememberRealtimeAccess(data.conversationId, data.realtimeAccessToken);
       applyDeskState(data);
       if (data.identityRefreshRequired) {
         notifyAuthRefreshRequired("IDENTITY_EXPIRED");
@@ -470,16 +620,22 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
       if (data.aiPaused || data.waitingForHuman) {
         const full = await fetch(
-          `/api/public/agents/${agent.publicKey}/conversations/${data.conversationId}`
+          `/api/public/agents/${agent.publicKey}/conversations/${data.conversationId}`,
+          {
+            headers: {
+              "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+            },
+          }
         )
           .then((r) => r.json().catch(() => ({})))
           .catch(() => null);
+        if (!isCurrentActivity(activityRequest)) return;
         if (full?.messages?.length) {
           applyDeskState(full);
           setMessages(full.messages);
           persist(data.conversationId, full.messages);
         } else {
-          const next = nextUser.filter((m) => m.id !== optimisticId);
+          const next = nextUser.filter((m) => m.id !== optimisticId && m.id !== streamingId);
           if (data.userMessage) {
             next.push({
               id: data.userMessage.id,
@@ -493,16 +649,19 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
               role: "ASSISTANT",
               content: data.message.content,
               responseTime: data.message.responseTime,
+              citations: data.citations || [],
+              sources: data.sources || [],
             });
           }
           setMessages(next);
           persist(data.conversationId, next);
         }
         setSending(false);
+        clearActivities();
         return;
       }
 
-      const next = nextUser.filter((m) => m.id !== optimisticId);
+      const next = nextUser.filter((m) => m.id !== optimisticId && m.id !== streamingId);
       if (data.userMessage) {
         next.push({
           id: data.userMessage.id,
@@ -517,6 +676,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           content: data.message.content,
           responseTime: data.message.responseTime,
           toolSteps: data.toolSteps || [],
+          citations: data.citations || [],
+          sources: data.sources || [],
           pendingConfirmations: data.pendingConfirmations || [],
         });
       }
@@ -528,19 +689,35 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         setLastFailedText(text);
       }
       setSending(false);
+      clearActivities();
     } catch (err) {
+      if (!isCurrentActivity(activityRequest)) return;
+      const code = err?.details?.code;
+      if (
+        err?.status === 401 &&
+        (code === "IDENTITY_EXPIRED" || code === "IDENTITY_INVALID" || /expired|identity/i.test(err.message || ""))
+      ) {
+        notifyAuthRefreshRequired(code || "IDENTITY_EXPIRED");
+      }
       setError(err.message || "Unable to send message");
       setLastFailedText(text);
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId && m.id !== streamingId));
+      clearActivities();
       setSending(false);
     }
   }
 
   async function handleConfirmDecision(confirmation, decision) {
+    if (activityBusy()) throw new Error("Wait for the current response to finish.");
     const cid = confirmation.conversationId || conversationId;
     if (!cid || !confirmation?.id) {
       throw new Error("Missing conversation");
     }
+    const activityRequest = beginActivity();
+    const streamingId = `confirmation-stream-${Date.now()}`;
+    setSending(true);
+
+    try {
     const updated = await resolvePublicConfirmation(
       agent.publicKey,
       confirmation.id,
@@ -553,8 +730,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         ...(hostUserRef.current?.displayName
           ? { userDisplay: hostUserRef.current.displayName }
           : {}),
+        realtimeAccessToken: realtimeAccessTokenRef.current,
       }
     );
+    if (!isCurrentActivity(activityRequest)) return;
     setMessages((prev) =>
       prev.map((m) => ({
         ...m,
@@ -581,9 +760,17 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         const data = await resumePublicChatAfterConfirmation(agent.publicKey, {
           conversationId: cid,
           confirmationId: confirmation.id,
+          signal: activityRequest.controller.signal,
+          onTool: data => receiveActivity(activityRequest, data),
+          onDelta: delta => {
+            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
+          },
           userSession,
+          realtimeAccessToken: realtimeAccessTokenRef.current,
         });
+        if (!isCurrentActivity(activityRequest)) return;
         setConversationId(data.conversationId);
+        rememberRealtimeAccess(data.conversationId, data.realtimeAccessToken);
         applyDeskState(data);
         if (data.identityRefreshRequired) {
           notifyAuthRefreshRequired("IDENTITY_EXPIRED");
@@ -593,7 +780,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           if (data.handoffAt) setHandoffAt(data.handoffAt);
         }
         setMessages((prev) => {
-          const next = mergeAssistantReply(prev, data);
+          const next = mergeAssistantReply(prev.filter(message => message.id !== streamingId), data);
           persist(data.conversationId, next);
           return next;
         });
@@ -602,22 +789,39 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           setError("Generation failed — Try again");
         }
       } catch (err) {
+        if (!isCurrentActivity(activityRequest)) return;
         setError(err.message || "Unable to continue after approval");
         throw err;
-      } finally {
+      }
+    }
+
+    } finally {
+      if (isCurrentActivity(activityRequest)) {
+        setMessages(previous => previous.filter(message => message.id !== streamingId));
+        clearActivities();
         setSending(false);
+
       }
     }
   }
 
   async function openPastChat(id) {
+    clearActivities();
+    const version = activityVersion();
+    setSending(false);
     setError("");
     try {
       const res = await fetch(
-        `/api/public/agents/${agent.publicKey}/conversations/${id}`
+        `/api/public/agents/${agent.publicKey}/conversations/${id}`,
+        {
+          headers: {
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
+        }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
+      if (version !== activityVersion()) return;
       setConversationId(id);
       applyDeskState(data);
       if (Array.isArray(data.messages)) {
@@ -626,6 +830,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       setHistoryOpen(false);
       persist(id, data.messages || []);
     } catch (err) {
+      if (version !== activityVersion()) return;
       setError(err.message || "Unable to open chat");
     }
   }
@@ -635,7 +840,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     try {
       await fetch(`/api/public/agents/${agent.publicKey}/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+        },
         body: JSON.stringify({
           messageId,
           rating,
@@ -655,7 +863,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/csat`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
           body: JSON.stringify(skip ? { skip: true } : { score }),
         }
       );
@@ -691,7 +902,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/handoff`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+          },
           body: JSON.stringify({ reason: "Customer requested human support" }),
         }
       );
@@ -735,7 +949,11 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   }
 
   function resetChat() {
+    clearActivities();
+    setSending(false);
     setConversationId(null);
+    realtimeAccessTokenRef.current = null;
+    setRealtimeAccessToken(null);
     setMessages(welcomeBubble(agent));
     resetDeskState();
     setError("");
@@ -828,6 +1046,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         onFeedback={rateMessage}
         onConfirmDecision={handleConfirmDecision}
         confirmBusy={sending}
+        activeActivities={activeActivities}
       />
       {error ? (
         <div className="mx-2 mb-1 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-2 py-1.5 text-[12px] text-[var(--color-danger)]">
@@ -885,6 +1104,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         uploadUrl={`/api/public/agents/${agent.publicKey}/files`}
         footer={identity.footer}
         onSend={send}
+        onValueChange={handlePublicComposerChange}
       />
     </>
   );
@@ -892,6 +1112,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   return (
     <div
       ref={hostRef}
+      style={isFloatingEmbed ? { position: "fixed", inset: 0, width: "100%", maxWidth: "none", height: "100%" } : undefined}
+      data-realtime-status={publicRealtimeConnected ? "connected" : "offline"}
+      data-realtime-conversation={conversationId || ""}
       className={
         bubbleMode
           ? cn(
@@ -915,7 +1138,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         }}
         fullPage={fullPage}
         fillHost={bubbleMode}
-        align={positionToChatAlign(widgetPosition)}
+        coordinatedFrame={isFloatingEmbed}
+        panelReady={frameLayout.panelReady}
+        align={positionToChatAlign(isFloatingEmbed ? frameLayout.position : widgetPosition)}
         historyOpen={historyOpen}
         onHistoryToggle={
           historyEnabled

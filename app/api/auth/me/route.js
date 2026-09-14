@@ -4,6 +4,7 @@ import { postAuthPathFromSession } from "@/lib/auth-home";
 import { getBillingSnapshot } from "@/lib/billing/subscription.service";
 import { getConversationQuota } from "@/lib/billing/conversation-usage.service";
 import { needsUserOnboarding } from "@/lib/services/user-onboarding.service";
+import prisma from "@/lib/prisma";
 
 /** Current NextAuth session user (for clients that prefer REST). */
 export async function GET() {
@@ -17,6 +18,10 @@ export async function GET() {
     }
 
     const role = session.user.role || "USER";
+    const row = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailVerified: true },
+    });
     const billing = await getBillingSnapshot(session.user.id, role);
     const conversations = await getConversationQuota(session.user.id, role, {
       billing,
@@ -35,6 +40,7 @@ export async function GET() {
           name: session.user.name,
           email: session.user.email,
           role,
+          emailVerified: row?.emailVerified || null,
         },
         billing,
         conversations,

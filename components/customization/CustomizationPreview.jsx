@@ -2,21 +2,21 @@
 
 import { useState } from "react";
 import {
-  History,
+  Globe2,
   MessageCircle,
-  Paperclip,
-  RotateCcw,
+  Plus,
   Send,
+  Smile,
   ThumbsUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { selectionChipClass } from "@/lib/ui/selection-chip";
 import { AvatarImage } from "@/components/ui/avatar-image";
 import {
   normalizeWidgetPosition,
   positionToPreviewClasses,
 } from "@/lib/customization/position";
 import { monogram } from "@/components/conversations/format";
+import { WidgetBrand } from "@/components/chat/WidgetBrand";
 
 function fontFamily(_font) {
   return "var(--font-dm-sans), var(--font-sans), sans-serif";
@@ -47,6 +47,7 @@ function Avatar({ src, label, sizeClass, primary, invert = false, size = 28 }) {
 }
 
 function ChatWindow({
+  agent,
   identity,
   appearance,
   features,
@@ -58,23 +59,12 @@ function ChatWindow({
   className = "",
 }) {
   const dark = appearance.theme === "dark";
-  const headerPrimary = appearance.headerStyle === "primary";
-  const darkerBubbles = appearance.messageStyle === "darker";
 
   const shellBg = dark ? "#0f172a" : "#ffffff";
   const shellFg = dark ? "#f8fafc" : "#0f172a";
   const muted = dark ? "#94a3b8" : "#64748b";
   const border = dark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.08)";
   const inputBg = dark ? "#1e293b" : "#ffffff";
-  const assistantBg = darkerBubbles
-    ? dark
-      ? "#334155"
-      : "#0f172a"
-    : dark
-      ? "#1e293b"
-      : "#f1f5f9";
-  const assistantFg = darkerBubbles || dark ? "#f8fafc" : "#0f172a";
-  const headerBg = headerPrimary ? primary : dark ? "#020617" : "#0f172a";
 
   return (
     <div
@@ -91,73 +81,81 @@ function ChatWindow({
       }}
     >
       <div
-        className="flex shrink-0 items-center gap-2 px-3 py-2.5"
-        style={{ backgroundColor: headerBg, color: "#ffffff" }}
+        className="flex shrink-0 items-center gap-2 border-b px-3.5 py-3"
+        style={{
+          backgroundColor: shellBg,
+          borderColor: border,
+          color: shellFg,
+        }}
       >
-        <Avatar
+        <WidgetBrand
           src={identity.avatarUrl}
           label={label}
-          sizeClass="size-7 text-[11px]"
-          primary={primary}
-          invert
+          className={identity.avatarUrl ? "size-8" : undefined}
+          dark={dark}
         />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {label}
         </span>
-        {features?.conversationHistory ? (
-          <History className="size-3.5 shrink-0 opacity-80" aria-hidden />
-        ) : null}
-        <RotateCcw className="size-3.5 shrink-0 opacity-80" aria-hidden />
+        <span
+          className={cn(
+            "inline-flex size-8 items-center justify-center rounded-lg",
+            agent?.webSearchEnabled ? "text-emerald-500" : "text-slate-400"
+          )}
+          title={agent?.webSearchEnabled ? "Web search on" : "Web search off"}
+          aria-label={agent?.webSearchEnabled ? "Web search on" : "Web search off"}
+        >
+          <Globe2 className="size-[18px]" aria-hidden />
+        </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
-        <div className="mb-1 flex shrink-0 flex-col items-center gap-2 py-2">
-          <Avatar
-            src={identity.avatarUrl}
-            label={label}
-            sizeClass="size-14 text-lg"
-            primary={primary}
-          />
-          <p className="text-sm font-semibold" style={{ color: shellFg }}>
-            {label}
-          </p>
-          {identity.description ? (
-            <p
-              className="line-clamp-2 text-center text-[11px]"
-              style={{ color: muted }}
-            >
-              {identity.description}
-            </p>
-          ) : null}
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3.5 py-4">
+        <p
+          className="max-w-[92%] px-1 text-[15px] leading-snug"
+          style={{ color: shellFg }}
+        >
+          {identity.description || "Smart chatbots tailored to your knowledge and tools."}
+        </p>
 
         <div className="mt-auto flex flex-col gap-2 pb-1">
-          <div className="flex items-end gap-2">
-            <Avatar
-              src={identity.avatarUrl}
-              label={label}
-              sizeClass="size-6 text-[9px]"
-              primary={primary}
-            />
-            <div className="min-w-0 max-w-[75%]">
-              <div
-                className="px-3 py-2 text-[12px]"
-                style={{
-                  backgroundColor: assistantBg,
-                  color: assistantFg,
-                  borderRadius: `${Math.max(8, radius)}px`,
-                }}
-              >
-                Hi! How can I help you today?
-              </div>
-              {features?.messageFeedback ? (
-                <div className="mt-1 flex gap-1.5" style={{ color: muted }}>
-                  <ThumbsUp className="size-3" />
-                  <ThumbsUp className="size-3 rotate-180" />
-                </div>
-              ) : null}
-            </div>
+          <div
+            className="ml-auto max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[12px] leading-snug"
+            style={{
+              backgroundColor: dark ? "#334155" : "#f1f0ed",
+              color: shellFg,
+            }}
+          >
+            <span style={{ color: muted }}>Visitor · </span>
+            Where is my order #4821?
           </div>
+          <div
+            className="flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[11px]"
+            style={{ borderColor: border, color: muted }}
+          >
+            <span
+              className="size-2 rounded-full"
+              style={{ backgroundColor: primary }}
+              aria-hidden
+            />
+            GET_ORDER_STATUS
+          </div>
+          <div
+            className="rounded-2xl border px-3.5 py-2.5 text-[12px] leading-snug shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
+            style={{
+              backgroundColor: shellBg,
+              borderColor: border,
+              color: shellFg,
+            }}
+          >
+            <span style={{ color: primary }}>{label} · </span>
+            Order #4821 is out for delivery — arrives tomorrow by 6pm.
+          </div>
+          {features?.messageFeedback ? (
+            <div className="flex gap-1.5 px-1" style={{ color: muted }}>
+              <ThumbsUp className="size-3" />
+              <ThumbsUp className="size-3 rotate-180" />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -168,6 +166,15 @@ function ChatWindow({
           backgroundColor: shellBg,
         }}
       >
+        {features?.fileUpload ? (
+          <span
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+            style={{ color: muted }}
+            aria-label="Attach file"
+          >
+            <Plus className="size-[20px]" strokeWidth={1.8} />
+          </span>
+        ) : null}
         <div
           className="flex min-h-8 min-w-0 flex-1 items-center gap-1 overflow-hidden px-3 py-1 text-[13px]"
           style={{
@@ -178,11 +185,16 @@ function ChatWindow({
           }}
         >
           <span className="min-w-0 flex-1 truncate">{placeholder}</span>
-          <Paperclip className="size-3.5 shrink-0 opacity-70" aria-hidden />
         </div>
         <span
-          className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ backgroundColor: primary }}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+          style={{ color: muted }}
+          aria-label="Add emoji"
+        >
+          <Smile className="size-[18px]" strokeWidth={1.8} />
+        </span>
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#171313] text-white"
           aria-hidden
         >
           <Send className="size-3.5" />
@@ -238,11 +250,18 @@ export function CustomizationPreview({ agent, customization }) {
   const appearance = customization?.appearance || {};
   const deploy = customization?.deploy || {};
   const features = customization?.features || {};
+  const dark = appearance.theme === "dark";
 
   const label = identity.displayName?.trim() || agent?.name || "Agent";
   const placeholder = identity.messagePlaceholder || "Type your message...";
   const footer = identity.footer || "by AIDE";
   const primary = appearance.primaryColor || "#ea580c";
+  const previewShell = dark ? "#111318" : "#ffffff";
+  const previewStage = dark ? "#20252d" : "#e8eef3";
+  const previewBorder = dark
+    ? "rgba(148,163,184,0.22)"
+    : "rgba(15,23,42,0.12)";
+  const previewMuted = dark ? "#a8afbd" : "#64748b";
   const radius = Math.max(0, Math.min(28, appearance.cornerRadius ?? 16));
   const embedded = deploy.chatInterface === "embedded";
   const widgetPosition = normalizeWidgetPosition(deploy.widgetPosition);
@@ -255,6 +274,7 @@ export function CustomizationPreview({ agent, customization }) {
   const [panelOpen, setPanelOpen] = useState(true);
 
   const windowProps = {
+    agent,
     identity,
     appearance,
     features,
@@ -305,7 +325,7 @@ export function CustomizationPreview({ agent, customization }) {
   const openPanel = (
     <ChatWindow
       {...windowProps}
-      className="h-[min(420px,58vh)] w-[min(100%,320px)]"
+      className="h-[min(420px,58vh)] w-[min(100%,380px)]"
     />
   );
 
@@ -329,30 +349,45 @@ export function CustomizationPreview({ agent, customization }) {
 
   return (
     <div className="min-w-0 font-sans">
-      <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)]">
+      <div
+        className="overflow-hidden rounded-xl border shadow-[var(--shadow-card)]"
+        style={{
+          backgroundColor: previewShell,
+          borderColor: previewBorder,
+          color: dark ? "#f8fafc" : "#0f172a",
+        }}
+      >
         {!embedded ? (
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2.5">
-            <p className="text-[11px] text-muted-foreground">
+          <div
+            className="flex items-center justify-between gap-2 border-b px-3 py-2.5"
+            style={{ borderColor: previewBorder }}
+          >
+            <p className="text-[11px]" style={{ color: previewMuted }}>
               {panelOpen ? "Panel open" : "Launcher closed"}
             </p>
-            <div className="flex rounded-md border border-[var(--color-border)] p-0.5 text-[11px]">
+            <div
+              className="flex rounded-md border p-0.5 text-[11px]"
+              style={{ borderColor: previewBorder }}
+            >
               <button
                 type="button"
                 onClick={() => setPanelOpen(true)}
-                className={selectionChipClass(
-                  panelOpen,
-                  "rounded px-2.5 py-1 text-[11px]"
-                )}
+                className="rounded px-2.5 py-1 text-[11px] outline-none transition-colors"
+                style={{
+                  color: panelOpen ? primary : previewMuted,
+                  border: `1px solid ${panelOpen ? primary : "transparent"}`,
+                }}
               >
                 Open
               </button>
               <button
                 type="button"
                 onClick={() => setPanelOpen(false)}
-                className={selectionChipClass(
-                  !panelOpen,
-                  "rounded px-2.5 py-1 text-[11px]"
-                )}
+                className="rounded px-2.5 py-1 text-[11px] outline-none transition-colors"
+                style={{
+                  color: !panelOpen ? primary : previewMuted,
+                  border: `1px solid ${!panelOpen ? primary : "transparent"}`,
+                }}
               >
                 Closed
               </button>
@@ -360,7 +395,10 @@ export function CustomizationPreview({ agent, customization }) {
           </div>
         ) : null}
 
-        <div className="relative isolate min-h-[480px] overflow-hidden bg-[#e8eef3]">
+        <div
+          className="relative isolate min-h-[480px] overflow-hidden"
+          style={{ backgroundColor: previewStage }}
+        >
           {siteBody}
           {embedded ? (
             <div className="relative z-10 flex min-h-[480px] p-4 sm:p-5">

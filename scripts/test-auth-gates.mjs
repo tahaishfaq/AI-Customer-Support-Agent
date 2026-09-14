@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveFastPostAuthPath } from "../lib/auth-home.js";
+import {
+  isProductAppPath,
+  resolveFastPostAuthPath,
+} from "../lib/auth-home.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -57,7 +60,25 @@ async function main() {
   const appLayout = read("app/(app)/layout.jsx");
   const authMe = read("app/api/auth/me/route.js");
 
+  assert(!fs.existsSync(path.join(root, "middleware.js")), "must use proxy.js, not middleware.js");
   assert(proxy.includes('"/inbox"'), "proxy must protect /inbox");
+  assert(proxy.includes("/ws"), "proxy must handle workspace-prefixed app routes");
+  assert(
+    proxy.includes("/auth/continue"),
+    "proxy must send missing workspace-slug cookies through /auth/continue"
+  );
+  assert(
+    !proxy.includes("default-workspace"),
+    "proxy must not invent default-workspace as a URL slug"
+  );
+  assert(
+    !proxy.includes("localhost"),
+    "proxy must use the incoming request URL, not a hardcoded host"
+  );
+  assert(
+    isProductAppPath("/ws/acme-support/agents/new"),
+    "workspace-prefixed product paths must stay product paths"
+  );
   assert(
     appLayout.includes("redirectForSessionUser"),
     "app layout must distinguish expired vs suspended sessions"
@@ -93,6 +114,7 @@ async function main() {
 
   const routes = [
     "/dashboard",
+    "/ws/default-workspace/dashboard",
     "/agents",
     "/agents/new",
     "/inbox",

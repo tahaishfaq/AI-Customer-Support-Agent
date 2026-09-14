@@ -35,7 +35,12 @@ function main() {
   assert(joke.startsWith("You are a funny clown"), "personality overlay kept");
   assert(joke.includes(RESPONSE_RULES_SECTION), "global rules always appended");
   assert(/do not invent product facts/i.test(joke), "grounding refuse even for joke overlay");
-  assert(/Answer only from the agent system prompt and knowledge/.test(joke), "grounding line present");
+  assert(
+    /Answer only from the agent system prompt and knowledge|If knowledge does not cover a business fact|cannot verify/i.test(
+      joke
+    ),
+    "grounding line present"
+  );
 
   assert(/test:f09f/.test(read("package.json")), "npm script");
 

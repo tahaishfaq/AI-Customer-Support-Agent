@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import {
   DESK_EMBED_POLL_MS,
@@ -16,7 +16,16 @@ export function messagesIncludeHumanReply(messages) {
 }
 
 /** Desk wait state, polling, and CSAT flags for the public embed widget. */
-export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
+export function useEmbedDesk({
+  agent,
+  conversationId,
+  messages,
+  setMessages,
+  realtimeConnected = false,
+  realtimeAccessToken = null,
+  messageBusy,
+  messageVersion,
+}) {
   const [waitingForHuman, setWaitingForHuman] = useState(false);
   const [handoffAt, setHandoffAt] = useState(null);
   const [humanTyping, setHumanTyping] = useState(false);
@@ -28,6 +37,7 @@ export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
   const [handoffBlockMessage, setHandoffBlockMessage] = useState("");
   const [csatPending, setCsatPending] = useState(false);
   const [csatThanks, setCsatThanks] = useState(false);
+  const refreshRequestRef = useRef(0);
 
   const applyDeskState = useCallback((data) => {
     if (!data) return;
@@ -82,13 +92,22 @@ export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
   }, []);
 
   const refreshConversation = useCallback(async () => {
-    if (!conversationId || !agent.publicKey) return null;
+    if (!conversationId || !agent.publicKey || messageBusy?.()) return null;
+    const version = messageVersion?.();
+    const requestId = ++refreshRequestRef.current;
     try {
       const res = await fetch(
-        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`
+        `/api/public/agents/${agent.publicKey}/conversations/${conversationId}`,
+        {
+          headers: {
+            "x-aide-conversation-access-token": realtimeAccessToken || "",
+          },
+        }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return null;
+      if (requestId !== refreshRequestRef.current) return null;
+      if (messageBusy?.() || version !== messageVersion?.()) return null;
       applyDeskState(data);
       if (data.handoffAt) setHandoffAt(data.handoffAt);
       if (Array.isArray(data.messages)) {
@@ -99,14 +118,17 @@ export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
           if (prev.length === next.length && prevLast && prevLast === nextLast) {
             return prev;
           }
-          return next;
+          return next.map(message => {
+            const previous = prev.find(item => item.id === message.id);
+            return previous ? { ...previous, ...message } : message;
+          });
         });
       }
       return data;
     } catch {
       return null;
     }
-  }, [agent, conversationId, applyDeskState, setMessages]);
+  }, [agent, conversationId, applyDeskState, realtimeAccessToken, setMessages, messageBusy, messageVersion]);
 
   const resetDeskState = useCallback(() => {
     setWaitingForHuman(false);
@@ -130,17 +152,17 @@ export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
   const showWaitingBanner = waitingForHuman && !humanReplied;
 
   useEffect(() => {
-    if (!conversationId || !waitingForHuman) return undefined;
+    if (!conversationId || !waitingForHuman || realtimeConnected) return undefined;
     const pollMs = humanReplied ? POLL_MS : WAIT_POLL_MS;
     const id = setInterval(refreshConversation, pollMs);
     return () => clearInterval(id);
-  }, [conversationId, waitingForHuman, humanReplied, refreshConversation]);
+  }, [conversationId, waitingForHuman, humanReplied, realtimeConnected, refreshConversation]);
 
   useEffect(() => {
-    if (!conversationId || waitingForHuman || handoffEligible) return undefined;
+    if (!conversationId || realtimeConnected || waitingForHuman || handoffEligible) return undefined;
     const id = setInterval(refreshConversation, 30_000);
     return () => clearInterval(id);
-  }, [conversationId, waitingForHuman, handoffEligible, refreshConversation]);
+  }, [conversationId, realtimeConnected, waitingForHuman, handoffEligible, refreshConversation]);
 
   useEffect(() => {
     if (!waitingForHuman || humanReplied || !handoffAt) {
@@ -164,6 +186,7 @@ export function useEmbedDesk({ agent, conversationId, messages, setMessages }) {
     handoffAt,
     setHandoffAt,
     humanTyping,
+    setHumanTyping,
     deskHumanReply,
     setDeskHumanReply,
     waitTimedOut,

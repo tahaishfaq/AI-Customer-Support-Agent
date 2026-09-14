@@ -8,6 +8,7 @@ import { originFromRequest } from "@/lib/utils/request-origin";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { pubConfirmLimitOpts } from "@/lib/rate-limit-config";
+import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
 
 /**
  * F14-A/B/E — Public approve (default) or deny + stamp evidence.
@@ -46,6 +47,13 @@ export async function POST(request, { params }) {
       });
     }
 
+    await requirePublicConversationAccess({
+      request,
+      conversationId,
+      agentId: agent.id,
+      origin: originFromRequest(request),
+    });
+
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: { id: true, agentId: true, customerSubject: true },
@@ -60,7 +68,7 @@ export async function POST(request, { params }) {
         : "approve";
 
     const evidence = {
-      userSubject: body?.userSubject || conversation.customerSubject,
+      userSubject: conversation.customerSubject,
       userDisplay: body?.userDisplay,
       clientIp: ip,
     };
@@ -72,7 +80,7 @@ export async function POST(request, { params }) {
 
     return jsonOk(request, confirmation, 200);
   } catch (error) {
-    if (error.status === 400 || error.status === 404) {
+    if (error.status === 400 || error.status === 401 || error.status === 404) {
       return jsonError(request, error.status, error.message, error.details || {});
     }
     console.error(

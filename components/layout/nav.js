@@ -10,10 +10,6 @@ export const MONITOR_NAV = [
   { href: "/analytics", label: "Analytics" },
 ];
 
-export const ACCOUNT_NAV = [
-  { href: "/settings/billing", label: "Plan & billing" },
-];
-
 export function isNavActive(pathname, href) {
   if (href === "/dashboard") {
     return pathname === "/dashboard";
@@ -69,10 +65,6 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
     return [workspace, { href: "/agents", label: "Agents" }, { label: agentLabel }];
   }
 
-  if (pathname === "/chat") {
-    return [workspace, { label: "Chat" }];
-  }
-
   if (pathname === "/analytics" || pathname.startsWith("/analytics/")) {
     return [workspace, { label: "Analytics" }];
   }
@@ -94,6 +86,10 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
 
   if (pathname === "/settings/billing") {
     return [workspace, { label: "Plan & billing" }];
+  }
+
+  if (pathname === "/settings") {
+    return [workspace, { label: "Settings" }];
   }
 
   if (pathname.startsWith("/settings/")) {

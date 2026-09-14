@@ -30,14 +30,17 @@ function main() {
   );
 
   const google = read("components/auth/GoogleSignInButton.jsx");
+  const gis = read("lib/auth/google-gis.js");
   assert(
     !/Loading Google/.test(google),
     "must never show Loading Google… hole"
   );
-  assert(/phase === "idle"/.test(google), "click-to-load idle phase");
-  assert(/Connecting…/.test(google), "loading stays on button");
+  assert(
+    /gisStatus/.test(google) && /"idle"/.test(gis),
+    "GIS status machine includes idle (click-to-load)"
+  );
   assert(/Try Google again/.test(google), "error → try again");
-  assert(/setPhase\("idle"\)/.test(google), "retry returns to idle");
+  assert(/retryGoogleGisReady/.test(google), "retry returns to GIS ready path");
 
   assert(exists("components/ui/inline-alert.jsx"), "InlineAlert");
   const alert = read("components/ui/inline-alert.jsx");
@@ -48,7 +51,7 @@ function main() {
   );
 
   const shared = read("components/analytics/analytics-shared.jsx");
-  assert(/reloadKey/.test(shared) && /reload:/.test(shared), "analytics reload");
+  assert(/reload:\s*query\.refetch/.test(shared), "analytics reload");
   assert(/onRetry/.test(shared), "AnalyticsError onRetry");
 
   const workspace = read("components/analytics/WorkspaceAnalytics.jsx");
@@ -59,7 +62,10 @@ function main() {
   assert(/onRetry=\{reload\}/.test(admin), "admin analytics retry");
 
   const dash = read("app/(app)/dashboard/page.jsx");
-  assert(/InlineAlert/.test(dash) && /reloadKey/.test(dash), "dashboard retry");
+  assert(
+    /InlineAlert/.test(dash) && /overviewQuery\.refetch/.test(dash),
+    "dashboard retry"
+  );
 
   const inbox = read("components/conversations/ConversationsShell.jsx");
   assert(/Try again/.test(inbox) && /reloadKey/.test(inbox), "inbox retry");

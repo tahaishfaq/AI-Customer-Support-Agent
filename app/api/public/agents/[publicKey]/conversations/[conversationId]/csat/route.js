@@ -5,6 +5,7 @@ import { originFromRequest } from "@/lib/utils/request-origin";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { safeLogError } from "@/lib/observability/safe-log";
+import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
 
 export async function POST(request, { params }) {
   const requestId = resolveRequestId(request);
@@ -17,6 +18,13 @@ export async function POST(request, { params }) {
     if (!agent) {
       return jsonError(request, 404, "Agent not found");
     }
+
+    await requirePublicConversationAccess({
+      request,
+      conversationId,
+      agentId: agent.id,
+      origin: originFromRequest(request),
+    });
 
     const body = await request.json().catch(() => ({}));
     const parsed = deskCsatBodySchema.safeParse(body);

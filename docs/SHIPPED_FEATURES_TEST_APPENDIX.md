@@ -2229,7 +2229,7 @@ Fin **Guidance / policy coaching** as **prompt structure** (role → policy → 
 # F12 — Human desk handoff
 
 **Goal:** Customer embed → human handoff → workspace owner inbox → same-thread HUMAN reply → resolve / return to AI.  
-**Maps to:** P3-DESK · [`features/F12_HUMAN_DESK.md`](features/F12_HUMAN_DESK.md) · [`ARCHITECTURE_ACTIONS_AND_DESK.md`](features/ARCHITECTURE_ACTIONS_AND_DESK.md)
+**Maps to:** P3-DESK · [`features/F12_HUMAN_DESK.md`](shipped/F12_HUMAN_DESK.md) · [`ARCHITECTURE_ACTIONS_AND_DESK.md`](shipped/ARCHITECTURE_ACTIONS_AND_DESK.md)
 
 > Phases A–H ✅ in plan file. Below: test commands + manual path for shipped verification.
 

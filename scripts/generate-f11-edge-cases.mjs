@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates docs/features/F11_EDGE_CASE_REGISTRY.md (~1000 cases).
+ * Generates docs/shipped/F11_EDGE_CASE_REGISTRY.md (~1000 cases).
  * Run: node scripts/generate-f11-edge-cases.mjs
  */
 
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT = join(__dirname, "../docs/features/F11_EDGE_CASE_REGISTRY.md");
+const OUT = join(__dirname, "../docs/shipped/F11_EDGE_CASE_REGISTRY.md");
 
 const DOMAINS = [
   {

@@ -29,7 +29,7 @@ function testLoopStreaming() {
 function testChannelWiring() {
   const chat = read("lib/services/chat.service.js");
   assert(
-    /canTokenStream = wantStream && !publicAccess/.test(chat),
+    /canTokenStream = wantStream && Boolean\(streamEmit\)/.test(chat),
     "stream allowed with tools (studio)"
   );
   assert(/onEvent:\s*canTokenStream/.test(chat), "passes onEvent into runTurn");
@@ -49,9 +49,9 @@ function testClient() {
 }
 
 function testDocs() {
-  const plan = read("docs/features/ORCHESTRATOR_LAYER_PLAN.md");
+  const plan = read("docs/shipped/ORCHESTRATOR_LAYER_PLAN.md");
   assert(/O3\.1/.test(plan), "plan mentions O3.1");
-  const contract = read("docs/features/ORCHESTRATOR_CONTRACT.md");
+  const contract = read("docs/shipped/ORCHESTRATOR_CONTRACT.md");
   assert(/O3\.1|stream/i.test(contract), "contract mentions streaming");
   console.log("ok  O3.1 docs");
 }

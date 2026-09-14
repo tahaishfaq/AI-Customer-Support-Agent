@@ -21,7 +21,7 @@ export default async function RegisterPage({ searchParams }) {
   return (
     <>
       <div className="mb-7 sm:mb-8">
-        <p className="auth-eyebrow">[ Create account ]</p>
+        <p className="auth-eyebrow">Create account</p>
         <h1 className="landing-display mt-3 text-[1.85rem] text-[var(--landing-ink)] sm:text-[2.15rem]">
           Start with AIDE
         </h1>

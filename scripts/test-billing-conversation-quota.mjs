@@ -28,11 +28,18 @@ async function main() {
 
   const usage = read("lib/billing/conversation-usage.service.js");
   assert(usage.includes("HAVING COUNT(*) >= 2"), "Botpress-style 2+ visitor messages");
+  assert(usage.includes('source" = \'EMBED\''), "quota counts EMBED only");
   assert(usage.includes("conversation_limit_reached"), "quota error code");
 
   const chat = read("lib/services/chat.service.js");
   assert(chat.includes("assertConversationQuota"), "chat must enforce quota");
+  assert(chat.includes('source: publicAccess ? "EMBED" : "STUDIO"'), "chat tags studio vs embed");
+  assert(chat.includes("if (!publicAccess) return"), "studio skips quota");
 
+  assert(
+    schema.includes("enum ConversationSource") && schema.includes("STUDIO"),
+    "schema must define ConversationSource"
+  );
   const migration = read(
     "prisma/migrations/20260901190000_b01_conversation_quota/migration.sql"
   );

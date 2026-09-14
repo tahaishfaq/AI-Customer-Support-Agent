@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -40,6 +41,8 @@ import {
   updateAgentMcpTool,
 } from "@/lib/api/mcp";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query/keys";
+import { invalidateMcpQuery } from "@/lib/query/invalidation";
 
 const EMPTY_FORM = {
   name: "Demo MCP",
@@ -59,8 +62,14 @@ function defaultDemoUrl() {
  * F13-T3 — MCP tab: add server → probe → enable tool subset.
  */
 export function McpServersPanel({ agentId, killOn = true }) {
-  const [servers, setServers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const mcpQuery = useQuery({
+    queryKey: queryKeys.mcp.list(agentId),
+    queryFn: () => listAgentMcpServers(agentId),
+    enabled: Boolean(agentId),
+  });
+  const servers = mcpQuery.data || [];
+  const loading = mcpQuery.isPending;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -68,22 +77,9 @@ export function McpServersPanel({ agentId, killOn = true }) {
   const [toolBusy, setToolBusy] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
 
-  const load = useCallback(async () => {
-    if (!agentId) return;
-    setLoading(true);
-    try {
-      const list = await listAgentMcpServers(agentId);
-      setServers(list);
-    } catch (err) {
-      toast.error(err.message || "Unable to load MCP servers");
-    } finally {
-      setLoading(false);
-    }
-  }, [agentId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  async function refreshMcp() {
+    await invalidateMcpQuery(queryClient, agentId);
+  }
 
   function openCreate(demo = false) {
     setForm({
@@ -110,7 +106,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
       const server = created?.server || created;
       toast.success("MCP server saved — probing tools…");
       setDialogOpen(false);
-      await load();
+      await refreshMcp();
       if (server?.id) {
         await handleProbe(server.id);
       }
@@ -128,10 +124,10 @@ export function McpServersPanel({ agentId, killOn = true }) {
       toast.success(
         `Discovered ${result.discovered ?? result.server?.tools?.length ?? 0} tools`
       );
-      await load();
+      await refreshMcp();
     } catch (err) {
       toast.error(err.message || "MCP probe failed");
-      await load();
+      await refreshMcp();
     } finally {
       setProbeBusy(null);
     }
@@ -140,7 +136,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
   async function handleToggleServer(server, enabled) {
     try {
       await updateAgentMcpServer(agentId, server.id, { enabled });
-      await load();
+      await refreshMcp();
     } catch (err) {
       toast.error(err.message || "Unable to update server");
     }
@@ -151,7 +147,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
     try {
       await updateAgentMcpTool(agentId, server.id, tool.id, { enabled });
       toast.success(enabled ? `${tool.name} enabled` : `${tool.name} off`);
-      await load();
+      await refreshMcp();
     } catch (err) {
       toast.error(err.message || "Unable to update tool");
     } finally {
@@ -167,7 +163,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
       onConfirm: async () => {
         await deleteAgentMcpServer(agentId, server.id);
         toast.success("MCP server deleted");
-        await load();
+        await refreshMcp();
       },
     });
   }

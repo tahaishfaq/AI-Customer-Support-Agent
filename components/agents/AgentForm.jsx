@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Expand } from "lucide-react";
 import { toast } from "sonner";
@@ -168,11 +168,15 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
     return Object.keys(details).length === 0;
   }
 
+  const submittingRef = useRef(false);
+
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submittingRef.current) return;
     setError("");
     if (!validate()) return;
 
+    submittingRef.current = true;
     setLoading(true);
     const payload = {
       name: name.trim(),
@@ -232,6 +236,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
       setError(err.message || "Unable to save agent");
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 
