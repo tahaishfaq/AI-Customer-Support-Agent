@@ -1,6 +1,6 @@
 # AIDE — Production Realtime / Socket Architecture Plan
 
-**Status:** PHASE 2 AUTOMATED GATES GREEN — desk/product/security/integration passed 2026-09-17; live browser HA/chaos and production alert wiring remain Phase 6 exit.  
+**Status:** PHASE 0–6.0 CODE COMPLETE (2026-09-18) — automated phase0–6 + redis-align gates; live two-replica chaos / production alert wiring remain OWNER ops exit (not a code track).  
 **Updated:** 2026-09-07  
 **Pairs with:** [`REDIS_BULLMQ_ENTERPRISE_PLAN.md`](REDIS_BULLMQ_ENTERPRISE_PLAN.md)  
 **Depends on:** [`../ARCHITECTURE_FREEZE_STAGE6.md`](../ARCHITECTURE_FREEZE_STAGE6.md)

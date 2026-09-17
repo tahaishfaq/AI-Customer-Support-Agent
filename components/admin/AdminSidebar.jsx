@@ -7,6 +7,7 @@ import {
   CreditCard,
   Inbox,
   LayoutDashboard,
+  ListOrdered,
   ScrollText,
   Shield,
   Users,
@@ -29,6 +30,7 @@ const ICONS = {
   billing: CreditCard,
   billingRequests: CreditCard,
   safety: Shield,
+  queues: ListOrdered,
   audit: ScrollText,
 };
 

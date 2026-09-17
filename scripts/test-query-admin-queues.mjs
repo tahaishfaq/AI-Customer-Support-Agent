@@ -39,7 +39,23 @@ function testAdminQueuesRoute() {
   assert.match(service, /getJobCounts/);
   assert.doesNotMatch(service, /password|otp|tokenHash/i);
 
-  console.log("ok  admin queues route wiring");
+  const page = read("app/admin/(console)/queues/page.jsx");
+  assert.match(page, /AdminQueues/);
+
+  const ui = read("components/admin/AdminQueues.jsx");
+  assert.match(ui, /queryKeys\.admin\.queues/);
+  assert.match(ui, /getAdminQueueCounts/);
+  assert.doesNotMatch(ui, /job\.data|password|otp/i);
+
+  const nav = read("components/admin/admin-nav.js");
+  assert.match(nav, /\/admin\/queues/);
+
+  const runbook = read("docs/features/BULLMQ_OPS_RUNBOOK.md");
+  assert.match(runbook, /pause/i);
+  assert.match(runbook, /drain/i);
+  assert.match(runbook, /retry/i);
+
+  console.log("ok  admin queues route + UI + runbook wiring");
 }
 
 async function testCountsWhenDisabled() {

@@ -1,6 +1,6 @@
 # AIDE — Redis + BullMQ Enterprise Plan
 
-**Status:** CORE COMPLETE — R0–R7 landed; optional knowledge embeds + admin queue UI + live HA chaos remain  
+**Status:** TRACK COMPLETE (2026-09-18) — R0–R7 code + admin `/admin/queues` + [`BULLMQ_OPS_RUNBOOK.md`](BULLMQ_OPS_RUNBOOK.md). Residual OWNER ops only: live multi-instance HA chaos; F10 knowledge embeds stay deferred.  
 **Created:** 2026-09-05  
 **Pairs with:** [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md) (Redis bus = shared foundation)  
 **Freeze:** [`../ARCHITECTURE_FREEZE_STAGE6.md`](../ARCHITECTURE_FREEZE_STAGE6.md) — Redis/queues **must not** become PEP / confirm / identity authority  
@@ -253,8 +253,8 @@ writeProfile(...):
 - [x] Worker path: `workers/job-worker.mjs` · `npm run worker:jobs` (tsx + aliases)  
 - [x] Implement `email` + `billing` queues first (renewal + onboarding day-1 sweeps)  
 - [x] Idempotent `jobId`s · structured logs with `requestId` · attempts/backoff defaults  
-- [x] Admin-only Bull Board or minimal `/api/admin/queues` (counts only)  
-- [ ] Runbooks: retry, drain, pause queue  
+- [x] Admin-only Bull Board or minimal `/api/admin/queues` (counts only) + `/admin/queues` UI  
+- [x] Runbooks: retry, drain, pause queue — [`BULLMQ_OPS_RUNBOOK.md`](BULLMQ_OPS_RUNBOOK.md)  
 
 **Done when:** cron scripts enqueue hour-bucketed sweeps when `BULLMQ_ENABLED=1`; worker runs handlers; `--inline` keeps sync path.
 

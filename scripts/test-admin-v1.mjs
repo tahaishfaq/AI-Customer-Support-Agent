@@ -502,6 +502,7 @@ async function main() {
         "/admin/users",
         "/admin/requests",
         "/admin/safety",
+        "/admin/queues",
         "/admin/audit",
       ];
       for (const path of paths) {

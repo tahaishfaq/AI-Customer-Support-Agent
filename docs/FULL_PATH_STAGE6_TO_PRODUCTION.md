@@ -32,7 +32,7 @@
 | **Orchestrator waste** | Extra tool loops | Dedupe, early stop, strip WRITE on GENERAL/WEB | ✅ Strong |
 | **Embed** | Snippet + widget | Deploy checklist + FYP local host works | ✅ Demo OK · live https checklist still grey until real site ping |
 | **Auth product** | Login/register | + forgot/reset/verify email paths | ✅ Login smoke PASS · verify/forgot not fully exercised |
-| **Billing** | Plans / SafePay / Atoms work | Plans UI + incomplete Popular checkout visible | ⬜ Full pay→webhook not finished |
+| **Billing** | Plans / SafePay / Atoms work | Plans UI + incomplete Popular checkout visible | ✅ Owner 2026-09-18 — Popular ACTIVE + cancel scheduled |
 | **Semantic RAG** | Not required by Stage 4 | Still deferred (F10) | ⏸ Last / only if needed |
 | **Rate limits** | In-memory | Same (no Redis) | ⚠ **R6** · closes via Redis R3 |
 | **Realtime** | HTTP fallback + Socket.IO client foundation | **Phase 2 in progress; one-port Node runtime** | 📋 [`SOCKET_REALTIME_PLAN.md`](./features/SOCKET_REALTIME_PLAN.md) |
@@ -117,9 +117,9 @@ Evidence: Stage 3–6 harnesses passed historically; local `.tmp/` reports are g
 | P0 | Production OpenAI account has credits | ⬜ Local hosted-search probe passes; production account still owner-verified |
 | P1 | Browser B1–B4 confirm UI | ✅ Local Playwright smoke; production URL manual verification required |
 | P2 | Live A3 with hosted web search via chat | ⬜ Production URL/manual chat verification required |
-| P3 | Billing pay → webhook complete | ⬜ Plans page only |
-| P4 | Prod secrets `ACTIONS_*` | ⬜ Missing in sign-off scan |
-| P5 | Prod migrations + HTTPS `AUTH_URL` | ⬜ |
+| P3 | Billing pay → webhook complete | ✅ Owner 2026-09-18 — Popular ACTIVE + cancel scheduled |
+| P4 | Prod secrets `ACTIONS_*` | ✅ Local preflight PASS; host dashboard confirm before YES |
+| P5 | Prod migrations + HTTPS `AUTH_URL` | ✅ Migrate deploy 2026-09-18; AUTH_URL https in local env |
 | P6 | Live-site embed ping (not localhost) | ⬜ Checklist grey (expected) |
 
 ### Nice / later

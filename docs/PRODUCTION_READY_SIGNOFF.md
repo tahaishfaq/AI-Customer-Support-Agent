@@ -41,9 +41,9 @@ Go-live still requires **owner** completion of the checklist below (manual UI, b
 
 [ ] Remaining owner sequence in docs/FULL_PATH_STAGE6_TO_PRODUCTION.md §4–§5 (OpenAI → A3 → B UI → billing → prod)
 [ ] Studio + embed smoke on staging/prod URL
-[ ] Billing plans → pay → webhook (test mode then live)
-[ ] Production secrets: ACTIONS_IDENTITY_SECRET, ACTIONS_CREDENTIALS_KEY, AUTH_URL HTTPS
-[ ] Migrations applied on prod DB (`prisma migrate deploy`)
+[x] Billing plans → pay → webhook (test mode then live) — owner 2026-09-18: Popular ACTIVE; cancel scheduled until period end
+[x] Production secrets: ACTIONS_IDENTITY_SECRET, ACTIONS_CREDENTIALS_KEY, AUTH_URL HTTPS — local `preflight:production` PASS 2026-09-18 (confirm same values on host before YES)
+[x] Migrations applied on prod DB (`prisma migrate deploy`) — Neon up to date incl. `20260917010000_workspace_members` (2026-09-18)
 [ ] Accept RAG 5.7 deferred (or schedule F10)
 [ ] Accept in-memory rate limits (no Redis yet)
 [ ] Monitoring / error sampling plan agreed

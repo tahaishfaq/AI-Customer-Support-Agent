@@ -14,6 +14,7 @@ export const ADMIN_NAV_GROUPS = [
     label: "Operations",
     items: [
       { href: "/admin/safety", label: "Safety", icon: "safety" },
+      { href: "/admin/queues", label: "Queues", icon: "queues" },
       { href: "/admin/audit", label: "Audit", icon: "audit" },
       { href: "/admin/billing/requests", label: "Custom plans", icon: "billingRequests" },
     ],

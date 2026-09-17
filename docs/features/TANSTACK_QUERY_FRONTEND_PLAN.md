@@ -1,6 +1,6 @@
 # AIDE — TanStack Query (Frontend Cache) Plan
 
-**Status:** Q0–Q5 COMPLETE (devtools + admin queue counts closed 2026-09-17)
+**Status:** Q0–Q5 COMPLETE (devtools + admin queue counts UI closed 2026-09-18)
 **Created:** 2026-09-05  
 **Stack fit:** Next.js App Router · `lib/api/*` + `apiFetch` · Zustand auth · custom poll hooks  
 **Pairs with:** [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md) (invalidate / `setQueryData` on push) · [`REDIS_BULLMQ_ENTERPRISE_PLAN.md`](REDIS_BULLMQ_ENTERPRISE_PLAN.md) (server cache — **different layer**)  
@@ -370,4 +370,4 @@ Frontend Query **does not block** Redis OTP; both improve different layers.
 
 ---
 
-**Next:** Keep Query as owner-app cache only. Live Socket HA / go-live #1–7 remain separate. Optional admin UI for `/api/admin/queues` counts.
+**Next:** Keep Query as owner-app cache only. Track closed — admin `/admin/queues` counts UI shipped. Live Socket HA / go-live residuals stay OWNER ops.
