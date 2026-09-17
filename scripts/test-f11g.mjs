@@ -64,7 +64,7 @@ function testSourceWiring() {
   console.log("ok  F11-G source wiring");
 }
 
-function testGetCache() {
+async function testGetCache() {
   _resetGetCacheForTests();
   assert(isGetMethod("GET") && !isGetMethod("POST"), "method helpers");
 
@@ -74,27 +74,30 @@ function testGetCache() {
   assert(key1 === key2, "stable cache key");
   assert(key1 !== key3, "different args different key");
 
-  assert(getCachedGetResult("act1", { orderId: "ORD-100" }) == null, "miss");
+  assert(
+    (await getCachedGetResult("act1", { orderId: "ORD-100" })) == null,
+    "miss"
+  );
 
-  setCachedGetResult("act1", { orderId: "ORD-100" }, {
+  await setCachedGetResult("act1", { orderId: "ORD-100" }, {
     ok: true,
     status: "OK",
     httpStatus: 200,
     bodyText: '{"status":"Shipped"}',
     truncated: false,
   });
-  const hit = getCachedGetResult("act1", { orderId: "ORD-100" });
+  const hit = await getCachedGetResult("act1", { orderId: "ORD-100" });
   assert(hit?.ok && hit.cached && /Shipped/.test(hit.bodyText), "cache hit");
   assert(_getCacheSizeForTests() >= 1, "cache stores entry");
 
-  setCachedGetResult("act1", { orderId: "bad" }, {
+  await setCachedGetResult("act1", { orderId: "bad" }, {
     ok: false,
     status: "ERROR",
     httpStatus: 500,
     bodyText: "nope",
   });
   assert(
-    getCachedGetResult("act1", { orderId: "bad" }) == null,
+    (await getCachedGetResult("act1", { orderId: "bad" })) == null,
     "errors not cached"
   );
 
@@ -102,10 +105,10 @@ function testGetCache() {
   console.log("ok  F11-G GET cache");
 }
 
-function main() {
+async function main() {
   testDocScope();
   testSourceWiring();
-  testGetCache();
+  await testGetCache();
   console.log("\nAll F11-G checks passed.");
 }
 

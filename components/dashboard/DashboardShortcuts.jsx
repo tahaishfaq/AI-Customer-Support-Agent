@@ -31,7 +31,7 @@ export function DashboardShortcuts() {
           <Link
             key={action.href}
             href={action.href}
-            className="aide-card group flex items-center gap-3 px-3.5 py-3 transition-shadow hover:shadow-md"
+            className="aide-card group flex items-center gap-3 px-3.5 py-3"
           >
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
               <Icon className="size-4" />

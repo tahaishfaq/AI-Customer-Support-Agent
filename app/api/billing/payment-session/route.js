@@ -32,7 +32,7 @@ export async function POST(request) {
       );
     }
 
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `billing:payment-session:${authResult.user.id}:${clientIp(request)}`,
       { limit: 10, windowMs: 60_000 }
     );

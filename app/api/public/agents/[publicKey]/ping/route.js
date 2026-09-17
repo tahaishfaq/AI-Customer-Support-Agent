@@ -7,6 +7,8 @@ import {
   getPublicAgentByKey,
   runCrawlJob,
 } from "@/lib/services/embed.service";
+import { enqueueSiteCrawlJob } from "@/lib/jobs/enqueue";
+import { isBullMqEnabled } from "@/lib/jobs/queues";
 import {
   maybeRetestAfterLivePing,
 } from "@/lib/services/embed-readiness.service";
@@ -48,7 +50,7 @@ export async function POST(request, { params }) {
   try {
     const { publicKey } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `pub-ping:${publicKey}:${ip}`,
       pubPingLimitOpts()
     );
@@ -105,6 +107,16 @@ export async function POST(request, { params }) {
         10_000
       );
       after(async () => {
+        if (isBullMqEnabled()) {
+          const queued = await enqueueSiteCrawlJob({
+            siteCrawlJobId: result.jobId,
+            agentId: agent.id,
+            requestId,
+            delayMs: deferMs,
+          });
+          if (queued.ok) return;
+          // Fall through to inline if queue unavailable.
+        }
         if (deferMs > 0) {
           await new Promise((resolve) => setTimeout(resolve, deferMs));
         }

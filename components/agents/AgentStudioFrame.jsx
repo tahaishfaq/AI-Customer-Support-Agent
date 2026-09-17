@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 function AgentStudioSkeleton() {
   return (
     <div className="aide-page">
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-none">
         <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-2">

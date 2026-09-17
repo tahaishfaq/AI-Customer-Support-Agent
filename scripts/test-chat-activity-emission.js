@@ -14,6 +14,8 @@ test('activity envelopes hide internal identifiers and payloads; invocations sta
   send('provider-second-id', 'running');
   assert.equal(events.length, 3);
   assert.deepEqual(events.map(e => e.data.sequence), [1, 2, 3]);
+  assert.deepEqual(events.map(e => e.data.seq), [1, 2, 3]);
+  assert.ok(events.every(e => e.data.schemaVersion === 1 && /^event-/.test(e.data.eventId)));
   assert.equal(events[0].data.activityId, events[1].data.activityId);
   assert.notEqual(events[0].data.activityId, events[2].data.activityId);
   assert.equal(new Set(events.map(e => e.data.turnId)).size, 1);

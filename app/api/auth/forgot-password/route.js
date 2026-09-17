@@ -13,7 +13,7 @@ const schema = z.object({
 export async function POST(request) {
   const requestId = resolveRequestId(request);
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `forgot-password:${clientIp(request)}`,
       forgotPasswordLimitOpts()
     );
@@ -38,7 +38,7 @@ export async function POST(request) {
       return jsonOk(request, { ok: true });
     }
 
-    const emailLimited = rateLimit(
+    const emailLimited = await rateLimit(
       `forgot-password-email:${parsed.data.email.toLowerCase()}`,
       forgotPasswordLimitOpts()
     );

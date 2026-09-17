@@ -31,7 +31,7 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
-    const limited = rateLimit(`embed-health:${authResult.user.id}:${id}`, {
+    const limited = await rateLimit(`embed-health:${authResult.user.id}:${id}`, {
       limit: 4,
       windowMs: 60_000,
     });

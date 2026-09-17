@@ -124,8 +124,8 @@ function main() {
   assert(/resolveEndUserIdentity/.test(chatSvc), "chat resolves identity");
   assert(/endUserAccessToken/.test(chatSvc), "passes endUserAccessToken");
 
-  const loop = read("lib/actions/tool-loop.js");
-  assert(/preferEndUserAuth/.test(loop), "tool-loop preferEndUserAuth");
+  const loop = read("lib/actions/invoke-tool.js");
+  assert(/preferEndUserAuth/.test(loop), "invoke-tool preferEndUserAuth");
   assert(
     /END_USER_TOKEN/.test(loop) || /requiresIdentity && endUserAccessToken/.test(loop),
     "identity tools use user token"

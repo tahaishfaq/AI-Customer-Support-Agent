@@ -15,7 +15,7 @@ const schema = z.object({
 export async function POST(request) {
   const requestId = resolveRequestId(request);
   try {
-    const limitedIp = rateLimit(
+    const limitedIp = await rateLimit(
       `reset-password:${clientIp(request)}`,
       resetPasswordLimitOpts()
     );
@@ -39,7 +39,7 @@ export async function POST(request) {
       return jsonError(request, 400, "Invalid reset request");
     }
 
-    const limitedEmail = rateLimit(
+    const limitedEmail = await rateLimit(
       `reset-password-email:${parsed.data.email.toLowerCase()}`,
       resetPasswordLimitOpts()
     );

@@ -19,7 +19,7 @@ export async function POST(request) {
       );
     }
 
-    const limited = rateLimit(`billing:subscribe:${authResult.user.id}:${clientIp(request)}`, {
+    const limited = await rateLimit(`billing:subscribe:${authResult.user.id}:${clientIp(request)}`, {
       limit: 10,
       windowMs: 60_000,
     });

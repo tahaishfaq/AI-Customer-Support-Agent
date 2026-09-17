@@ -16,10 +16,10 @@ import {
 } from "@/components/analytics/analytics-shared";
 import { AnalyticsExportMenu } from "@/components/analytics/AnalyticsExportMenu";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
+import { ChartAreaInteractive } from "@/components/analytics/WorkspaceCharts";
 import {
   ActivityHeatmap,
   AgentRadarChart,
-  ChartAreaInteractive,
   ChartSkeleton,
   ResponseHistogram,
   StackedSentimentChart,
@@ -152,7 +152,7 @@ export function WorkspaceAnalytics({
         </ChartCard>
       </div>
 
-      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none">
         <div className="flex flex-col gap-1 border-b border-[var(--color-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-foreground">

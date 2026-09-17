@@ -6,6 +6,7 @@
  */
 import "dotenv/config";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -20,7 +21,8 @@ import { buildAttachmentMessage } from "../lib/utils/chat-attachments.js";
 import { contentForLlm } from "../lib/utils/chat-attachments.js";
 import { uniqueTestIpHeaders } from "./lib/test-client-ip.mjs";
 
-const HAPY = process.env.TEST_BASE_URL || "http://127.0.0.1:3000";
+const HAPY = process.env.TEST_BASE_URL || "http://localhost:3000";
+const CASE_TIMEOUT_MS = Number(process.env.ADVERSARIAL_CASE_TIMEOUT_MS || 20_000);
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STATE_FILE = path.join(ROOT, ".adversarial-hapy-local.json");
 
@@ -33,6 +35,10 @@ const KB_FACTS = {
 
 const passed = [];
 const failed = [];
+const skipped = [];
+const AGENT_DEPENDENT_CASE = /^(Unlock adversarial owner product access|Create grounded demo agent|Seed correct knowledge base|Install only demo order tool|Wrong detail:|File path:|Unauthorized tool: create action to foreign host|Authorized tool still works|Public guest:)/;
+let jar = null;
+let agent = null;
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -47,11 +53,26 @@ function log(name, ok, detail = "") {
   }
 }
 async function test(name, fn) {
+  if (AGENT_DEPENDENT_CASE.test(name) && (!jar || !agent?.id)) {
+    skipped.push({ name, detail: "prerequisite setup did not complete" });
+    console.log(`SKIP  ${name} — prerequisite setup did not complete`);
+    return;
+  }
+  let timer;
   try {
-    const detail = await fn();
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new Error(`HARNESS_TIMEOUT after ${CASE_TIMEOUT_MS}ms`);
+        error.code = "HARNESS_TIMEOUT";
+        reject(error);
+      }, CASE_TIMEOUT_MS);
+    });
+    const detail = await Promise.race([fn(), timeout]);
     log(name, true, typeof detail === "string" ? detail : "");
   } catch (err) {
     log(name, false, err.message || String(err));
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 async function json(res) {
@@ -159,8 +180,6 @@ async function main() {
   const stamp = `${Date.now()}-${randomUUID().slice(0, 6)}`;
   const email = `adv-owner-${stamp}@aide.test`;
   const password = "AdvOwner1!";
-  let jar;
-  let agent;
   let publicKey;
 
   await test("Register adversarial owner", async () => {
@@ -176,6 +195,35 @@ async function main() {
     });
     assert(reg.status === 201, `reg ${reg.status}`);
     jar = await signIn(email, password);
+  });
+
+  await test("Unlock adversarial owner product access", async () => {
+    const onboarding = await hapy(jar, "/api/onboarding", {
+      method: "POST",
+      body: JSON.stringify({
+        firstName: "Adversarial",
+        lastName: "Owner",
+        phone: "+923001234567",
+        country: "PK",
+        websiteUrl: "",
+        companyType: "SaaS",
+        teamSize: "Just me",
+        monthlyConversations: "Under 100 / month",
+        primaryGoal: "AI + human handoff",
+      }),
+    });
+    assert(onboarding.ok, `onboarding ${onboarding.status}`);
+
+    const plans = await hapy(jar, "/api/billing/plans");
+    const plansBody = await json(plans);
+    const freePlan = (plansBody?.plans || []).find((plan) => plan.planType === "FREE");
+    assert(freePlan?.id, "free plan");
+
+    const subscribe = await hapy(jar, "/api/billing/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ planId: freePlan.id }),
+    });
+    assert(subscribe.ok, `subscribe ${subscribe.status}`);
   });
 
   await test("Create grounded demo agent + fileUpload", async () => {
@@ -437,20 +485,30 @@ ORD-100 in knowledge is Shipped via DHL.`,
   });
 
   await test("Unauthorized tool: Brandly API without credential → 401", async () => {
-    const result = await executeHttpAction({
-      method: "GET",
-      urlTemplate: "http://127.0.0.1:8000/api/v1/campaigns?limit=1",
-      args: {},
-      allowLocalDemo: true,
-      credential: null,
-      frozenHost: "127.0.0.1",
-      riskLevel: "READ",
+    const server = http.createServer((_request, response) => {
+      response.writeHead(401, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: "missing api key" }));
     });
-    assert(!result.ok, "should fail");
-    assert(
-      result.httpStatus === 401 || /401/.test(String(result.errorCode)),
-      `expected 401 got ${result.httpStatus} ${result.errorCode}`
-    );
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = server.address().port;
+    try {
+      const result = await executeHttpAction({
+        method: "GET",
+        urlTemplate: `http://127.0.0.1:${port}/api/v1/campaigns?limit=1`,
+        args: {},
+        allowLocalDemo: true,
+        credential: null,
+        frozenHost: "127.0.0.1",
+        riskLevel: "READ",
+      });
+      assert(!result.ok, "should fail");
+      assert(
+        result.httpStatus === 401 || /401/.test(String(result.errorCode)),
+        `expected 401 got ${result.httpStatus} ${result.errorCode}`
+      );
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
   await test("Unauthorized tool: create action to foreign host (SSRF on execute)", async () => {
@@ -555,6 +613,13 @@ ORD-100 in knowledge is Shipped via DHL.`,
     );
   });
 
+  if (!agent?.id) {
+    console.log("\n--- summary ---");
+    console.log(`passed ${passed.length}  failed ${failed.length}  skipped ${skipped.length}`);
+    console.error("HARNESS_BLOCKED: agent setup did not complete; dependent cases were skipped");
+    process.exit(1);
+  }
+
   fs.writeFileSync(
     STATE_FILE,
     JSON.stringify(
@@ -570,11 +635,13 @@ ORD-100 in knowledge is Shipped via DHL.`,
   );
 
   console.log("\n--- summary ---");
-  console.log(`passed ${passed.length}  failed ${failed.length}`);
+  console.log(`passed ${passed.length}  failed ${failed.length}  skipped ${skipped.length}`);
   if (failed.length) {
     for (const f of failed) console.error(`  • ${f.name}: ${f.detail}`);
+    for (const s of skipped) console.error(`  • SKIP ${s.name}: ${s.detail}`);
     process.exit(1);
   }
+  for (const s of skipped) console.warn(`  • SKIP ${s.name}: ${s.detail}`);
   console.log("\nAdversarial suite passed\n");
 }
 

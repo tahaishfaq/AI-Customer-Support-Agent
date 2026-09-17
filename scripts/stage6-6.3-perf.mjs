@@ -24,7 +24,7 @@ const {
   pubChatLimitOpts,
   studioChatLimitOpts,
 } = await import("../lib/rate-limit-config.js");
-const { rateLimit } = await import("../lib/rate-limit.js");
+const { rateLimitMemory: rateLimit } = await import("../lib/rate-limit.js");
 const { hashArgs } = await import("../lib/actions/identity.js");
 const { routeSource, filterCapabilitiesForSourceRoute } = await import(
   "../lib/services/ai/source-policy.js"
@@ -92,7 +92,9 @@ function bench(fn, n) {
   const trunc = /MAX_TOOL_RESULT_CHARS\s*=\s*(\d+)/.exec(loop);
   const maxResult = trunc ? Number(trunc[1]) : null;
   const webTimeout =
-    /timeout:\s*([\d_]+)/.exec(web) || /45_?000/.exec(web);
+    /HOSTED_WEB_SEARCH_TIMEOUT_MS\s*=\s*([\d_]+)/.exec(web) ||
+    /timeout:\s*([\d_]+)/.exec(web) ||
+    /45_?000/.exec(web);
   const webMs = webTimeout
     ? Number(String(webTimeout[1]).replace(/_/g, ""))
     : /45_?000/.test(web)

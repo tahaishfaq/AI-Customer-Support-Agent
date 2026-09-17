@@ -6,7 +6,7 @@ import { redirectForSessionUser } from "@/lib/auth-session-guard";
 import { resolveActiveWorkspace } from "@/lib/services/workspace.service";
 import { withWorkspaceSlug } from "@/lib/workspace-path";
 import { isEmailVerificationRequired } from "@/lib/email/constants";
-import prisma from "@/lib/prisma";
+import { getCachedPublicUser } from "@/lib/services/user-profile-cache";
 import {
   logAuthTiming,
   startAuthTiming,
@@ -57,10 +57,7 @@ export default async function AuthContinuePage({ searchParams }) {
   // Soft by default; hard gate only when EMAIL_VERIFICATION_REQUIRED=1.
   // Onboarding + plans still allowed; product paths wait for verify.
   if (isEmailVerificationRequired() && isProductAppPath(dest)) {
-    const row = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { emailVerified: true },
-    });
+    const row = await getCachedPublicUser(session.user.id);
     if (!row?.emailVerified) {
       redirect("/verify-email");
     }

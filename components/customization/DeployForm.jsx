@@ -50,6 +50,7 @@ import {
 import { buildEmbedSnippet } from "@/lib/customization/embed";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { EmbedReadinessChecklist } from "@/components/customization/EmbedReadinessChecklist";
+import { EmbedIdentityGuide } from "@/components/customization/EmbedIdentityGuide";
 import { cn } from "@/lib/utils";
 
 const PLATFORMS = [
@@ -255,10 +256,11 @@ export function DeployForm({
     try {
       const result = await installActionPack(agentId, SITE_DEMO_PACK_ID, {});
       const n = result.created?.length || 0;
+      const statusLabel = result?.connectionStatusLabel || "Template";
       toast.success(
         n
-          ? `Installed ${n} starter tools for ${lockedHost || "your site"}`
-          : "Site demo tools already installed"
+          ? `Installed ${n} ${statusLabel.toLowerCase()} tools for ${lockedHost || "your site"} (not live-connected)`
+          : "Site demo template tools already installed"
       );
       setSitePackDone(true);
     } catch (err) {
@@ -323,7 +325,7 @@ export function DeployForm({
       {siteKnowledgeOrigin && !sitePackDone ? (
         <Alert>
           <Globe />
-          <AlertTitle>Starter tools for {lockedHost || "your site"}</AlertTitle>
+          <AlertTitle>Template tools for {lockedHost || "your site"}</AlertTitle>
           <AlertDescription className="flex flex-col gap-3">
             <span>{siteDemoInstallCopy(lockedHost)}</span>
             <Button
@@ -338,7 +340,7 @@ export function DeployForm({
               ) : (
                 <Plus data-icon="inline-start" />
               )}
-              Install 6 starter tools
+              Install 6 template tools
             </Button>
           </AlertDescription>
         </Alert>
@@ -413,6 +415,8 @@ export function DeployForm({
           </p>
         </FieldBlock>
       </FormSection>
+
+      <EmbedIdentityGuide />
 
       <FormSection title="Launcher">
         <FieldBlock

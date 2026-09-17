@@ -18,7 +18,7 @@ function SidebarQuotaCard({ className, atLimit, level, children }) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm",
+        "overflow-hidden rounded-lg border bg-card text-card-foreground shadow-none",
         atLimit
           ? "border-destructive/35"
           : level === "critical" || level === "warning"

@@ -64,7 +64,7 @@ function main() {
   const dialog = read("components/customization/HttpToolDialog.jsx");
   assert(/END_USER_TOKEN/.test(dialog), "dialog identity mode");
 
-  const loop = read("lib/actions/tool-loop.js");
+  const loop = read("lib/actions/invoke-tool.js");
   assert(/resolveIdentityMode\(fresh\) === "END_USER_TOKEN"/.test(loop), "loop prefer");
 
   const plan = read("docs/shipped/F14_END_USER_AUTH_AND_ACTION_CONSENT.md");

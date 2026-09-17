@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
   try {
     const { publicKey, confirmationId } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `pub-confirm-approve:${publicKey}:${ip}`,
       pubConfirmLimitOpts()
     );

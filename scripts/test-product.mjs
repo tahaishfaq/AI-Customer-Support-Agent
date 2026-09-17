@@ -178,6 +178,26 @@ async function main() {
       jar = await signIn(email, password);
     });
 
+    await test("activate local free plan", async () => {
+      const plansRes = await fetch(`${BASE}/api/billing/plans`);
+      const plansBody = await json(plansRes);
+      assert(plansRes.ok, `plans ${plansRes.status}`);
+      const freePlan = (plansBody?.plans || []).find(
+        (plan) => plan.planType === "FREE"
+      );
+      assert(freePlan?.id, "free billing plan missing");
+
+      const subscribeRes = await api(jar, "/api/billing/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ planId: freePlan.id }),
+      });
+      const subscribeBody = await json(subscribeRes);
+      assert(
+        subscribeRes.ok,
+        `free plan ${subscribeRes.status} ${JSON.stringify(subscribeBody)}`
+      );
+    });
+
     await test("create agent", async () => {
       const res = await api(jar, "/api/agents", {
         method: "POST",

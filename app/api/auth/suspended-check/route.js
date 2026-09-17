@@ -4,7 +4,7 @@ import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request) {
   try {
-    const limited = rateLimit(`suspended-check:${clientIp(request)}`, {
+    const limited = await rateLimit(`suspended-check:${clientIp(request)}`, {
       limit: 20,
       windowMs: 15 * 60_000,
     });

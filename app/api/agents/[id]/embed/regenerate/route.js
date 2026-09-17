@@ -10,7 +10,7 @@ export async function POST(_request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `embed-regen:${authResult.user.id}:${id}`,
       { limit: 6, windowMs: 60_000 }
     );

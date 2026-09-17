@@ -84,6 +84,25 @@ const html = `<!DOCTYPE html>
     data-aide-key="${agent.publicKey}"
     defer
   ></script>
+  <!--
+    Signed-in visitors (ACCOUNT tools): use aideChat.setUser after login.
+    Raw browser customerId alone never unlocks ACCOUNT_READ.
+    Live WRITE tools always Confirm in the widget before calling your API.
+    Guest lookups must return redacted data only.
+    Docs: docs/features/EMBED_END_USER_IDENTITY.md
+  -->
+  <!-- After your site login (every page load while signed in) -->
+  <script>
+    window.aideChat && aideChat.setUser({
+      subject: "user_123",
+      displayName: "Alex",
+      accessToken: "MERCHANT_SESSION_OR_API_TOKEN"
+    });
+    aideChat.onAuthRefreshNeeded = async function () {
+      const accessToken = await fetchFreshAccessToken(); // your app
+      aideChat.setUser({ subject: "user_123", displayName: "Alex", accessToken });
+    };
+  </script>
 </body>
 </html>
 `;

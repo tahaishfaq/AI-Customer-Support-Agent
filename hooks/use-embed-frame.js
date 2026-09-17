@@ -11,6 +11,10 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
 
   useLayoutEffect(() => {
     if (!enabled || window.parent === window || !parentOrigin) return;
+    // A later transition can reuse the same state key (A -> B -> A). Clear
+    // readiness before the new host acknowledgement, or the panel could paint
+    // inside the previous 60px launcher frame for one render.
+    setApplied(null);
     let origin;
     try {
       const url = new URL(parentOrigin);

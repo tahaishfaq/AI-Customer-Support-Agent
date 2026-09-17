@@ -15,7 +15,7 @@ export async function POST(request) {
       );
     }
 
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `billing:cancel:${authResult.user.id}:${clientIp(request)}`,
       { limit: 5, windowMs: 60_000 }
     );

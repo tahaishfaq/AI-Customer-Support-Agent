@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth-store";
 
 function ConversationQuotaSidebarSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border/80 bg-card shadow-none">
       <div className="space-y-2 px-3 pt-3 pb-2.5">
         <div className="flex items-center justify-between gap-2">
           <Skeleton className="h-3 w-20" />

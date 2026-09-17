@@ -10,7 +10,7 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id, serverId } = await params;
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `mcp-probe:${authResult.user.id}:${id}`,
       mcpProbeLimitOpts()
     );

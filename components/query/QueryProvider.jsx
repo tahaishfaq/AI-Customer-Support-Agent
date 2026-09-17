@@ -11,6 +11,7 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateDeskQueries } from "@/lib/query/invalidation";
 import { QueryErrorBoundary } from "@/components/query/QueryErrorBoundary";
+import { QueryDevtools } from "@/components/query/QueryDevtools";
 
 const BILLING_REFRESH_EVENT = "aide:conversation-quota-refresh";
 const QUERY_RECONCILIATION_FRESH_MS = 30_000;
@@ -86,6 +87,7 @@ export function QueryProvider({ children }) {
     <QueryClientProvider client={queryClient}>
       <RealtimeQuerySync />
       <QueryErrorBoundary>{children}</QueryErrorBoundary>
+      <QueryDevtools />
     </QueryClientProvider>
   );
 }

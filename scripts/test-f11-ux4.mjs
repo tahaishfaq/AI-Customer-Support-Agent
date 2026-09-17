@@ -32,6 +32,7 @@ async function main() {
   assert(getVerticalPack("brandly")?.featured, "Brandly featured");
   assert(getVerticalPack("shopify")?.auth === "oauth_soon", "Shopify oauth soon");
   assert(getVerticalPack("hubspot")?.auth === "oauth_soon", "HubSpot oauth soon");
+  assert(getVerticalPack("shopify")?.connectionStatus === "template", "Shopify is template");
   assert(authBadgeLabel("oauth_soon") === "OAuth soon");
 
   const packSrc = read("lib/integrations/action-pack.js");

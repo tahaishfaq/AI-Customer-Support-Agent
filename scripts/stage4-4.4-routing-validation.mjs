@@ -66,9 +66,9 @@ for (const [utterance, intent, mayWeb, family] of matrix) {
 {
   const rules = buildResponseRules({ webSearchEnabled: true });
   const hasStore = /STORE FACTS/i.test(rules) && /cannot verify|not found/i.test(RESPONSE_RULES_STORE_FACTS);
-  const pep = /STORE_SOURCE_REQUIRED/.test(
-    read("lib/capabilities/adapters/builtin.adapter.js")
-  );
+  const pep =
+    /invokeHostedWebSearchGuard/.test(read("lib/capabilities/adapters/builtin.adapter.js")) &&
+    /isBuiltinAction\(action\)/.test(read("lib/actions/invoke-tool.js"));
   if (hasStore && pep) {
     pass(
       "S4.4-EMPTY-STORE",

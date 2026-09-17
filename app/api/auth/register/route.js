@@ -30,7 +30,7 @@ export async function POST(request) {
     }
 
     // Count only well-formed signup attempts (not invalid-email probes).
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `register:${clientIp(request)}`,
       registerLimitOpts()
     );

@@ -30,7 +30,9 @@ import {
 
 export async function attachRealtimeGateway(httpServer) {
   const config = getGatewayConfig();
-  if (!config.redisUrl) throw new Error("REALTIME_REDIS_URL is required");
+  if (!config.redisUrl) {
+    throw new Error("REALTIME_REDIS_URL (or REDIS_URL) is required");
+  }
 
   const redisOptions = {
     username: config.redisUsername,

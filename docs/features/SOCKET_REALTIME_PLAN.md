@@ -1,6 +1,6 @@
 # AIDE — Production Realtime / Socket Architecture Plan
 
-**Status:** PHASE 2 IN PROGRESS — one-port Node app server integration and owner client realtime wiring are implemented; browser product-flow and HA gates remain.  
+**Status:** PHASE 2 AUTOMATED GATES GREEN — desk/product/security/integration passed 2026-09-17; live browser HA/chaos and production alert wiring remain Phase 6 exit.  
 **Updated:** 2026-09-07  
 **Pairs with:** [`REDIS_BULLMQ_ENTERPRISE_PLAN.md`](REDIS_BULLMQ_ENTERPRISE_PLAN.md)  
 **Depends on:** [`../ARCHITECTURE_FREEZE_STAGE6.md`](../ARCHITECTURE_FREEZE_STAGE6.md)
@@ -327,11 +327,12 @@ reaches an unauthorized room.
 
 ### Phase 2 — Desk realtime
 
-**Status:** IN PROGRESS — shared owner Socket.IO provider, workspace-room
+**Status:** AUTOMATED EXIT GREEN — shared owner Socket.IO provider, workspace-room
 subscription, billing/quota invalidation, desk refresh, and polling fallback
 are implemented. Server-side security, multi-device coverage, duplicate-event
 deduplication, stale-response protection, and disconnected polling fallback are
-green; full browser/product-flow gate remains.
+green (`test:realtime-phase2`, `phase2-product`, `phase2-security`, `integration`).
+Full Playwright browser/product-flow and live two-replica HA remain Phase 6 ops.
 
 - Emit outbox events from handoff creation, human reply, internal state changes,
   claim, resolve, and priority mutations.

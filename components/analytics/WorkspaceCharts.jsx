@@ -69,7 +69,7 @@ function ChartViewPills({ value, onChange, options }) {
             className={cn(
               "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
               value === option.id
-                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                ? "bg-card text-foreground shadow-none ring-1 ring-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -147,7 +147,7 @@ function WorkloadMetricToggle({ metric, onChange }) {
             className={cn(
               "rounded-full px-3.5 py-1 text-[12px] font-medium",
               metric === option.id
-                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                ? "bg-card text-foreground shadow-none ring-1 ring-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -169,10 +169,10 @@ export function ChartAreaInteractive({
 
   return (
     <Card
-      className="overflow-hidden rounded-xl border-border/80 pt-0 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
+      className="overflow-hidden rounded-xl border-foreground/[0.06] pt-0 shadow-none ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
       data-hapy-chart="volume-over-time"
     >
-      <CardHeader className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-r from-primary/[0.06] via-transparent to-transparent py-5 sm:flex-row">
+      <CardHeader className="flex items-center gap-2 border-b border-foreground/[0.04] bg-gradient-to-r from-primary/[0.06] via-transparent to-transparent py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle>Volume over time</CardTitle>
           <CardDescription>{copy.description}</CardDescription>

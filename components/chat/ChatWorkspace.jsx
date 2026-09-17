@@ -182,6 +182,7 @@ export function ChatWorkspace() {
     const activityRequest = beginActivity();
     const optimisticId = `local-user-${Date.now()}`;
     const streamingId = `streaming-assistant-${Date.now()}`;
+    let streamedConversationId = conversationId;
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: text, local: true },
@@ -191,6 +192,7 @@ export function ChatWorkspace() {
       const result = await sendChatMessageStream(agentId, {
         signal: activityRequest.controller.signal,
         message: text,
+        clientMessageId: optimisticId,
         conversationId: conversationId || undefined,
         onDelta: (delta) => {
           if (!isCurrentActivity(activityRequest)) return;
@@ -208,6 +210,12 @@ export function ChatWorkspace() {
               { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
             ];
           });
+        },
+        onMeta: (data) => {
+          if (data?.conversationId) {
+            streamedConversationId = data.conversationId;
+            if (!conversationId) setConversationId(data.conversationId);
+          }
         },
         onTool: (data) => {
           receiveActivity(activityRequest, data);
@@ -241,6 +249,7 @@ export function ChatWorkspace() {
             createdAt: result.message.createdAt,
             toolSteps: result.toolSteps || [],
             pendingConfirmations: result.pendingConfirmations || [],
+            usedKnowledge: result.usedKnowledge || [],
             citations: result.citations || [],
             sources: result.sources || [],
           },
@@ -259,6 +268,24 @@ export function ChatWorkspace() {
       sendLockRef.current = false;
     } catch (err) {
       if (!isCurrentActivity(activityRequest)) return;
+      const recoverId = streamedConversationId || conversationId;
+      if (recoverId) {
+        try {
+          const snapshot = await getConversation(recoverId);
+          if (isCurrentActivity(activityRequest) && snapshot?.messages?.length) {
+            setMessages(mapThreadMessages(snapshot.messages));
+            setMeta({ category: snapshot.category, sentiment: snapshot.sentiment });
+            setError(snapshot.activeTurn ? "Your response is still processing. Check the conversation again shortly." : "The response was recovered from the conversation.");
+            setLastFailedText("");
+            setSending(false);
+            sendLockRef.current = false;
+            clearActivities();
+            return;
+          }
+        } catch {
+          // Fall through to the transport error when the snapshot is unavailable.
+        }
+      }
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId && m.id !== streamingId));
       clearActivities();
       const limit = isConversationLimitError(err);
@@ -408,6 +435,7 @@ export function ChatWorkspace() {
           loading={sending}
           compact={compact}
           themed
+          showKnowledgeDetails
           showFeedback={customization.features.messageFeedback}
           intro={widgetIntro(selectedAgent, customization)}
           onConfirmDecision={handleConfirmDecision}

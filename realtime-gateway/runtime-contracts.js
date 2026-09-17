@@ -33,9 +33,18 @@ export function getGatewayConfig() {
     tokenSecret: process.env.REALTIME_TOKEN_SECRET?.trim() || "",
     tokenIssuer: process.env.REALTIME_TOKEN_ISSUER?.trim() || "aide-realtime",
     tokenAudience: process.env.REALTIME_TOKEN_AUDIENCE?.trim() || "aide-realtime-client",
-    redisUrl: process.env.REALTIME_REDIS_URL?.trim() || "",
-    redisUsername: process.env.REALTIME_REDIS_USERNAME?.trim() || undefined,
-    redisPassword: process.env.REALTIME_REDIS_PASSWORD?.trim() || undefined,
+    redisUrl:
+      process.env.REALTIME_REDIS_URL?.trim() ||
+      process.env.REDIS_URL?.trim() ||
+      "",
+    redisUsername:
+      process.env.REALTIME_REDIS_USERNAME?.trim() ||
+      process.env.REDIS_USERNAME?.trim() ||
+      undefined,
+    redisPassword:
+      process.env.REALTIME_REDIS_PASSWORD?.trim() ||
+      process.env.REDIS_PASSWORD?.trim() ||
+      undefined,
     streamName: process.env.REALTIME_STREAM_NAME?.trim() || defaults.streamName,
     consumerGroup: process.env.REALTIME_CONSUMER_GROUP?.trim() || defaults.consumerGroup,
     consumerName: process.env.REALTIME_CONSUMER_NAME?.trim() || `gateway-${process.pid}`,

@@ -12,23 +12,36 @@ export function MessageList({
   humanTypingLabel = "Human agent is typing…",
   compact = false,
   themed = false,
+  showKnowledgeDetails = false,
   showFeedback = false,
   intro = null,
+  showIntro = true,
   onFeedback,
   onConfirmDecision = null,
   confirmBusy = false,
   activeActivities = [],
+  instantInitialScroll = false,
+  instantScrollKey = 0,
 }) {
   const bottomRef = useRef(null);
   const lastScrollKey = useRef("");
+  const mountedRef = useRef(false);
+  const lastInstantScrollKey = useRef(instantScrollKey);
 
   useEffect(() => {
     const lastId = messages[messages.length - 1]?.id || "";
+    if (lastInstantScrollKey.current !== instantScrollKey) {
+      lastScrollKey.current = "";
+      lastInstantScrollKey.current = instantScrollKey;
+    }
     const key = `${lastId}:${loading ? 1 : 0}:${humanTyping ? 1 : 0}`;
     if (key === lastScrollKey.current) return;
     lastScrollKey.current = key;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, humanTyping]);
+    bottomRef.current?.scrollIntoView({
+      behavior: !mountedRef.current || instantInitialScroll ? "auto" : "smooth",
+    });
+    mountedRef.current = true;
+  }, [instantInitialScroll, instantScrollKey, messages, loading, humanTyping]);
 
   return (
     <div
@@ -38,7 +51,7 @@ export function MessageList({
         compact ? "px-3 py-3" : "px-4 py-5 sm:px-8"
       )}
     >
-      {intro ? (
+      {intro && showIntro ? (
         <div className="mb-1 flex justify-center px-2 py-2.5">
           <div
             className={cn(
@@ -91,6 +104,7 @@ export function MessageList({
           compact={compact}
           onFeedback={onFeedback}
           usedKnowledge={msg.usedKnowledge}
+          showKnowledgeDetails={showKnowledgeDetails}
           toolSteps={msg.toolSteps}
           citations={msg.citations}
           sources={msg.sources}

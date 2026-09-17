@@ -1,6 +1,6 @@
 # Embed stability, welcome screen, history and public knowledge
 
-Status: implementation authorized, 2026-09-09. Phase 0 host regressions and Phase 1A host foundation implemented/tested locally; remaining Phase 0 UI fixtures and Phase 1B coordinated geometry are pending. The user approved the plan with the public-page scope expansion below. No PR, commit or push.
+Status: implementation authorized, 2026-09-15. Phase 0 host regressions, Phase 1A–1B embed foundation, Phase 2 welcome/motion/history UX, Phase 3A crawl transport hardening, Phase 3B bounded site-wide discovery, Phase 3C durable crawl provenance/frontier persistence, Phase 4A page-level RAG ingestion, Phase 4B bounded evidence-first public-read routing, Phase 5 freshness/source-label/evidence-completeness, and Phase 6 integrated local acceptance are implemented/tested locally. Phase 6 uses an isolated static host fixture so the app shell's demo GlobalEmbedLoader cannot race the disposable test agent. No production-ready claim is made; hosted-origin, provider, deployment and manual sign-off gates remain. Phase 4B/5 are conservative: they suppress only redundant public-read HTTP actions for grounded non-personal plan/pricing asks from a completed, non-stale crawl with matching requested interval/currency/limit evidence; live/current, personal, ambiguous, incomplete, partial/stale, web, write and identity-bound paths remain available. No PR, commit or push.
 
 Companions: [architecture freeze](../ARCHITECTURE_FREEZE_STAGE6.md), [activity/source plan](CHAT_ACTIVITY_AND_SOURCE_FIX_PLAN.md), [local activity audit](../audits/chat-activity-phase5-local-2026-09-09.md).
 
@@ -229,9 +229,131 @@ Evidence:
 | `npm run test:f14e` | PASS |
 | Focused ESLint for route + new test | PASS |
 | `npm run build` | PASS |
+
+## Implementation checkpoint — Phase 4B bounded evidence-first routing, 2026-09-15
+
+Implemented the public knowledge decision described above. `lib/services/ai/public-evidence.js` requires a STORE route, a plan/pricing intent, selected WEB evidence from the locked site origin, and price/interval evidence. It fails closed for personal/account, freshness-sensitive, web and insufficient-evidence requests. Matching public-read HTTP actions are removed from the prompt and tool descriptors for that turn; the same server-derived names are enforced again in the canonical invoke gateway with `REDUNDANT_PUBLIC_READ`. The decision never changes account identity, confirmation, write, MCP or web-search policy.
+
+Phase tests: `npm run test:public-evidence`, `npm run test:f08c`, `npm run test:p01-w3-1`, focused ESLint and `npm run build` passed locally. The Node module-type warning remains an existing repository convention; it does not change the test result.
+
+## Implementation checkpoint — Phase 5 freshness, source labels and evidence completeness, 2026-09-15
+
+Added the freshness half of evidence-first routing. Public plan/pricing suppression now requires the latest authorized crawl to be `DONE` and not due for its configured recrawl interval; `PARTIAL`, `FAILED`, missing and scheduled-stale crawls remain eligible for the configured live public-read capability. Selected WEB knowledge now carries its canonical source URL to the chat result, and the chat bubble renders bounded, HTTPS/HTTP-validated source links using the crawled page title. No raw crawl content, credentials or hidden policy data is exposed.
+
+Requested monthly/yearly intervals, currency and plan limits are now checked against the selected evidence before suppression. Missing requested detail returns `INCOMPLETE_PUBLIC_EVIDENCE` and keeps the live capability available.
+
+Phase tests: `npm run test:public-evidence`, `npm run test:f08c`, `npm run test:p01-w3-1`, focused ESLint, `npm run build` and `git diff --check` passed locally. Live provider/browser acceptance remains for Phase 6.
+
+## Implementation checkpoint — Phase 6 integrated acceptance, 2026-09-15
+
+The existing `tests/embed-full.spec.js` fixture now covers guest RAG (FAQ and long-document markers), handoff with the public conversation capability, logged-in identity handoff, realtime status, and the first-time welcome flow. The host geometry suite and integrated local flow both pass. The fixture uses `public/demo-slides.html` as an isolated host because the app root intentionally loads the default demo widget; this avoids a test-only iframe collision. Hosted-origin, provider, deployment and manual sign-off gates remain.
+
+Verified locally:
+
+- `npm run test:embed-host-browser` — 13 passed.
+- `PLAYWRIGHT_PORT=4333 npx playwright test tests/embed-full.spec.js --grep 'actual local embed' --reporter=line` — 1 passed in 37.9s.
+- Focused ESLint/build — passed; existing module-type and PostgreSQL SSL warnings remain non-blocking.
+
+## Implementation checkpoint — Phase 4A page-level RAG ingestion, 2026-09-15
+
+Connected indexed crawl pages to the existing `KnowledgeDocument` retrieval boundary through `syncCrawlKnowledge`. Each canonical page is a deterministic WEB document with its source URL, title, content and crawl-job provenance; the existing aggregate WEB document remains for compatibility. Re-crawls update matching pages idempotently and remove stale page documents for the same authorized origin without deleting manual knowledge or the aggregate snapshot. This keeps retrieval source-aware without changing the frozen orchestrator/gateway authority path.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run test:crawl-persistence-live` | PASS against Neon: page documents indexed, stale page reconciled, aggregate retained, frontier/partial/idempotency checks passed; fixture cascade-cleaned |
+| `npm run test:crawl-discovery` | PASS |
+| `npm run test:crawl-transport` | PASS |
+| Focused ESLint | PASS |
 | `git diff --check` | PASS |
+| `npm run build` | PASS |
+| `git diff --check` | PASS |
+
+## Implementation checkpoint — Phase 3A crawl transport hardening, 2026-09-15
+
+Hardened `site-crawler.js` before expanding crawl coverage. Every fetch now requires public HTTPS, rejects credentials and unsupported ports, resolves hostnames and rejects private/link-local/loopback/reserved destinations, follows redirects manually with a four-hop limit, revalidates each redirect and keeps redirects on the approved origin. Response bodies are read through a bounded stream and rejected before buffering when `Content-Length` or streamed bytes exceed the page budget. The existing same-origin page resolver and robots checks remain in place.
+
+This phase intentionally does not enable localhost/private crawling, browser JavaScript execution, subdomains, or arbitrary external sources. AIDE's own product origin remains excluded by the existing origin-binding rule.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run test:crawl-transport` | PASS: public-address validation, cross-origin redirect rejection and bounded response body |
+| `npm run test:crawl-schedule` | PASS |
+| `npm run test:f08c` | PASS: WEB retrieval boost/dedupe/score floor |
+| `./node_modules/.bin/eslint lib/services/site-crawler.js scripts/test-crawl-transport.mjs` | PASS |
+| `git diff --check` | PASS |
+| `npm run build` | PASS |
 | `npm run test:f14c` | Existing static-contract FAIL: `tool-loop preferEndUserAuth`; looks in legacy `lib/actions/tool-loop.js`, while current invocation wiring is in `lib/actions/invoke-tool.js`. Replaying with the original HEAD embed route in memory produces the same failure. No test weakened or unrelated auth code changed |
 
-Not completed: full Phase 0 UI fixtures/source decision note, Phase 1B opening/closing ack protocol, smooth animation/welcome/X, history fixes, real mobile keyboard/safe-area tests, all-public-page crawling, source-policy implementation or full project suite. Existing F14-C baseline needs a separate current-boundary test review before unconditional sign-off. Phase 1 is still in progress; next work is Phase 1B, followed by welcome/motion after its tests.
+Not completed: full Phase 0 UI fixtures/source decision note, real mobile keyboard/safe-area tests, durable resumable ingestion/provenance, source-policy implementation or full project suite. Existing F14-C baseline needs a separate current-boundary test review before unconditional sign-off. Phase 1A was in progress at this checkpoint; Phase 1B is now recorded below, followed by the Phase 2 and Phase 3 checkpoints.
 
 The loader response remains cacheable for five minutes. Manual checks must bypass browser cache or wait for expiry; an old cached script will retain old behavior. No PR/push performed.
+
+## Implementation checkpoint — Phase 1B coordinated frame, 2026-09-15
+
+Changed `hooks/use-embed-frame.js`, `components/embed/PublicWebchat.jsx`, `components/chat/ChatWidget.jsx`, `app/embed.js/route.js`, and the layout harness. The child now requests a bounded version-2 frame (`generation`, desired state, validated position and deterministic dimensions); the host applies it and acknowledges the same generation. The panel stays hidden until that acknowledgement, remains mounted while closed, and uses an absolute surface inside the host-owned frame. The old content-measurement loop is retained only for non-floating/container compatibility. Repeated A→B→A transitions clear stale readiness before a new acknowledgement.
+
+The host handles visual viewport/safe-area re-clamping, stale generations, bounded dimensions, deduplicated style writes, listener cleanup and a 500ms legacy fallback. This is a geometry/paint-stability foundation; it is not yet the requested 160–220ms visual open/close animation or welcome screen. The host still owns positioning; the child does not receive identity or authority from model/UI data.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run test:embed-layout-browser` | 5/5 PASS: right desktop, left mobile, custom/proactive, cached legacy host, lost acknowledgement; rapid toggles, draft retention, viewport clipping and launcher anchoring covered |
+| `npm run test:embed-host-browser` | 13/13 PASS: exact-origin identity, malformed/stale envelopes, duplicate init/updates, container mode, cleanup and re-init |
+| `npm run test:chat-activity-browser` | 6/6 PASS across embed/workspace/Studio and light/dark |
+| `npm run build` | PASS: Next.js compile, route generation and type validation |
+
+## Implementation checkpoint — Phase 2 welcome, motion and history, 2026-09-15
+
+Added `EmbedWelcomeScreen` for a new visitor with no usable active conversation. Clicking Start only enters the existing greeting/composer view; it does not create a conversation or call the model. Restored and selected conversations bypass the welcome screen. The launcher now uses X while open, supports Escape and focus restoration, exposes `aria-expanded`/`aria-controls`, and keeps the panel mounted while applying a reduced-motion-aware opacity/transform transition. Closed surfaces are non-visible/non-interactive without resetting uncontrolled drafts. History transcript replacement uses an instant bottom alignment keyed to the load operation, avoiding a smooth fly-through of old messages while preserving smooth live updates.
+
+The welcome copy deliberately does not claim staffing availability or response-time SLAs. Public-page crawling remains the next phase; the welcome screen is not a substitute for grounded knowledge ingestion.
+
+| Command / check | Result |
+| --- | --- |
+| `./node_modules/.bin/eslint components/chat/ChatWidget.jsx components/chat/EmbedWelcomeScreen.jsx components/chat/MessageList.jsx components/embed/PublicWebchat.jsx` | PASS with the same 2 pre-existing hook dependency warnings in `PublicWebchat.jsx`; 0 errors |
+| `npm run test:embed-layout-browser` | 5/5 PASS: open/close transition state, launcher anchoring, rapid toggles, draft retention and viewport clipping |
+| `npm run test:embed-host-browser` | 13/13 PASS |
+| `npm run test:chat-activity-browser` | 6/6 PASS across embed/workspace/Studio and light/dark |
+| `npm run test:embed-readiness` | PASS |
+| `npm run build` | PASS |
+
+## Implementation checkpoint — Phase 3B site-wide public discovery, 2026-09-15
+
+Expanded discovery beyond the previous pricing/help keyword filter. The crawler now reads sitemap URLs declared by `robots.txt`, follows bounded sitemap indexes, discovers every permitted same-origin HTML link within a bounded four-hop frontier, canonicalizes paths and a small safe pagination/query allowlist, removes fragments/tracking noise, deduplicates canonical pages, and reports discovery/fetch/index/skip/pending/budget coverage counters. Robots exclusions, auth/admin/API path filters, external origins, unsupported assets and pagination traps remain excluded. The 100-page/4-hop limits are explicit bounded safety budgets; they do not claim complete coverage when `budgetExhausted` or `pending` is reported.
+
+This phase only returns discovery coverage in the crawl result. It does not yet persist a resumable frontier, per-page provenance/content hashes, removal reconciliation or durable partial status; those require the additive schema/worker phase.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run test:crawl-discovery` | PASS: sitemap index chain, non-help pages, internal links, canonical dedupe, robots exclusions and query traps |
+| `npm run test:crawl-transport` | PASS |
+| `npm run test:crawl-schedule` | PASS |
+| `npm run test:f08c` | PASS |
+| `./node_modules/.bin/eslint lib/services/site-crawler.js scripts/test-crawl-transport.mjs scripts/test-crawl-discovery.mjs` | PASS |
+| `git diff --check` | PASS |
+| `npm run build` | PASS |
+
+## Implementation checkpoint — Phase 3C durable frontier and provenance, 2026-09-15
+
+Added an additive Prisma migration for `CrawlPageStatus`, durable `SiteCrawlPage` frontier rows, and coverage counters on `SiteCrawlJob`. The crawler accepts resume URLs and persistence callbacks; discovered URLs are idempotently upserted, indexed pages store title/content/SHA-256 hash/canonical URL/depth, and skipped/failed/canonicalized URLs retain reasons. Crawl jobs save coverage and become `PARTIAL` when the bounded frontier remains. Stale `RUNNING` jobs older than 15 minutes can be reclaimed and resume their persisted `DISCOVERED` rows. Existing aggregate WEB knowledge remains compatible and is still updated for retrieval.
+
+The migration is intentionally not applied to the database in this batch. Run `prisma migrate deploy` only after reviewing the additive SQL against the target Neon database and generating Prisma client output. Existing production data is not reset or rewritten.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run prisma:generate` | PASS |
+| `npx prisma validate` | PASS |
+| `npm run test:crawl-discovery` | PASS: resume frontier callback, canonical skip, page hashes and sitemap/link discovery |
+| `npm run test:crawl-transport` | PASS |
+| `npm run test:f01f` | PASS |
+| `npm run test:crawl-schedule` | PASS |
+| `npm run test:f08c` | PASS |
+| `npm run test:crawl-persistence-live` | PASS against Neon: isolated synthetic fixture verified resume frontier, provenance/hash, idempotent upsert and `PARTIAL`; fixture cascade-cleaned |
+| Focused ESLint | PASS |
+| `git diff --check` | PASS |
+| `npm run build` | PASS |
+| `git diff --check` | PASS |
+| focused ESLint | PASS; existing two PublicWebchat exhaustive-deps warnings remain, no new error |
+| `git diff --check` | PASS |
+| Real local Chromium at `http://localhost:3000` | PASS: homepage HTTP 200; launcher remained x=1290,y=824,w=56,h=56 through open/closed samples; coordinated panel frame was 384x592 and panel became visible after acknowledgement |
+
+The layout harness's legacy-host case intentionally does not certify old-host clipping during the compatibility fallback; it verifies the widget remains usable. Mobile keyboard/orientation and real iframe navigation are still synthetic/partial. Full application tests were not run in this checkpoint. Next phase is Phase 2 welcome/motion, after adding its first-visit, X icon, focus and reduced-motion tests.

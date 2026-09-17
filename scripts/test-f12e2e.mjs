@@ -108,12 +108,16 @@ async function api(jar, path, options = {}) {
 }
 
 async function publicApi(path, options = {}) {
+  const { accessToken, ...requestOptions } = options;
   return fetch(`${BASE}${path}`, {
-    ...options,
+    ...requestOptions,
     headers: {
       Origin: EMBED_ORIGIN,
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {}),
+      ...(requestOptions.body ? { "Content-Type": "application/json" } : {}),
+      ...(accessToken
+        ? { "x-aide-conversation-access-token": accessToken }
+        : {}),
+      ...(requestOptions.headers || {}),
     },
   });
 }
@@ -159,6 +163,7 @@ async function main() {
   let agentId;
   let publicKey;
   let conversationId;
+  let publicAccessToken;
 
   try {
     await test("register owner", async () => {
@@ -168,6 +173,26 @@ async function main() {
 
     await test("login owner", async () => {
       jar = await signIn(email, password);
+    });
+
+    await test("activate local free plan", async () => {
+      const plansRes = await fetch(`${BASE}/api/billing/plans`);
+      const plansBody = await json(plansRes);
+      assert(plansRes.ok, `plans ${plansRes.status}`);
+      const freePlan = (plansBody?.plans || []).find(
+        (plan) => plan.planType === "FREE"
+      );
+      assert(freePlan?.id, "free billing plan missing");
+
+      const subscribeRes = await api(jar, "/api/billing/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ planId: freePlan.id }),
+      });
+      const subscribeBody = await json(subscribeRes);
+      assert(
+        subscribeRes.ok,
+        `free plan ${subscribeRes.status} ${JSON.stringify(subscribeBody)}`
+      );
     });
 
     await test("create agent with public key", async () => {
@@ -196,7 +221,9 @@ async function main() {
       const body = await json(res);
       assert(res.status === 200, `pub chat ${res.status} ${JSON.stringify(body)}`);
       conversationId = body.conversationId;
+      publicAccessToken = body.realtimeAccessToken;
       assert(conversationId, "conversationId");
+      assert(publicAccessToken, "public conversation access token");
       assert(body.handoffTriggered !== true, "first ask must not auto-handoff");
       assert(body.waitingForHuman !== true, "not waiting after first ask");
       assert(body.showHandoffButton === true, "CTA after customer asked for a human");
@@ -209,6 +236,7 @@ async function main() {
           message: "Still want to talk to a human",
           conversationId,
         }),
+        accessToken: publicAccessToken,
       });
       const body = await json(res);
       assert(res.status === 200, `insist chat ${res.status} ${JSON.stringify(body)}`);
@@ -225,6 +253,7 @@ async function main() {
           message: "Are you still there?",
           conversationId,
         }),
+        accessToken: publicAccessToken,
       });
       const body = await json(res);
       assert(res.status === 200, `paused chat ${res.status}`);
@@ -238,6 +267,7 @@ async function main() {
         {
           method: "POST",
           body: JSON.stringify({ reason: "Button test" }),
+          accessToken: publicAccessToken,
         }
       );
       const body = await json(res);
@@ -273,7 +303,8 @@ async function main() {
 
     await test("embed poll shows human reply", async () => {
       const res = await publicApi(
-        `/api/public/agents/${publicKey}/conversations/${conversationId}`
+        `/api/public/agents/${publicKey}/conversations/${conversationId}`,
+        { accessToken: publicAccessToken }
       );
       const body = await json(res);
       assert(res.status === 200, `public conv ${res.status}`);
@@ -298,7 +329,11 @@ async function main() {
     await test("re-handoff blocked by 30m cooldown", async () => {
       const res = await publicApi(
         `/api/public/agents/${publicKey}/conversations/${conversationId}/handoff`,
-        { method: "POST", body: JSON.stringify({}) }
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+          accessToken: publicAccessToken,
+        }
       );
       const body = await json(res);
       assert(res.status === 429, `cooldown expected 429, got ${res.status}`);
@@ -318,7 +353,8 @@ async function main() {
 
     await test("public conversation exposes desk eligibility fields", async () => {
       const res = await publicApi(
-        `/api/public/agents/${publicKey}/conversations/${conversationId}`
+        `/api/public/agents/${publicKey}/conversations/${conversationId}`,
+        { accessToken: publicAccessToken }
       );
       const body = await json(res);
       assert(res.status === 200, "public get");

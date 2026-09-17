@@ -11,6 +11,7 @@ import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { safeLogError } from "@/lib/observability/safe-log";
 import { requirePublicConversationAccess } from "@/lib/services/public-conversation-access.service";
+import { getActiveTurnRun } from "@/lib/services/turn-run.service";
 
 export async function GET(request, { params }) {
   const requestId = resolveRequestId(request);
@@ -57,6 +58,7 @@ export async function GET(request, { params }) {
     }
 
     const desk = serializeDeskState(conversation);
+    const activeTurn = await getActiveTurnRun(conversation.id);
 
     return jsonOk(request, {
       id: conversation.id,
@@ -70,6 +72,7 @@ export async function GET(request, { params }) {
         !desk.waitingForHuman &&
         conversationHasHumanRequest(conversation.messages),
       messages: conversation.messages,
+      activeTurn,
     });
   } catch (error) {
     if (error.status) {

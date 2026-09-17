@@ -1,10 +1,27 @@
 export function GET(request) {
-  const host = new URL(request.url).origin;
+  const requestUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const requestHost = forwardedHost || request.headers.get("host");
+  let host = requestUrl.origin;
+  if (requestHost) {
+    try {
+      const forwardedProto = request.headers.get("x-forwarded-proto");
+      host = new URL(
+        `${forwardedProto || requestUrl.protocol.replace(":", "")}://${requestHost}`
+      ).origin;
+    } catch {
+      // Keep the framework-derived origin when forwarded host data is invalid.
+    }
+  }
   const hostJson = JSON.stringify(host);
   const body = `(() => {
   window.__hapyEmbedKeys = window.__hapyEmbedKeys || {};
   window.__hapyUser = window.__hapyUser || null;
   var thisScript = document.currentScript;
+  var aideAppOrigin = ${hostJson};
+  try {
+    aideAppOrigin = new URL((thisScript && thisScript.src) || window.location.href, window.location.href).origin;
+  } catch (e) {}
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -29,6 +46,10 @@ export function GET(request) {
 
   function pushUserToFrame(iframe, handshake) {
     if (!iframe || !iframe.contentWindow) return;
+    var targetOrigin = aideAppOrigin;
+    try {
+      targetOrigin = new URL(iframe.src, window.location.href).origin;
+    } catch (e) {}
     try {
       iframe.contentWindow.postMessage(
         {
@@ -37,7 +58,7 @@ export function GET(request) {
           user: window.__hapyUser,
           handshake: Boolean(handshake)
         },
-        ${hostJson}
+        targetOrigin
       );
     } catch (e) {}
   }
@@ -167,7 +188,7 @@ export function GET(request) {
     var parentOrigin = encodeURIComponent(window.location.origin);
     // Claim from the parent page so Origin/Referer are the customer site
     // (iframe pings would only show the Aide app origin).
-    fetch(${hostJson} + "/api/public/agents/" + encodeURIComponent(publicKey) + "/ping", {
+    fetch(aideAppOrigin + "/api/public/agents/" + encodeURIComponent(publicKey) + "/ping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ origin: window.location.origin }),
@@ -187,13 +208,17 @@ export function GET(request) {
     var target = targetSelector ? document.querySelector(targetSelector) : null;
     var embedMode = target ? "container" : "float";
     iframe.src =
-      ${hostJson} +
+      aideAppOrigin +
       "/w/" +
       encodeURIComponent(publicKey) +
       "?parentOrigin=" +
       parentOrigin +
       "&embed=" +
       embedMode;
+    var frameOrigin = aideAppOrigin;
+    try {
+      frameOrigin = new URL(iframe.src, window.location.href).origin;
+    } catch (e) {}
     iframe.setAttribute("data-hapy-widget", publicKey);
     iframe.setAttribute("title", "Chat");
     iframe.setAttribute("allow", "clipboard-write");
@@ -252,7 +277,7 @@ export function GET(request) {
           source: "hapy-host", type: "frame-applied", version: 2,
           generation: lastFrame.generation, open: lastFrame.open,
           position: savedAnchor, width: iframe.clientWidth, height: iframe.clientHeight
-        }, ${hostJson});
+        }, frameOrigin);
       });
     }
 
@@ -274,7 +299,7 @@ export function GET(request) {
 
     function onMessage(event) {
       if (disposed || !iframe.isConnected) { cleanup(); return; }
-      if (event.origin !== ${hostJson}) return;
+      if (event.origin !== frameOrigin) return;
       if (!event.data || event.data.source !== "hapy-widget") return;
       if (iframe.contentWindow !== event.source) return;
       if (event.data.type === "unavailable") {
@@ -367,6 +392,11 @@ export function GET(request) {
     var key = script && (script.getAttribute("data-aide-key") || script.getAttribute("data-hapy-key"));
     var target = script && (script.getAttribute("data-aide-target") || script.getAttribute("data-hapy-target"));
     if (key) boot(key, target || undefined);
+    // Auto setUser when host already exposed a signed-in visitor (set after your site login).
+    var pending = window.__AIDE_CHAT_USER__ || window.__AIDE_USER__;
+    if (pending && typeof pending === "object") {
+      window.aideChat.setUser(pending);
+    }
   });
 })();
 `;

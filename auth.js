@@ -89,7 +89,7 @@ const providers = [
 
       // Reserved / ADMIN email without password → ops must run seed:admin (F06-B).
       if (adminLogin && !user?.passwordHash) {
-        rateLimit(adminLimitKey, adminLimitOpts);
+        await rateLimit(adminLimitKey, adminLimitOpts);
         throw new AdminNeedsSeedError();
       }
 
@@ -99,7 +99,7 @@ const providers = [
 
       const valid = await comparePassword(password, user.passwordHash);
       if (!valid) {
-        if (adminLogin) rateLimit(adminLimitKey, adminLimitOpts);
+        if (adminLogin) await rateLimit(adminLimitKey, adminLimitOpts);
         return null;
       }
       if (user.status === "SUSPENDED") throw new AccountSuspendedError();

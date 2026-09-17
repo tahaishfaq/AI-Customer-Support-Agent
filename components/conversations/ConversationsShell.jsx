@@ -106,7 +106,7 @@ export function ConversationsShell({
   }, [conversations, query, sentiment]);
 
   return (
-    <div className="flex h-[min(72dvh,760px)] min-h-[480px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-[var(--shadow-card)]">
+    <div className="flex h-[min(72dvh,760px)] min-h-[480px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-none">
       <aside
         className={cn(
           "min-h-0 w-full shrink-0 flex-col border-[var(--color-border)] bg-[var(--color-surface)] md:flex md:w-[340px] md:border-r xl:w-[380px]",

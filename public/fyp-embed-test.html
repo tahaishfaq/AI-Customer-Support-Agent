@@ -26,6 +26,30 @@
     <p>Simulated Brandly FYP page with AIDE widget. Agent: <strong>AI Assist</strong></p>
     <div class="card"><p style="margin:0">Open the chat bubble and run the golden checklist.</p></div>
   </main>
-  <script src="http://localhost:3000/embed.js?v=11" data-aide-key="A-6-jnOFpbEEGCpyK77c8rm5" defer></script>
+<!-- AIDE webchat -->
+<script
+  src="http://localhost:3000/embed.js?v=11"
+  data-aide-key="74HMeW6ucjrJrm2bo4bKFNKd"
+  defer
+></script>
+<!--
+  Signed-in visitors (ACCOUNT tools): use aideChat.setUser after login.
+  Raw browser customerId alone never unlocks ACCOUNT_READ.
+  Live WRITE tools always Confirm in the widget before calling your API.
+  Guest lookups must return redacted data only.
+  Docs: docs/features/EMBED_END_USER_IDENTITY.md
+-->
+<!-- After your site login (every page load while signed in) -->
+<script>
+  window.aideChat && aideChat.setUser({
+    subject: "user_123",
+    displayName: "Alex",
+    accessToken: "MERCHANT_SESSION_OR_API_TOKEN"
+  });
+  aideChat.onAuthRefreshNeeded = async function () {
+    const accessToken = await fetchFreshAccessToken(); // your app
+    aideChat.setUser({ subject: "user_123", displayName: "Alex", accessToken });
+  };
+</script>
 </body>
 </html>

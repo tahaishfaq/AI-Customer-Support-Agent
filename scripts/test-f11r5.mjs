@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchClientCredentialsToken } from "../lib/integrations/oauth-client-credentials.js";
+import { canAdvanceProcedure, companyPackForBusiness, validateCompanyPack } from "../lib/integrations/company-pack.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -57,9 +58,26 @@ async function testOauthValidation() {
   console.log("ok  oauth helper validates inputs");
 }
 
+function testCompanyPacks() {
+  for (const vertical of ["E-commerce", "SaaS"]) {
+    const pack = companyPackForBusiness({ vertical });
+    assert(validateCompanyPack(pack).ok, `${vertical} pack validates`);
+    assert(pack.capabilitySlots.includes("PUBLIC_READ"), `${vertical} public slot`);
+    assert(pack.confirmation.write === true, `${vertical} write confirmation`);
+  }
+  assert(canAdvanceProcedure("apply_policy", "propose").ok, "procedure advances in order");
+  assert(canAdvanceProcedure("propose", "execute").errorCode === "PROCEDURE_ORDER_INVALID", "procedure skips are rejected");
+  assert(canAdvanceProcedure("confirm", "execute", { confirmed: true }).ok, "confirmed execution advances");
+  const companyPackSrc = read("lib/integrations/company-pack.js");
+  assert(/control_plane_metadata/.test(companyPackSrc), "packs marked control-plane metadata");
+  assert(/companyPackIsRuntimeAuthority/.test(companyPackSrc), "runtime authority helper exported");
+  console.log("ok  company packs + procedure guard for E-commerce and SaaS");
+}
+
 async function main() {
   testExports();
   testApiRoute();
+  testCompanyPacks();
   await testOauthValidation();
   console.log("\nF11-R5 smoke passed");
 }

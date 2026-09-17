@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
-import { isBillingUnlocked } from "@/lib/billing/access";
+import { getCachedPublicUser } from "@/lib/services/user-profile-cache";
 import { redirectForSessionUser } from "@/lib/auth-session-guard";
 
 export default async function BillingLayout({ children }) {
@@ -10,12 +9,10 @@ export default async function BillingLayout({ children }) {
     redirect("/login?next=/billing/plans");
   }
 
-  const row = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { status: true, role: true },
-  });
-
-  redirectForSessionUser(row);
+  const row = await getCachedPublicUser(session.user.id);
+  redirectForSessionUser(
+    row ? { status: row.status, role: row.role } : null
+  );
 
   return (
     <div className="min-h-dvh bg-background text-foreground">

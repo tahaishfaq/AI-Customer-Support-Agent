@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
+import { mintAgentIdentityToken } from "@/lib/api/agents";
 import { useChatActivity } from "@/hooks/use-chat-activity";
 import {
   isConversationLimitError,
@@ -28,6 +29,9 @@ import { resolveCustomization } from "@/lib/customization/defaults";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { useMinWidth } from "@/hooks/use-mobile";
+import { useAuthStore } from "@/store/auth-store";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatHistoryPanel } from "@/components/chat/ChatHistoryPanel";
 import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -36,6 +40,7 @@ import {
   StudioActionLogs,
   buildSessionLogEntries,
 } from "@/components/studio/StudioActionLogs";
+import { StudioAgentTraces } from "@/components/studio/StudioAgentTraces";
 import { StudioLogDetail } from "@/components/studio/StudioLogDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +104,7 @@ const MODES = [
   { id: "self", label: "Ask yourself" },
   { id: "pack", label: "Question pack" },
   { id: "logs", label: "Logs" },
+  { id: "traces", label: "Traces" },
 ];
 const MODE_IDS = MODES.map((m) => m.id);
 
@@ -236,6 +242,7 @@ function RunTestButtons({
 
 export function AgentTestStudio({ agent }) {
   const customization = useMemo(() => resolveCustomization(agent), [agent]);
+  const authUser = useAuthStore((s) => s.user);
   const [mode, setMode] = useUrlTab("tab", MODE_IDS, "self");
   const [questions, setQuestions] = useState(DEFAULT_SCRIPTS);
   const [generated, setGenerated] = useState(false);
@@ -258,6 +265,11 @@ export function AgentTestStudio({ agent }) {
   const [pauseReason, setPauseReason] = useState("");
   const [chatExtras, setChatExtras] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
+  /** Studio auto-setUser: mint Aide JWT for the logged-in dashboard user. */
+  const [asSignedIn, setAsSignedIn] = useState(true);
+  const [identitySubject, setIdentitySubject] = useState("");
+  const identityTokenRef = useRef(null);
+  const identityExpiresRef = useRef(0);
   const isWideLayout = useMinWidth(1280);
   const conversationIdRef = useRef(null);
   const sendingRef = useRef(false);
@@ -268,6 +280,42 @@ export function AgentTestStudio({ agent }) {
     () => buildSessionLogEntries(messages, chatExtras),
     [messages, chatExtras]
   );
+
+  const ensureStudioIdentityToken = useCallback(async () => {
+    if (!asSignedIn || !agent?.id || !authUser?.id) return null;
+    const now = Date.now();
+    if (
+      identityTokenRef.current &&
+      identityExpiresRef.current > now + 60_000 &&
+      identitySubject === authUser.id
+    ) {
+      return identityTokenRef.current;
+    }
+    const minted = await mintAgentIdentityToken(agent.id, {
+      sub: authUser.id,
+      email: authUser.email || undefined,
+      ttlSeconds: 3600,
+    });
+    identityTokenRef.current = minted.token;
+    identityExpiresRef.current = minted.expiresAt
+      ? Date.parse(minted.expiresAt)
+      : now + 3_500_000;
+    setIdentitySubject(minted.sub || authUser.id);
+    return minted.token;
+  }, [agent?.id, asSignedIn, authUser?.email, authUser?.id, identitySubject]);
+
+  useEffect(() => {
+    identityTokenRef.current = null;
+    identityExpiresRef.current = 0;
+    setIdentitySubject("");
+  }, [agent?.id, authUser?.id, asSignedIn]);
+
+  useEffect(() => {
+    if (!asSignedIn || !agent?.id || !authUser?.id) return;
+    ensureStudioIdentityToken().catch(() => {
+      /* mint failure surfaces on send */
+    });
+  }, [agent?.id, asSignedIn, authUser?.id, ensureStudioIdentityToken]);
 
   useEffect(() => {
     if (mode !== "logs") {
@@ -322,10 +370,30 @@ export function AgentTestStudio({ agent }) {
     ]);
 
     try {
+      let identityToken = null;
+      if (asSignedIn) {
+        try {
+          identityToken = await ensureStudioIdentityToken();
+        } catch (mintErr) {
+          clearActivities();
+          setMessages((prev) =>
+            prev.filter((m) => m.id !== optimisticId && m.id !== streamingId)
+          );
+          setError(
+            mintErr?.message ||
+              "Could not mint signed-in identity — turn off “Logged-in customer” or retry"
+          );
+          setSending(false);
+          sendingRef.current = false;
+          return { ok: false, reason: "Identity mint failed" };
+        }
+      }
       const result = await sendChatMessageStream(agent.id, {
         signal: activityRequest.controller.signal,
         message: prompt,
+        clientMessageId: optimisticId,
         conversationId: conversationIdRef.current || undefined,
+        ...(identityToken ? { identityToken } : {}),
         onTool: data => receiveActivity(activityRequest, data),
         onDelta: delta => {
           if (!isCurrentActivity(activityRequest)) return;
@@ -502,10 +570,26 @@ export function AgentTestStudio({ agent }) {
       setSending(true);
       setError("");
       try {
+        let identityToken = null;
+        if (asSignedIn) {
+          try {
+            identityToken = await ensureStudioIdentityToken();
+          } catch (mintErr) {
+            setError(
+              mintErr?.message ||
+                "Could not mint signed-in identity — turn off “Logged-in customer” or retry"
+            );
+            setSending(false);
+            sendingRef.current = false;
+            clearActivities();
+            return;
+          }
+        }
         const result = await resumeChatAfterConfirmation(agent.id, {
           conversationId: cid,
           confirmationId: confirmation.id,
           signal: activityRequest.controller.signal,
+          ...(identityToken ? { identityToken } : {}),
           onTool: data => receiveActivity(activityRequest, data),
           onDelta: delta => {
             if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
@@ -782,6 +866,7 @@ export function AgentTestStudio({ agent }) {
           activeActivities={activeActivities}
           compact={false}
           themed
+          showKnowledgeDetails
           showFeedback={customization.features.messageFeedback}
           intro={widgetIntro(agent, customization)}
           onConfirmDecision={handleConfirmDecision}
@@ -823,6 +908,30 @@ export function AgentTestStudio({ agent }) {
           </AlertDescription>
         </Alert>
       ) : null}
+      <div className="mx-3 mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
+        <div className="min-w-0">
+          <Label
+            htmlFor="studio-as-signed-in"
+            className="text-xs font-medium text-foreground"
+          >
+            Logged-in customer
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            {asSignedIn && authUser?.id
+              ? `Auto setUser as ${authUser.email || authUser.id}`
+              : asSignedIn
+                ? "Sign in to Aide to auto-bind identity"
+                : "Guest visitor (no setUser)"}
+          </p>
+        </div>
+        <Switch
+          id="studio-as-signed-in"
+          checked={asSignedIn}
+          onCheckedChange={setAsSignedIn}
+          disabled={!authUser?.id || sending || runActive}
+          aria-label="Test as logged-in customer"
+        />
+      </div>
       <ChatComposer
         disabled={sending || runActive || agent.enabled === false}
         onSend={send}
@@ -831,6 +940,8 @@ export function AgentTestStudio({ agent }) {
         placeholder={
           runActive
             ? "Auto-test running — pause or stop to type"
+            : asSignedIn
+            ? "Type a test as the logged-in customer…"
             : mode === "self"
             ? "Type your own test as a visitor…"
             : customization.identity.messagePlaceholder || "Type a test message…"
@@ -901,7 +1012,9 @@ export function AgentTestStudio({ agent }) {
               <CardDescription className="text-xs">
                 {mode === "logs"
                   ? "Developer view: tool calls, knowledge retrieval, and why a request was not consumed."
-                  : "Train → test → deploy: run questions, inspect knowledge used, export results."}
+                  : mode === "traces"
+                    ? "Reconstruct a turn timeline from TurnRun + tools + message previews — no provider bodies."
+                    : "Train → test → deploy: run questions, inspect knowledge used, export results."}
               </CardDescription>
             </div>
             <Button
@@ -1200,7 +1313,7 @@ export function AgentTestStudio({ agent }) {
                 </ol>
               </ScrollArea>
             </div>
-          ) : (
+          ) : mode === "logs" ? (
             <StudioActionLogs
               agentId={agent.id}
               conversationId={conversationId}
@@ -1213,6 +1326,11 @@ export function AgentTestStudio({ agent }) {
                   openLogDetail(payload);
                 }
               }}
+            />
+          ) : (
+            <StudioAgentTraces
+              agentId={agent.id}
+              conversationId={conversationId}
             />
           )}
 

@@ -256,7 +256,7 @@ export function BillingPlanPicker({
             <article
               key={plan.id}
               className={cn(
-                "flex min-h-[24rem] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-[var(--shadow-card)]",
+                "flex min-h-[24rem] flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-none",
                 isComingSoon && !isCurrent && "opacity-90",
                 isCurrent
                   ? "border-primary/50 ring-2 ring-primary/20"

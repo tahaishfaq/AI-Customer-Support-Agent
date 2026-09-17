@@ -8,15 +8,17 @@
 
 ## Now (blockers → demo stable)
 
-| # | Item | Done when |
-|---|------|-----------|
-| **1** | **Production OpenAI credits** | Local hosted-search probe passes; production account/chat still owner-verified |
-| **2** | **OpenAI hosted web-search migration** | Responses API path, citations, persistence, SSE/UI, and legacy-provider removal — [`features/OPENAI_WEB_SEARCH_MIGRATION_PLAN.md`](features/OPENAI_WEB_SEARCH_MIGRATION_PLAN.md) |
-| **3** | **One A3** live web | Online/web answer · hosted `web_search` OK — **1 call only** |
-| **4** | **B1–B4 confirm UI** (browser) | Confirm → consume · harness + local Playwright PASS; production URL check remains |
-| **5** | **Billing pay smoke** | Plans → SafePay test → webhook / cancel |
-| **6** | **Prod cutover** | `ACTIONS_*` secrets · migrate · HTTPS `AUTH_URL` · live embed ping |
-| **7** | **Unconditional YES** | Tick [`PRODUCTION_READY_SIGNOFF.md`](PRODUCTION_READY_SIGNOFF.md) |
+| # | Item | Done when | Local code gate |
+|---|------|-----------|-----------------|
+| **1** | **Production OpenAI credits** | Local hosted-search probe passes; production account/chat still owner-verified | LOCAL PROBE PASS 2026-09-17 (`probe:openai-web-search`); prod account still OWNER |
+| **2** | **OpenAI hosted web-search migration** | Responses API path, citations, persistence, SSE/UI, and legacy-provider removal — [`features/OPENAI_WEB_SEARCH_MIGRATION_PLAN.md`](features/OPENAI_WEB_SEARCH_MIGRATION_PLAN.md) | CODE + local probe PASS — enable on prod + citation UI reload still OWNER |
+| **3** | **One A3** live web | Online/web answer · hosted `web_search` OK — **1 call only** | OWNER — one product chat (probe ≠ full A3 chat path) |
+| **4** | **B1–B4 confirm UI** (browser) | Confirm → consume · harness + local Playwright PASS; production URL check remains | `npm run test:confirmation-ui-browser` (app up) |
+| **5** | **Billing pay smoke** | Plans → SafePay test → webhook / cancel | OWNER |
+| **6** | **Prod cutover** | `ACTIONS_*` secrets · migrate · HTTPS `AUTH_URL` · live embed ping | OWNER + `node scripts/production-preflight.js --production` |
+| **7** | **Unconditional YES** | Tick [`PRODUCTION_READY_SIGNOFF.md`](PRODUCTION_READY_SIGNOFF.md) | OWNER after #1–6 |
+
+**Harness:** `npm run test:go-live-local` (no secrets printed).
 
 ---
 
@@ -24,15 +26,17 @@
 
 | # | Item | Doc |
 |---|------|-----|
-| **8** | **R0 Redis foundation** — vendor, client, health, `REDIS_ENABLED` | [`features/REDIS_BULLMQ_ENTERPRISE_PLAN.md`](features/REDIS_BULLMQ_ENTERPRISE_PLAN.md) |
-| **9** | **R1 OTP in Redis** (+ Postgres audit) | same |
-| **10** | **R2 User profile cache** | same |
-| **11** | **R3 Global rate limits** (closes **R6**) | same |
-| **12** | **R5 BullMQ workers** — email + billing queues (heavy work) | same |
-| **13** | **Socket Phases 0–4** — gateway/outbox → desk → embed → typing/presence | [`features/SOCKET_REALTIME_PLAN.md`](features/SOCKET_REALTIME_PLAN.md) |
-| **14** | **Socket Phases 5–6** — billing/quota notifications, HA/load/security rollout | same; Redis/BullMQ plan provides the bus/worker foundation |
-| **15** | **Q0–Q1 TanStack Query** — provider + quota/desk/agent hooks | [`features/TANSTACK_QUERY_FRONTEND_PLAN.md`](features/TANSTACK_QUERY_FRONTEND_PLAN.md) |
-| **16** | **Q2–Q3** lists, desk mutations, customization | same |
+| **8** | **R0 Redis foundation** — vendor, client, health, `REDIS_ENABLED` | Done (scaffold) — [`features/REDIS_BULLMQ_ENTERPRISE_PLAN.md`](features/REDIS_BULLMQ_ENTERPRISE_PLAN.md) |
+| **9** | **R1 OTP in Redis** (+ Postgres audit) | Done (password-reset dual-write; VERIFY_EMAIL stays PG) |
+| **10** | **R2 User profile cache** | Done — `getCachedPublicUser` + invalidate hooks |
+| **11** | **R3 Global rate limits** (closes **R6**) | Done (RL + semaphore + confirm); live dual-instance ops check open |
+| **12** | **R5 BullMQ workers** — email + billing queues (heavy work) | Done — sweeps + `/api/admin/queues` counts |
+| **12b** | **R6 Crawl queue** | Done — `RUN_SITE_CRAWL` + per-agent lock; knowledge embeds deferred |
+| **12c** | **R7 Socket↔Redis alignment** | Done — adapter + URL fallback + pool budget docs |
+| **13** | **Socket Phases 0–4** | Automated gates green; live browser HA remains Phase 6 |
+| **14** | **Socket Phases 5–6** | 5 + 6.0 code done; live two-replica chaos / alerts open |
+| **15** | **Q0–Q5 TanStack Query** | Done — provider, desk/billing, mutations, socket sync, devtools |
+| **16** | **Go-live #1–7** | **Active** — code gates via `test:go-live-local`; credits/probe/pay/cutover/signoff are OWNER |
 
 ---
 
@@ -40,7 +44,7 @@
 
 | # | Item | Notes |
 |---|------|-------|
-| **17** | **Q4** Socket → invalidate Query cache | after Socket S1 |
+| **17** | **Q4** Socket → invalidate Query cache | Done (RealtimeQuerySync) |
 | **18** | **M01 MCP Tools UX** | [`features/MCP_DEEP_PLAN.md`](features/MCP_DEEP_PLAN.md) — don’t reopen orchestrator |
 | **19** | **F10 Semantic RAG** | embeds on BullMQ `knowledge` queue — [`features/F10_SEMANTIC_RAG.md`](features/F10_SEMANTIC_RAG.md) |
 | **20** | F00 live DoD ticks / deck | Owner — [`features/F00_DOD_DEMO_BUFFER.md`](features/F00_DOD_DEMO_BUFFER.md) · log [`shipped/F00_PROGRESS.md`](shipped/F00_PROGRESS.md) |

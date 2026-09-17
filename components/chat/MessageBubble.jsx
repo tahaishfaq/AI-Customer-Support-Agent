@@ -126,6 +126,7 @@ export function MessageBubble({
   initialFeedbackReason = null,
   onFeedback,
   usedKnowledge = null,
+  showKnowledgeDetails = false,
   toolSteps = null,
   citations = null,
   sources = null,
@@ -145,6 +146,15 @@ export function MessageBubble({
   const showAgentAvatar = themed && !isUser && identity;
   const knowledgeTitles = Array.isArray(usedKnowledge)
     ? usedKnowledge.map((d) => d?.name).filter(Boolean)
+    : [];
+  const knowledgeSources = Array.isArray(usedKnowledge)
+    ? usedKnowledge
+        .map((source) => {
+          const url = String(source?.sourceUrl || "").trim();
+          if (!/^https?:\/\//i.test(url)) return null;
+          return { name: source?.name || "Knowledge source", url };
+        })
+        .filter(Boolean)
     : [];
   const toolLabels = Array.isArray(toolSteps)
     ? toolSteps
@@ -218,7 +228,7 @@ export function MessageBubble({
         ) : null}
         <div
           className={cn(
-            "max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[75%]",
+            "max-w-[85%] rounded-md px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[75%]",
             isUser
               ? themed
                 ? "bg-[var(--wc-primary)] text-white"
@@ -227,9 +237,7 @@ export function MessageBubble({
                 ? "bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
                 : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
           )}
-          style={{
-            borderRadius: themed ? "var(--wc-radius)" : undefined,
-          }}
+          style={themed ? { borderRadius: "0.375rem" } : undefined}
         >
           {pending && !streaming ? (
             <span
@@ -326,7 +334,7 @@ export function MessageBubble({
         ) : null}
       </div>
 
-      {!isUser && !pending && knowledgeTitles.length > 0 ? (
+      {!isUser && !pending && showKnowledgeDetails && knowledgeTitles.length > 0 ? (
         <p
           className={cn(
             "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
@@ -339,6 +347,34 @@ export function MessageBubble({
           </span>{" "}
           {knowledgeTitles.join(" · ")}
         </p>
+      ) : null}
+
+      {!isUser && !pending && showKnowledgeDetails && knowledgeSources.length > 0 ? (
+        <div
+          className={cn(
+            "flex max-w-[85%] flex-wrap gap-1.5 sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1"
+          )}
+          aria-label="Knowledge sources"
+        >
+          {knowledgeSources.slice(0, 8).map((source) => (
+            <a
+              key={source.url}
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "max-w-full truncate rounded-full border px-2 py-1 text-[11px] underline underline-offset-2",
+                themed
+                  ? "border-[var(--wc-border)] text-[var(--wc-muted)]"
+                  : "border-[var(--color-border)] text-[var(--color-muted)]"
+              )}
+              title={source.url}
+            >
+              {source.name}
+            </a>
+          ))}
+        </div>
       ) : null}
 
       {!isUser && !pending && toolLabels.length > 0 ? (

@@ -27,9 +27,9 @@ manager and must never be committed.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `REALTIME_REDIS_URL` | production | TLS TCP Redis connection URL |
-| `REALTIME_REDIS_USERNAME` | production | least-privilege Redis ACL user |
-| `REALTIME_REDIS_PASSWORD` | production | Redis ACL secret |
+| `REALTIME_REDIS_URL` | production | TLS TCP Redis connection URL (falls back to `REDIS_URL`) |
+| `REALTIME_REDIS_USERNAME` | production | least-privilege Redis ACL user (falls back to `REDIS_USERNAME`) |
+| `REALTIME_REDIS_PASSWORD` | production | Redis ACL secret (falls back to `REDIS_PASSWORD`) |
 | `REALTIME_STREAM_NAME` | yes | durable realtime stream name |
 | `REALTIME_DLQ_STREAM_NAME` | yes | poison-event stream name |
 | `REALTIME_CONSUMER_GROUP` | yes | fan-out consumer group name |
@@ -68,6 +68,26 @@ The selected deployment must prove:
 - Secret rotation without committing secrets or disconnecting all healthy users.
 - Metrics for connection count, auth rejects, reconnects, publish latency,
   consumer lag, DLQ size, event gaps, and fallback polling.
+
+## Shared Redis connection budget (R7)
+
+One Redis may serve app cache/limits, BullMQ workers, and the realtime gateway.
+Budget connections explicitly — do not open unbounded clients per request.
+
+| Consumer | Typical connections | Notes |
+| --- | --- | --- |
+| Next.js app (`REDIS_ENABLED`) | 1 singleton | rate limits, OTP, profile, GET cache, crawl lock |
+| BullMQ worker process | 1–2 per process | queue + worker; scale via worker replicas |
+| Realtime gateway (in `server.js`) | **3** | pub + sub (Socket.IO adapter) + stream consumer |
+| Outbox publisher worker | 1–2 | Streams XADD / claim |
+
+**Presence / typing:** ephemeral only (in-process leases on the gateway). They
+are not Redis keys and are not durable outbox events. Multi-replica fan-out of
+ephemeral events uses the Socket.IO Redis adapter pub/sub channel, not a
+separate presence keyspace.
+
+Prefer dedicated ACL users when possible (`REALTIME_REDIS_*` vs app `REDIS_*`)
+even when the URL host is shared.
 
 ## Forbidden values and practices
 

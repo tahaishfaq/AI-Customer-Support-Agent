@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = path.join(root, ".tmp");
 
-const { rateLimit } = await import("../lib/rate-limit.js");
+const { rateLimitMemory: rateLimit } = await import("../lib/rate-limit.js");
 const {
   pubChatLimitOpts,
   studioChatLimitOpts,

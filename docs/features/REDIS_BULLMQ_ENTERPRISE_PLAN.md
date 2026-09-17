@@ -1,6 +1,6 @@
 # AIDE — Redis + BullMQ Enterprise Plan
 
-**Status:** PLANNED (not started)  
+**Status:** CORE COMPLETE — R0–R7 landed; optional knowledge embeds + admin queue UI + live HA chaos remain  
 **Created:** 2026-09-05  
 **Pairs with:** [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md) (Redis bus = shared foundation)  
 **Freeze:** [`../ARCHITECTURE_FREEZE_STAGE6.md`](../ARCHITECTURE_FREEZE_STAGE6.md) — Redis/queues **must not** become PEP / confirm / identity authority  
@@ -187,86 +187,97 @@ writeProfile(...):
 
 ### Phase R0 — Foundation (½–1 day)
 
-- [ ] Choose Redis vendor (Upstash vs Redis Cloud) + TLS URL  
-- [ ] `REDIS_URL` / `REDIS_TOKEN` in env · never commit  
-- [ ] `lib/redis/client.js` — singleton, reconnect, timeout, `aide:{env}:` prefix helper  
-- [ ] Health: `/api/health` includes `redis: up|down` (degraded mode if down)  
-- [ ] Feature flag `REDIS_ENABLED=0|1` — fail open to current Map/DB when off  
-- [ ] ADR: workers host + queue names locked  
+- [x] Choose Redis vendor (Upstash vs Redis Cloud) + TLS URL — reuse `REALTIME_REDIS_URL` or `REDIS_URL`
+- [x] `REDIS_URL` / token in env · never commit  
+- [x] `lib/redis/client.js` — singleton, reconnect, timeout, `aide:{env}:` prefix helper  
+- [x] Health: `/api/health` includes `redis: up|down|disabled` (degraded if enabled+error)  
+- [x] Feature flag `REDIS_ENABLED=0|1` — fail open to current Map when off  
+- [x] ADR: `docs/decisions/005-redis-bullmq-foundation.md`  
 
-**Done when:** app connects; health green; no behavior change yet.
+**Done when:** app connects; health green; no behavior change when flag off.
 
 ---
 
 ### Phase R1 — OTP in Redis (+ Postgres audit)
 
-- [ ] Write path: create OTP → hash → `SETEX` Redis + insert/update `EmailToken` (audit)  
-- [ ] Consume path: Redis first; on miss fall back Postgres (migration window)  
-- [ ] Attempts + lock in Redis HASH  
-- [ ] Resend cooldown key  
-- [ ] Tests: expiry, lock after N, no raw OTP in Redis `GET` dumps in CI mocks  
-- [ ] Metrics: otp_hit, otp_miss, otp_lock  
+- [x] Write path: create OTP → hash → `SETEX` Redis + insert/update `EmailToken` (audit)  
+- [x] Consume path: Redis first; on miss fall back Postgres (migration window)  
+- [x] Attempts + lock in Redis HASH  
+- [x] Resend cooldown key  
+- [x] Tests: expiry, lock after N, no raw OTP in Redis `GET` dumps in CI mocks (`npm run test:otp-redis`)  
+- [x] Metrics: otp_hit, otp_miss, otp_lock (`otpMetrics` in `lib/email/otp-redis.js`)  
 
-**Done when:** reset + verify flows green with Redis primary.
+**Done when:** reset + verify flows green with Redis primary.  
+**Note:** `VERIFY_EMAIL` stays Postgres-primary (long-lived link). Password-reset OTP is the Redis hot path.
 
 ---
 
 ### Phase R2 — User profile cache
 
-- [ ] `getCachedPublicUser(userId)` used by `/api/auth/me` and workspace shell  
-- [ ] Invalidate hooks in auth/profile/admin suspend  
-- [ ] TTL 60–300s · stampede lock (singleflight) optional  
-- [ ] Tests: miss→fill→hit; invalidate after name change  
+- [x] `getCachedPublicUser(userId)` used by `/api/auth/me`, `requireFreshUser`, `requireAdmin`, billing layout, auth continue  
+- [x] Invalidate hooks in password reset, email verify, admin suspend, restore approve  
+- [x] TTL 60–300s (default 120; `PROFILE_CACHE_TTL_SEC`) · stampede lock deferred  
+- [x] Tests: miss→fill→hit; invalidate after change (`npm run test:profile-cache`)  
 
-**Done when:** p95 `me` DB load drops under load test.
+**Done when:** profile reads share Redis when enabled; Redis off = direct DB (no behavior change).
 
 ---
 
 ### Phase R3 — Global rate limits + semaphores (closes R6)
 
-- [ ] Replace `lib/rate-limit.js` Map with Redis fixed/sliding window  
-- [ ] Migrate outbound semaphore + confirm approve limits  
-- [ ] Keep in-memory **fallback** if Redis down (fail-open vs fail-closed: **auth OTP fail-closed**, **public chat fail-open with tighter local** — document choice)  
-- [ ] Stage 6.4-style abuse retest  
+- [x] Replace `lib/rate-limit.js` Map-only with Redis fixed window + memory fallback  
+- [x] Migrate outbound semaphore + confirm approve limits  
+  - Confirm approve already uses async `rateLimit` (Redis when enabled)  
+  - Outbound semaphore: Redis Lua counter + memory fallback (`lib/actions/outbound-semaphore.js`)  
+- [x] Keep in-memory **fallback** if Redis down (public chat fail-open; semaphore local)  
+- [x] Dual-instance contract test via shared fake Redis (`npm run test:outbound-semaphore`)  
+- [ ] Live Stage 6.4 abuse retest with two real app instances + `REDIS_ENABLED=1` (ops)  
 
-**Done when:** two app instances share one counter in test.
+**Done when:** two logical instances share one outbound counter in test.
 
 ---
 
 ### Phase R4 — Shared caches (actions GET, optional badges)
 
-- [ ] Port `get-cache.js` to Redis  
+- [x] Port `get-cache.js` to Redis (shared GET results; memory fallback)  
 - [ ] Optional workspace waiting-count short cache (until Socket Phase 1)  
-- [ ] Size / TTL caps; never cache WRITE/tool secrets  
+- [x] Size / TTL caps; never cache WRITE/tool secrets (32KB body cap; GET-only callers)  
+
+**Done when:** two instances can share a GET hit via Redis (`npm run test:get-cache-redis`).
 
 ---
 
 ### Phase R5 — BullMQ workers (enterprise async)
 
-- [ ] Packages: `bullmq` + Redis connection shared  
-- [ ] Worker service repo path: `workers/` or `apps/worker` — separate start script `npm run worker`  
-- [ ] Implement `email` + `billing` queues first (move renewal/onboarding scripts)  
-- [ ] Idempotent `jobId`s · DLQ · structured logs with `requestId`  
-- [ ] Admin-only Bull Board or minimal `/api/admin/queues` (counts only)  
+- [x] Packages: `bullmq` + Redis connection shared  
+- [x] Worker path: `workers/job-worker.mjs` · `npm run worker:jobs` (tsx + aliases)  
+- [x] Implement `email` + `billing` queues first (renewal + onboarding day-1 sweeps)  
+- [x] Idempotent `jobId`s · structured logs with `requestId` · attempts/backoff defaults  
+- [x] Admin-only Bull Board or minimal `/api/admin/queues` (counts only)  
 - [ ] Runbooks: retry, drain, pause queue  
 
-**Done when:** renewal reminder + OTP email survive worker restart without duplicate spam (idempotency).
+**Done when:** cron scripts enqueue hour-bucketed sweeps when `BULLMQ_ENABLED=1`; worker runs handlers; `--inline` keeps sync path.
 
 ---
 
 ### Phase R6 — Crawl / knowledge / heavy IO
 
-- [ ] `crawl` queue for schedule + manual crawl  
+- [x] `crawl` queue for schedule + manual crawl (`RUN_SITE_CRAWL`; ping enqueues when BullMQ on)  
 - [ ] Optional `knowledge` embed jobs when F10 opens  
-- [ ] Concurrency 1 per agent crawl lock (`aide:{env}:lock:crawl:{agentId}`)  
+- [x] Concurrency 1 per agent crawl lock (`aide:{env}:lock:crawl:{agentId}`)  
+
+**Done when:** embed ping can enqueue crawl jobs; worker runs with per-agent lock; inline fallback when BullMQ off.
 
 ---
 
 ### Phase R7 — Socket alignment
 
-- [ ] Redis pub/sub or adapter for Socket plan Phase 4  
-- [ ] Presence keys  
-- [ ] One Redis, two consumers (gateway + workers) — connection pool limits documented  
+- [x] Redis pub/sub adapter for Socket.IO (`@socket.io/redis-adapter` in `realtime-gateway/attach.js`)  
+- [x] Presence/typing remain ephemeral (gateway leases; not durable Redis keys) — documented  
+- [x] One Redis, multiple consumers — connection budget documented in `REALTIME_ENVIRONMENT_CONTRACT.md`  
+- [x] Gateway accepts `REDIS_URL` fallback when `REALTIME_REDIS_URL` unset  
+
+**Done when:** shared Redis URL contract + pool budget are documented and tested (`npm run test:realtime-redis-align`).
 
 ---
 
@@ -345,5 +356,6 @@ WORKER_CONCURRENCY_EMAIL=5
 
 ---
 
-**Next:** Phase R0 vendor + `REDIS_ENABLED` flag decision, then R1 OTP dual-write.  
+**Next:** Go-live #1–7 · BullMQ runbooks · live dual-replica Socket HA · optional F10/MCP UX.
+  
 **Cross-link:** Socket plan Phase 4 assumes this Redis exists.

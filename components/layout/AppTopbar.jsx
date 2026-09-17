@@ -13,7 +13,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
@@ -47,7 +46,6 @@ export function AppTopbar() {
   return (
     <header className="z-30 flex h-12 shrink-0 items-center gap-1.5 border-b border-border bg-card/95 px-2 backdrop-blur-sm sm:gap-2 sm:px-4 md:px-5">
       <NavMenuTrigger />
-      <Separator orientation="vertical" className="mr-1 hidden h-4 sm:block" />
 
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="flex-nowrap">

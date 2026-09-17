@@ -1,6 +1,6 @@
 # OpenAI Hosted Web Search Migration
 
-**Status:** PHASE 4 CODE COMPLETE — staging/browser validation skipped by owner; production rollout remains
+**Status:** PHASE 4 CODE COMPLETE — legacy provider removed; production flag/probe/A3 remain OWNER (`npm run test:go-live-local`)
 **Scope:** Replace the legacy custom-provider search path with OpenAI hosted `web_search` through the Responses API.
 **Sequence:** [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) #2
 **Constraints:** Preserve ordinary chat, store tools, tenant/security policy, SSE compatibility, and existing JavaScript/JSX conventions.
@@ -125,6 +125,19 @@ tool_choice: "required"
 when that is the only attached tool. The implementation must fail closed when
 the deployment flag is off, the configured model is unsupported, or the
 staging capability probe has not passed.
+
+### Local validation checkpoint — 2026-09-15
+
+- `npm run test:openai-web-search-phase1` — PASS
+- `npm run test:openai-web-search-phase2` — PASS
+- `npm run test:openai-web-search-phase3` — PASS
+- `npm run test:openai-web-search-browser` — 1 test skipped because the browser fixture keeps hosted search rollout-disabled.
+- `OPENAI_WEB_SEARCH_PROBE=1 npm run probe:openai-web-search` — PASS; hosted search used, normalized sources/citations returned.
+- `OPENAI_WEB_SEARCH_PROBE=1 OPENAI_WEB_SEARCH_PROBE_STREAM=1 npm run probe:openai-web-search` — PASS; `search` and `delta` events returned with normalized sources/citations.
+- `OPENAI_WEB_SEARCH_ENABLED=true STREAMING_CHAT=1 PLAYWRIGHT_PORT=4333 npm run test:embed-full-browser` — PASS; embedded agent created with web search enabled, live activity rendered, answer completed, and HTTPS source link rendered.
+- Focused ESLint for agent creation/schema and embed acceptance — PASS.
+
+The provider probe passed with explicit local opt-in. Production enablement still requires owner-approved staging/production credentials, citation persistence/UI verification through the deployed chat path, and legacy-provider removal confirmation.
 
 ## 3. Route and tool-choice contract
 

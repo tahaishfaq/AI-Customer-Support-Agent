@@ -11,7 +11,7 @@ export async function POST(request, { params }) {
   try {
     const { publicKey } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `pub-confirm:${publicKey}:${ip}`,
       pubChatLimitOpts()
     );

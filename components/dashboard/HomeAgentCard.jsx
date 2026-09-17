@@ -10,7 +10,7 @@ export function HomeAgentCard({
   messageCount = 0,
 }) {
   return (
-    <article className="aide-card flex h-full flex-col p-4 transition-shadow hover:shadow-md">
+    <article className="aide-card flex h-full flex-col p-4">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
           <Link

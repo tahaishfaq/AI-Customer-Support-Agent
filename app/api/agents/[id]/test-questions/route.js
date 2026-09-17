@@ -15,7 +15,7 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id: agentId } = await params;
-    const limited = rateLimit(`test-pack:${authResult.user.id}:${agentId}`, {
+    const limited = await rateLimit(`test-pack:${authResult.user.id}:${agentId}`, {
       limit: 8,
       windowMs: 60_000,
     });

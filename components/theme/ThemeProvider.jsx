@@ -11,10 +11,29 @@ import {
 } from "react";
 
 const ThemeContext = createContext(null);
+const THEME_COOKIE = "hapy-theme";
+const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function writeThemeCookie(theme) {
+  if (typeof document === "undefined") return;
+
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+}
+
+function readThemeCookie() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${THEME_COOKIE}=([^;]*)`)
+  );
+  return match?.[1] === "dark" || match?.[1] === "light" ? match[1] : null;
+}
 
 function initialTheme(forcedTheme, defaultTheme, storageKey) {
   if (forcedTheme) return forcedTheme;
   if (typeof window === "undefined") return defaultTheme;
+  const cookieTheme = readThemeCookie();
+  if (cookieTheme) return cookieTheme;
   try {
     const saved = window.localStorage.getItem(storageKey);
     return saved === "dark" ? "dark" : "light";
@@ -55,6 +74,7 @@ export function ThemeProvider({
         } catch {
           // Storage can be unavailable in private or restricted contexts.
         }
+        writeThemeCookie(next);
         return next;
       });
     },
@@ -67,13 +87,14 @@ export function ThemeProvider({
       return undefined;
     }
 
-    let saved = null;
+    let saved = readThemeCookie();
     try {
-      saved = window.localStorage.getItem(storageKey);
+      saved ||= window.localStorage.getItem(storageKey);
     } catch {
       // Use the default theme when storage is unavailable.
     }
     applyTheme(saved === "dark" ? "dark" : "light", attribute);
+    writeThemeCookie(saved === "dark" ? "dark" : "light");
 
     function handleStorage(event) {
       if (event.key !== storageKey) return;

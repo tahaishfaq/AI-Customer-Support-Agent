@@ -14,4 +14,18 @@ for (const question of ['What is AIDE?', 'What is my subscription price?']) {
   assert.equal(routeSource(question).mayInvokeWebSearch, false, question);
 }
 assert.equal(routeSource('Search on the internet and compare my store price with online prices').route, 'MIXED');
+assert.deepEqual(
+  filterCapabilitiesForSourceRoute(
+    [{ name: 'web_search', entities: ['WEB'] }],
+    routeSource('Search online for Shopify pricing')
+  ).map((capability) => capability.name),
+  ['web_search']
+);
+assert.deepEqual(routeSource('What are your plans and is signup open?').signals.entities, ['PLANS', 'SIGNUP']);
+const scoped = filterCapabilitiesForSourceRoute([
+  { name: 'public_plans', entities: ['PLANS'] },
+  { name: 'signup_status', entities: ['SIGNUP'] },
+  { name: 'maintenance_status', entities: ['MAINTENANCE'] },
+], routeSource('What are your plans?'));
+assert.deepEqual(scoped.map((capability) => capability.name), ['public_plans']);
 console.log('Search phrasing regression passed: explicit web requests, disabled flag, general/store boundaries, mixed route');

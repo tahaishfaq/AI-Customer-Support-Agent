@@ -101,10 +101,16 @@ async function main() {
       fs.mkdirSync(path.join(root, '.tmp/chat-activity'), { recursive: true });
       await page.screenshot({ path: path.join(root, `.tmp/chat-activity/${channel}-${theme}.png`) });
       await page.evaluate(() => {
-        window.__event('done', { conversationId: 'fixture-conversation', userMessage: { id: 'user-1', role: 'USER', content: 'Search online for AIDE alternatives' }, message: { id: 'assistant-1', role: 'ASSISTANT', content: 'Final answer' }, pendingConfirmations: [{ id: 'confirm-1', conversationId: 'fixture-conversation', status: 'PENDING', actionName: 'AIDE public plans', actionDescription:'Fetch current AIDE public subscription plans, prices and limits when a visitor asks about plans or pricing.', expiresAt: new Date(Date.now() + 600000).toISOString() }], toolSteps: [] });
+        window.__event('done', { conversationId: 'fixture-conversation', userMessage: { id: 'user-1', role: 'USER', content: 'Search online for AIDE alternatives' }, message: { id: 'assistant-1', role: 'ASSISTANT', content: 'Final answer' }, usedKnowledge: [{ name: 'Fixture knowledge source', sourceUrl: 'https://example.test/knowledge' }], pendingConfirmations: [{ id: 'confirm-1', conversationId: 'fixture-conversation', status: 'PENDING', actionName: 'AIDE public plans', actionDescription:'Fetch current AIDE public subscription plans, prices and limits when a visitor asks about plans or pricing.', expiresAt: new Date(Date.now() + 600000).toISOString() }], toolSteps: [] });
         window.__streams[0].close();
       });
       await expect(page.getByText('Final answer', { exact: true })).toBeVisible();
+      const knowledgeDetails = page.getByText('Used knowledge:', { exact: false });
+      if (channel === 'embed') {
+        await expect(knowledgeDetails).toHaveCount(0);
+      } else {
+        await expect(knowledgeDetails).toHaveCount(1);
+      }
       await expect(page.getByTestId('agent-activity')).toHaveCount(0);
       await expect(input).toBeEnabled();
       await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toBeEnabled();

@@ -154,13 +154,13 @@ if (matrixOk) {
     /filterCapabilitiesForSourceRoute/.test(loop) &&
     /routeSource/.test(loop) &&
     /applySourceRouteToSystem/.test(chat) &&
-    /STORE_SOURCE_REQUIRED/.test(builtin) &&
-    /mayInvokeWebSearch/.test(builtin) &&
+    /invokeHostedWebSearchGuard/.test(builtin) &&
+    /HOSTED_WEB_SEARCH_PROVIDER_DISPATCH_REQUIRED/.test(builtin) &&
     !/fallbackToWeb|autoWebSearch/.test(loop);
   if (wired) {
     pass(
       "S5.5-WIRED",
-      "Orchestrator strips tools; chat applies route prompt; PEP retained; no auto-web fallback"
+      "Orchestrator strips tools; chat applies route prompt; hosted web dispatch is fenced; no auto-web fallback"
     );
   } else {
     fail("S5.5-WIRED", "Missing wiring");
@@ -216,7 +216,7 @@ MIXED   — store + online compare; both allowed, labeled separately
 - Canonical \`routeSource()\` (+ \`SOURCE_ROUTES\`)
 - \`filterCapabilitiesForSourceRoute\` — LLM never sees \`web_search\` on STORE/GENERAL
 - Turn-level \`## Source route (server)\` system addon
-- Chat + orchestrator wired; builtin \`STORE_SOURCE_REQUIRED\` PEP retained
+- Chat + orchestrator wired; hosted web dispatch remains gateway-fenced
 - No empty-store → web auto-fallback
 
 ## Results

@@ -35,6 +35,9 @@ import {
   FormSection,
 } from "@/components/customization/CustomizationFields";
 import { HttpToolDialog } from "@/components/customization/HttpToolDialog";
+import { ConnectionWizard } from "@/components/customization/ConnectionWizard";
+import { OpenApiImportPanel } from "@/components/customization/OpenApiImportPanel";
+import { McpServersPanel } from "@/components/customization/McpServersPanel";
 import {
   createAgentAction,
   deleteAgentAction,
@@ -51,16 +54,15 @@ import {
   listAgentCredentials,
   revokeAgentCredential,
 } from "@/lib/api/credentials";
+import {
+  listAgentConnections,
+} from "@/lib/api/connections";
 import { updateAgent } from "@/lib/api/agents";
 import { ACTION_TEMPLATES } from "@/lib/actions/action-config";
 import { inferAccessClass } from "@/lib/actions/access-class";
 import { cn } from "@/lib/utils";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateActionsQuery } from "@/lib/query/invalidation";
-import {
-  createAgentConnection,
-  listAgentConnections,
-} from "@/lib/api/connections";
 
 function demoOriginUrl(pathWithArg) {
   if (typeof window === "undefined") {
@@ -287,12 +289,6 @@ export function ActionsForm({
     headerName: "X-API-KEY",
   });
   const [credBusy, setCredBusy] = useState(false);
-  const [connectionBusy, setConnectionBusy] = useState(false);
-  const [connectionForm, setConnectionForm] = useState({
-    name: "",
-    baseOrigin: "",
-    environment: "sandbox",
-  });
   const [confirmState, setConfirmState] = useState(null);
   const killOn = Boolean(actionsEnabled);
 
@@ -384,20 +380,6 @@ export function ActionsForm({
       toast.error(err.message || "Unable to save API key");
     } finally {
       setCredBusy(false);
-    }
-  }
-
-  async function handleCreateConnection() {
-    setConnectionBusy(true);
-    try {
-      await createAgentConnection(agentId, connectionForm);
-      toast.success("Connected system saved");
-      setConnectionForm({ name: "", baseOrigin: "", environment: "sandbox" });
-      await refreshActions();
-    } catch (err) {
-      toast.error(err.message || "Unable to save connected system");
-    } finally {
-      setConnectionBusy(false);
     }
   }
 
@@ -622,77 +604,22 @@ export function ActionsForm({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="integrations" className="mt-4">
-          <FormSection title="Connected systems">
-            <div className="rounded-xl border border-border bg-muted/20 p-4">
-              <p className="text-xs text-muted-foreground">
-                Save an API origin once, then select it from multiple HTTP tools.
-                Destination and credential checks stay server-side.
-              </p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1.5fr_9rem_auto]">
-                <Input
-                  value={connectionForm.name}
-                  onChange={(event) =>
-                    setConnectionForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  placeholder="brandly_api"
-                  aria-label="Connected system name"
-                  disabled={connectionBusy}
-                />
-                <select
-                  value={connectionForm.environment}
-                  onChange={(event) =>
-                    setConnectionForm((current) => ({ ...current, environment: event.target.value }))
-                  }
-                  className="flex h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  aria-label="Connected system environment"
-                  disabled={connectionBusy}
-                >
-                  <option value="sandbox">Sandbox</option>
-                  <option value="production">Production</option>
-                </select>
-                <Input
-                  value={connectionForm.baseOrigin}
-                  onChange={(event) =>
-                    setConnectionForm((current) => ({ ...current, baseOrigin: event.target.value }))
-                  }
-                  placeholder="https://api.example.com"
-                  aria-label="Connected system base origin"
-                  disabled={connectionBusy}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleCreateConnection}
-                  disabled={connectionBusy || !connectionForm.name.trim() || !connectionForm.baseOrigin.trim()}
-                >
-                  {connectionBusy ? <Spinner data-icon="inline-start" /> : null}
-                  Save system
-                </Button>
-              </div>
-              {connections.length ? (
-                <ul className="mt-4 space-y-2 border-t border-border pt-3">
-                  {connections.map((connection) => (
-                    <li key={connection.id} className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-medium">{connection.name}</span>
-                      <span className="text-muted-foreground">{connection.environment}</span>
-                      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
-                        {connection.currentRevision?.baseOrigin || "No origin"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </FormSection>
+        <TabsContent value="integrations" className="mt-4 space-y-5">
+          <ConnectionWizard
+            agentId={agentId}
+            credentials={credentials}
+            connections={connections}
+            actions={actions}
+            onChanged={refreshActions}
+          />
+          <OpenApiImportPanel
+            agentId={agentId}
+            onImported={refreshActions}
+          />
         </TabsContent>
 
         <TabsContent value="mcp" className="mt-4">
-          <EmptyState
-            icon={Cable}
-            title="Coming soon"
-            description="MCP servers will land here. Use HTTP tools for now."
-          />
+          <McpServersPanel agentId={agentId} killOn={killOn} />
         </TabsContent>
 
         <TabsContent value="http" className="mt-4 flex flex-col gap-5">

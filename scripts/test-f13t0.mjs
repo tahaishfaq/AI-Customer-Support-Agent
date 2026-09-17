@@ -33,7 +33,7 @@ function main() {
   assert(SITE_DEMO_ACTION_NAMES.length === 6, "six starter action names");
   assert(!isSiteDemoInstalled([]));
   assert(isSiteDemoInstalled([{ name: "list_items" }]));
-  assert(/Install 6 starter tools/.test(siteDemoInstallCopy("acme.com")));
+  assert(/Install 6 template tools/.test(siteDemoInstallCopy("acme.com")));
 
   for (const name of SITE_DEMO_ACTION_NAMES) {
     assert(
@@ -71,7 +71,7 @@ function main() {
 
   const deploy = read("components/customization/DeployForm.jsx");
   assert(/SITE_DEMO_PACK_ID/.test(deploy), "Deploy install prompt");
-  assert(/Install 6 starter tools/.test(deploy), "Deploy CTA");
+  assert(/Install 6 template tools/.test(deploy), "Deploy CTA");
 
   const studio = read("components/customization/CustomizationStudio.jsx");
   assert(/label: "Tools"/.test(studio), "Tools section label");

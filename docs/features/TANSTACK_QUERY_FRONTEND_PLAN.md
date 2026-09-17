@@ -1,6 +1,6 @@
 # AIDE — TanStack Query (Frontend Cache) Plan
 
-**Status:** Q0 COMPLETE · Q1 BILLING/DESK COMPLETE · agent/dashboard migrations remain
+**Status:** Q0–Q5 COMPLETE (devtools + admin queue counts closed 2026-09-17)
 **Created:** 2026-09-05  
 **Stack fit:** Next.js App Router · `lib/api/*` + `apiFetch` · Zustand auth · custom poll hooks  
 **Pairs with:** [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md) (invalidate / `setQueryData` on push) · [`REDIS_BULLMQ_ENTERPRISE_PLAN.md`](REDIS_BULLMQ_ENTERPRISE_PLAN.md) (server cache — **different layer**)  
@@ -221,8 +221,8 @@ Keep a tiny helper `invalidateBillingStatus(qc)` for call sites that today impor
 - [x] `npm i @tanstack/react-query`
 - [x] `lib/query/client.js` + `lib/query/keys.js`
 - [x] `components/query/QueryProvider.jsx` · wire in `components/providers.jsx`
-- [ ] Devtools behind `NODE_ENV === "development"`  
-- [ ] Doc: this file + `OPEN_SEQUENCE`  
+- [x] Devtools behind `NODE_ENV === "development"` (`QueryDevtools`)  
+- [x] Doc: this file + `OPEN_SEQUENCE`  
 
 **Done when:** app boots with empty QueryClient; no behavior change.
 
@@ -370,4 +370,4 @@ Frontend Query **does not block** Redis OTP; both improve different layers.
 
 ---
 
-**Next:** Phase Q0 install + `QueryProvider`, then Q1 migrate quota + desk badge + agent studio.
+**Next:** Keep Query as owner-app cache only. Live Socket HA / go-live #1–7 remain separate. Optional admin UI for `/api/admin/queues` counts.

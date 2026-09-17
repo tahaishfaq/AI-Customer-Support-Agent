@@ -1,4 +1,5 @@
 import { DM_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
 import { GoogleGsiLoader } from "@/components/auth/GoogleGsiLoader";
 import { GlobalEmbedLoader } from "@/components/embed/GlobalEmbedLoader";
@@ -21,11 +22,15 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const savedTheme = cookieStore.get("hapy-theme")?.value;
+  const initialTheme = savedTheme === "dark" ? "dark" : "light";
+
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} min-h-dvh antialiased`}
+      className={`${dmSans.variable} ${initialTheme} min-h-dvh antialiased`}
       suppressHydrationWarning
     >
       <head>

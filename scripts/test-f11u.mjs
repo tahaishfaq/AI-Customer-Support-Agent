@@ -299,16 +299,17 @@ function testUniversalCatalog() {
 }
 
 function testWiring() {
-  const loop = read("lib/actions/tool-loop.js");
+  const loop = read("lib/orchestrator/loop.js");
+  const gateway = read("lib/actions/invoke-tool.js");
   assert(/publicAccess/.test(loop), "tool-loop publicAccess");
   assert(/lastUserMessage/.test(loop), "tool-loop lastUserMessage");
-  assert(/Boolean\(publicAccess\)/.test(loop), "embed confirm gate");
-  assert(/guestResponseCap/.test(loop), "tool-loop guestResponseCap");
+  assert(/Boolean\(publicAccess\)/.test(gateway), "embed confirm gate");
+  assert(/guestResponseCap/.test(gateway), "tool-loop guestResponseCap");
 
   const chat = read("lib/services/chat.service.js");
   assert(
-    /publicAccess,\s*\n\s*lastUserMessage: effectiveMessage/.test(chat),
-    "chat wires lastUserMessage from effectiveMessage"
+    /userMessage:\s*effectiveMessage/.test(chat),
+    "chat wires effectiveMessage into the orchestrator"
   );
 
   const studio = read("components/customization/CustomizationStudio.jsx");
@@ -316,13 +317,24 @@ function testWiring() {
   assert(/UniversalBusinessWizard/.test(studio), "wizard in Packs");
 
   const actions = read("components/customization/ActionsForm.jsx");
+  assert(/ConnectionWizard/.test(actions), "Integrations uses ConnectionWizard");
+  assert(/OpenApiImportPanel/.test(actions), "Integrations OpenAPI import panel");
+  assert(/McpServersPanel/.test(actions), "MCP tab uses McpServersPanel");
   assert(
-    /Channel integrations coming soon/.test(actions),
-    "Integrations placeholder"
+    !/MCP servers will land here/.test(actions),
+    "MCP tab is not a coming-soon stub"
   );
   assert(
     !/UniversalBusinessWizard/.test(actions),
     "wizard not in Tools Integrations"
+  );
+  const connectionWizard = read(
+    "components/customization/ConnectionWizard.jsx"
+  );
+  assert(
+    /Connected systems/.test(connectionWizard) &&
+      /credentialId/.test(connectionWizard),
+    "Integrations boundary"
   );
 
   const pack = read("lib/integrations/action-pack.js");

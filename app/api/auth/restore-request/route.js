@@ -4,7 +4,7 @@ import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request) {
   try {
-    const limited = rateLimit(`restore-request:${clientIp(request)}`, {
+    const limited = await rateLimit(`restore-request:${clientIp(request)}`, {
       limit: 8,
       windowMs: 15 * 60_000,
     });

@@ -143,7 +143,8 @@ test("studio confirmation UI approves once and resumes the action", async ({
     await input.fill("Cancel my subscription");
     await input.press("Enter");
 
-    await expect(page.getByText("Confirm: cancel your subscription")).toBeVisible();
+    await expect(page.getByText("Confirmation required")).toBeVisible();
+    await expect(page.getByText("cancel your subscription", { exact: true })).toBeVisible();
     const confirmButton = page.getByRole("button", { name: "Confirm", exact: true });
     await expect(confirmButton).toBeEnabled();
     await confirmButton.click();

@@ -164,7 +164,7 @@ export function InboxShell({ selectedId, children }) {
   }
 
   return (
-    <div className="flex h-[min(calc(100dvh-7.5rem),860px)] min-h-[min(100%,520px)] overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+    <div className="flex h-[min(calc(100dvh-7.5rem),860px)] min-h-[min(100%,520px)] overflow-hidden rounded-xl border border-border/80 bg-background shadow-none ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
       <aside
         className={cn(
           "min-h-0 w-full shrink-0 flex-col border-border bg-card md:flex md:w-[340px] md:border-r xl:w-[380px]",

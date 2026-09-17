@@ -22,7 +22,7 @@ export async function POST(request, { params }) {
   try {
     const { publicKey } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `pub-chat:${publicKey}:${ip}`,
       pubChatLimitOpts()
     );
@@ -77,6 +77,7 @@ export async function POST(request, { params }) {
             return sendChatMessage(agent.id, {
               publicAccess: true,
               message: parsed.data.message,
+              clientMessageId: parsed.data.clientMessageId,
               conversationId: parsed.data.conversationId,
               resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
               identityToken:
@@ -112,6 +113,7 @@ export async function POST(request, { params }) {
     const result = await sendChatMessage(agent.id, {
       publicAccess: true,
       message: parsed.data.message,
+      clientMessageId: parsed.data.clientMessageId,
       conversationId: parsed.data.conversationId,
       resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
       identityToken:

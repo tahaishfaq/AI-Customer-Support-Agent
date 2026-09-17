@@ -22,14 +22,14 @@ export function ChartCard({
     <SoftFade
       as="section"
       className={cn(
-        "flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm",
+        "flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-foreground/[0.06] bg-card shadow-none",
         "ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
         className
       )}
     >
       <div
         className={cn(
-          "shrink-0 border-b border-border/60 bg-gradient-to-r from-primary/[0.06] via-transparent to-transparent",
+          "shrink-0 border-b border-foreground/[0.04] bg-gradient-to-r from-primary/[0.06] via-transparent to-transparent",
           dense ? "px-3 py-2.5" : "px-4 py-3"
         )}
       >

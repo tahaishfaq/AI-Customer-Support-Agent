@@ -27,8 +27,8 @@ export function ChatComposer({
   const textareaRef = useRef(null);
   const fileRef = useRef(null);
 
-  const minH = 36;
-  const maxH = 72;
+  const minH = themed ? 32 : 36;
+  const maxH = themed ? 64 : 72;
   const busy = disabled || uploading;
   const emojis = [
     "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
@@ -53,7 +53,7 @@ export function ChatComposer({
     const next = Math.min(Math.max(el.scrollHeight, minH), maxH);
     el.style.height = `${next}px`;
     el.style.overflowY = next >= maxH ? "auto" : "hidden";
-  }, [value]);
+  }, [maxH, minH, value]);
 
   const sendingRef = useRef(false);
 
@@ -132,7 +132,7 @@ export function ChatComposer({
         themed
           ? "border-[var(--wc-border)] bg-[var(--wc-shell)]"
           : "border-[var(--color-border)] bg-[var(--color-surface)]",
-        compact || themed ? "px-3 py-2" : "px-4 py-3 sm:px-8"
+        compact || themed ? "px-3 py-1.5" : "px-4 py-3 sm:px-8"
       )}
     >
       <div className={cn("flex items-end gap-2", themed && "items-center")}>
@@ -160,7 +160,7 @@ export function ChatComposer({
         <div
           className={cn(
             // Fixed radius (not pill/9999) so multiline + scroll stay ChatGPT-like, not a capsule.
-            "flex min-h-9 min-w-0 flex-1 items-end gap-0.5 rounded-2xl",
+            "flex min-h-8 min-w-0 flex-1 items-end gap-0.5 rounded-md",
             themed
               ? "border bg-[var(--wc-input-bg)] pl-3 pr-1 focus-within:ring-2 focus-within:ring-[var(--wc-primary)]/25"
               : "border border-[var(--color-border)] bg-[var(--color-bg)] pl-3 pr-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20"
@@ -183,7 +183,7 @@ export function ChatComposer({
             disabled={busy}
             rows={1}
             className={cn(
-              "h-9 min-w-0 flex-1 resize-none border-0 bg-transparent py-2 text-[13px] leading-5 outline-none",
+              "h-8 min-w-0 flex-1 resize-none border-0 bg-transparent py-1.5 text-[13px] leading-5 outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
               themed
                 ? "text-[var(--wc-shell-fg)] placeholder:text-[var(--wc-muted)]"
@@ -248,7 +248,7 @@ export function ChatComposer({
       </div>
       {themed && emojiOpen ? (
         <div
-          className="absolute bottom-full right-3 z-50 mb-2 grid max-h-[min(280px,45svh)] w-[min(300px,calc(100vw-1rem))] grid-cols-8 gap-1 overflow-y-auto rounded-xl border p-2 shadow-lg"
+          className="absolute bottom-full right-3 z-50 mb-2 grid max-h-[min(280px,45svh)] w-[min(300px,calc(100vw-1rem))] grid-cols-8 gap-1 overflow-y-auto rounded-md border p-2 shadow-lg"
           style={{
             backgroundColor: "var(--wc-shell)",
             borderColor: "var(--wc-border)",
@@ -261,7 +261,7 @@ export function ChatComposer({
               key={emoji}
               type="button"
               onClick={() => insertEmoji(emoji)}
-              className="flex size-8 items-center justify-center rounded-lg text-lg hover:bg-black/5"
+              className="flex size-8 items-center justify-center rounded-md text-lg hover:bg-black/5"
               aria-label={`Insert ${emoji}`}
             >
               {emoji}

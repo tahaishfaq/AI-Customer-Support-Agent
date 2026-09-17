@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
   try {
     const { publicKey, conversationId } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `handoff:${publicKey}:${conversationId}:${ip}`,
       handoffLimitOpts()
     );

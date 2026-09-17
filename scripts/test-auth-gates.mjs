@@ -118,7 +118,6 @@ async function main() {
     "/agents",
     "/agents/new",
     "/inbox",
-    "/chat",
     "/conversations",
     "/analytics",
     "/billing/onboarding",

@@ -22,6 +22,7 @@ import {
 } from "@/lib/embed-history";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { EmbedWelcomeScreen } from "@/components/chat/EmbedWelcomeScreen";
 import { CsatPrompt } from "@/components/chat/CsatPrompt";
 import { MessageList } from "@/components/chat/MessageList";
 import { Button } from "@/components/ui/button";
@@ -95,6 +96,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState(() => welcomeBubble(agent));
+  const [conversationStarted, setConversationStarted] = useState(false);
+  const [historyScrollKey, setHistoryScrollKey] = useState(0);
   const [pastChats, setPastChats] = useState([]);
   const [sending, setSending] = useState(false);
   const [handoffLoading, setHandoffLoading] = useState(false);
@@ -293,11 +296,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       if (!stored.activeId) {
         if (preserveInMemory && conversationIdRef.current) return;
         setConversationId(null);
+        setConversationStarted(false);
         setMessages(welcomeBubble(agent));
         return;
       }
 
       setConversationId(stored.activeId);
+      setConversationStarted(true);
       try {
         let accessToken = realtimeAccessTokenRef.current;
         try {
@@ -322,6 +327,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         applyDeskState(data);
         if (data.handoffAt) setHandoffAt(data.handoffAt);
         if (Array.isArray(data.messages) && data.messages.length) {
+          setHistoryScrollKey((value) => value + 1);
           setMessages(data.messages);
         }
         const touched = touchActiveConversation(
@@ -560,6 +566,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     if (sending || activityBusy()) return;
     unlockNotificationAudio();
     setSending(true);
+    setConversationStarted(true);
     setError("");
     setLastFailedText("");
     const activityRequest = beginActivity();
@@ -582,6 +589,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       const data = await sendPublicChatMessageStream(agent.publicKey, {
         signal: activityRequest.controller.signal,
         message: text,
+        clientMessageId: optimisticId,
         conversationId: conversationId || undefined,
         userSession,
         realtimeAccessToken: realtimeAccessTokenRef.current,
@@ -601,6 +609,14 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
               { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
             ];
           });
+        },
+        onMeta: (meta) => {
+          if (!meta?.conversationId) return;
+          setConversationId(meta.conversationId);
+          conversationIdRef.current = meta.conversationId;
+          if (meta.realtimeAccessToken) {
+            rememberRealtimeAccess(meta.conversationId, meta.realtimeAccessToken);
+          }
         },
         onTool: (activity) => {
           receiveActivity(activityRequest, activity);
@@ -692,6 +708,31 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       clearActivities();
     } catch (err) {
       if (!isCurrentActivity(activityRequest)) return;
+      const recoverId = conversationIdRef.current || conversationId;
+      if (recoverId) {
+        try {
+          const snapshot = await fetch(
+            `/api/public/agents/${agent.publicKey}/conversations/${recoverId}`,
+            {
+              headers: {
+                "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+              },
+            }
+          ).then((response) => (response.ok ? response.json() : null));
+          if (isCurrentActivity(activityRequest) && snapshot?.messages?.length) {
+            applyDeskState(snapshot);
+            setMessages(snapshot.messages);
+            persist(recoverId, snapshot.messages);
+            setError(snapshot.activeTurn ? "Your response is still processing. Check back shortly." : "The response was recovered from the conversation.");
+            setLastFailedText("");
+            setSending(false);
+            clearActivities();
+            return;
+          }
+        } catch {
+          // Fall through to the transport error when the snapshot is unavailable.
+        }
+      }
       const code = err?.details?.code;
       if (
         err?.status === 401 &&
@@ -823,8 +864,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
       if (version !== activityVersion()) return;
       setConversationId(id);
+      setConversationStarted(true);
       applyDeskState(data);
       if (Array.isArray(data.messages)) {
+        setHistoryScrollKey((value) => value + 1);
         setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
       }
       setHistoryOpen(false);
@@ -952,6 +995,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     clearActivities();
     setSending(false);
     setConversationId(null);
+    setConversationStarted(false);
     realtimeAccessTokenRef.current = null;
     setRealtimeAccessToken(null);
     setMessages(welcomeBubble(agent));
@@ -968,6 +1012,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   const placeholder = identity.messagePlaceholder || "Type your message...";
   const intro = widgetIntro(agent, customization);
+  const showWelcomeScreen =
+    !historyOpen && !conversationId && !conversationStarted && Boolean(agent?.welcomeMessage);
 
   const chatBody = historyOpen ? (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--wc-chat-bg)]">
@@ -1013,6 +1059,21 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     </div>
   ) : (
     <>
+      {showWelcomeScreen ? (
+        <EmbedWelcomeScreen
+          name={intro.name}
+          description={intro.description}
+          avatarUrl={intro.avatarUrl}
+          onStart={() => {
+            // The delayed session-restore guard must not overwrite an
+            // intentional first-time start with the welcome screen again.
+            sessionRestoredRef.current = true;
+            setConversationStarted(true);
+          }}
+        />
+      ) : null}
+      {!showWelcomeScreen ? (
+        <>
       {showWaitingBanner ? (
         <DeskWaitingBanner
           humanTyping={humanTyping}
@@ -1041,8 +1102,11 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         humanTypingLabel="Human agent is typing…"
         compact
         themed
+        showKnowledgeDetails={false}
+        instantScrollKey={historyScrollKey}
         showFeedback={features.messageFeedback && !waitingForHuman}
         intro={intro}
+        showIntro={false}
         onFeedback={rateMessage}
         onConfirmDecision={handleConfirmDecision}
         confirmBusy={sending}
@@ -1106,6 +1170,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         onSend={send}
         onValueChange={handlePublicComposerChange}
       />
+        </>
+      ) : null}
     </>
   );
 

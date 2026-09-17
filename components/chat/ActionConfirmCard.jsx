@@ -75,7 +75,7 @@ export function ActionConfirmCard({
   return (
     <div
       className={cn(
-        "mt-3 min-w-0 max-w-[85%] rounded-xl border border-border bg-background p-3.5 text-foreground shadow-none sm:max-w-[75%]",
+        "mt-3 min-w-0 max-w-[85%] rounded-md border border-border bg-background p-3.5 text-foreground shadow-none sm:max-w-[75%]",
         !themed && "bg-muted/40"
       )}
       style={themed ? {

@@ -24,7 +24,7 @@ export async function POST(request, { params }) {
   try {
     const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `studio-chat:${authResult.user.id}:${agentId}:${clientIp(request)}`,
       studioChatLimitOpts()
     );
@@ -65,6 +65,7 @@ export async function POST(request, { params }) {
             return sendChatMessage(agentId, authResult.user.id, {
               message: parsed.data.message,
               conversationId: parsed.data.conversationId,
+              clientMessageId: parsed.data.clientMessageId,
               resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
               identityToken:
                 parsed.data.identityToken ||
@@ -96,6 +97,7 @@ export async function POST(request, { params }) {
     const result = await sendChatMessage(agentId, authResult.user.id, {
       message: parsed.data.message,
       conversationId: parsed.data.conversationId,
+      clientMessageId: parsed.data.clientMessageId,
       resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
       identityToken:
         parsed.data.identityToken ||

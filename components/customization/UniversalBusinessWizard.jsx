@@ -58,11 +58,14 @@ export function UniversalBusinessWizard({
       );
       const n = result?.created?.length || 0;
       const skipped = result?.skipped?.length || 0;
+      const statusLabel =
+        result?.connectionStatusLabel ||
+        (result?.isTemplate !== false ? "Template" : "Not connected");
       toast.success(
         n
-          ? `Installed ${n} starter tool${n === 1 ? "" : "s"} for ${business.name}`
+          ? `Installed ${n} ${statusLabel.toLowerCase()} tool${n === 1 ? "" : "s"} for ${business.name} (not live-connected)`
           : skipped
-            ? "Tools already installed (skipped duplicates)"
+            ? "Template tools already installed (skipped duplicates)"
             : "Nothing to install"
       );
       onInstalled?.(result);
@@ -105,9 +108,10 @@ export function UniversalBusinessWizard({
       <div className="min-w-0">
         <p className="text-sm font-semibold">Business templates</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Pick a vertical → install 4 demo-backed tools (public, guest lookup,
-          signed-in read, write). Point URLs at your API next. Same security
-          spine for every business.
+          Pick a vertical → install 4 demo-backed template tools (public, guest
+          lookup, signed-in read, write). Install does not connect a live store
+          or CRM — point URLs at your API next. Same security spine for every
+          business.
         </p>
       </div>
 
@@ -145,6 +149,9 @@ export function UniversalBusinessWizard({
                   <Badge variant="outline" className="rounded-full text-[10px]">
                     {biz.vertical}
                   </Badge>
+                  <Badge variant="secondary" className="rounded-full text-[10px]">
+                    Template
+                  </Badge>
                   <span className="text-[10px] text-muted-foreground">
                     {biz.id}
                   </span>
@@ -178,7 +185,7 @@ export function UniversalBusinessWizard({
                   ) : (
                     <Sparkles data-icon="inline-start" />
                   )}
-                  Install suggested tools
+                  Install template tools
                 </Button>
               </CardFooter>
             </Card>

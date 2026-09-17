@@ -6,7 +6,9 @@ import {
   BellOff,
   Globe2,
   MessageCircle,
+  X,
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { monogram } from "@/components/conversations/format";
 import { widgetStyleVars } from "@/lib/customization/theme";
@@ -63,6 +65,7 @@ export function ChatWidget({
   const vars = widgetStyleVars(customization);
   const primary = appearance.primaryColor || "var(--color-primary)";
   const dark = appearance.theme === "dark";
+  const launcherRef = useRef(null);
 
   const launcherSrc = deploy.useBotAvatar
     ? identity.avatarUrl
@@ -72,6 +75,19 @@ export function ChatWidget({
     !open &&
     deploy.proactiveEnabled &&
     (deploy.proactiveMessage || "Hi! Need help?");
+
+  useEffect(() => {
+    function onKeyDown(event) {
+      if (event.key === "Escape" && open) onToggle?.();
+    }
+    if (!open) return undefined;
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onToggle, open]);
+
+  useEffect(() => {
+    if (!open) launcherRef.current?.focus();
+  }, [open]);
 
   const panel = (
     <div
@@ -131,16 +147,6 @@ export function ChatWidget({
             className={identity.avatarUrl ? "size-8" : undefined}
             dark={dark}
           />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight">
-              {historyOpen ? "Chat history" : displayName}
-            </p>
-            {!historyOpen && agent?.name && identity.displayName?.trim() && identity.displayName.trim() !== agent.name ? (
-              <p className="truncate text-[11px] text-white/70 leading-tight">
-                {agent.name}
-              </p>
-            ) : null}
-          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
@@ -183,6 +189,7 @@ export function ChatWidget({
         </div>
       </header>
       <div
+        id="aide-chat-panel"
         className="flex min-h-0 flex-1 flex-col"
         style={{ backgroundColor: "var(--wc-chat-bg)" }}
       >
@@ -205,15 +212,16 @@ export function ChatWidget({
       {coordinatedFrame ? (
         <div
           data-testid="embed-panel-surface"
-          hidden={!open || !panelReady}
-          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: "min(380px, 100%)", height: "min(520px, calc(100% - 68px))" }}
+          className="transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+          aria-hidden={!open || !panelReady}
+          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: "min(380px, 100%)", height: "min(520px, calc(100% - 68px))", opacity: open && panelReady ? 1 : 0, visibility: open && panelReady ? "visible" : "hidden", pointerEvents: open && panelReady ? "auto" : "none", transform: open && panelReady ? "translateY(0) scale(1)" : "translateY(8px) scale(0.985)", transformOrigin: align === "start" ? "bottom left" : "bottom right" }}
         >
           {panel}
         </div>
       ) : open ? panel : null}
 
       {proactive ? (
-        <div style={coordinatedFrame ? { position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, maxWidth: "100%", minWidth: 0, maxHeight: 112, overflowY: "auto", overflowWrap: "anywhere" } : undefined} className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-xl bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
+        <div style={coordinatedFrame ? { position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, maxWidth: "100%", minWidth: 0, maxHeight: 112, overflowY: "auto", overflowWrap: "anywhere" } : undefined} className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-md bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
           <div
             className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
             style={{ backgroundColor: primary }}
@@ -245,9 +253,12 @@ export function ChatWidget({
       {customLauncher ? (
         <button
           type="button"
+          ref={launcherRef}
           className="rounded-full border-0 bg-white px-4 py-2.5 text-[13px] font-medium text-slate-700 shadow-none outline-none"
           style={coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0, width: 144, height: 56 } : undefined}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
+          aria-expanded={open}
+          aria-controls="aide-chat-panel"
           onClick={onToggle}
         >
           {open ? "Close chat" : "Chat with us"}
@@ -262,10 +273,12 @@ export function ChatWidget({
             boxShadow: "none",
           }}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
+          aria-expanded={open}
+          aria-controls="aide-chat-panel"
           onClick={onToggle}
         >
           {open ? (
-            <MessageCircle className="size-5" />
+            <X className="size-5" aria-hidden />
           ) : launcherSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={launcherSrc} alt="" className="size-full object-cover" />

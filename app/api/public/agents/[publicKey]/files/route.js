@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
 
   try {
     const { publicKey } = await params;
-    const limited = rateLimit(`pub-file:${publicKey}:${clientIp(request)}`, {
+    const limited = await rateLimit(`pub-file:${publicKey}:${clientIp(request)}`, {
       limit: 10,
       windowMs: 60_000,
     });

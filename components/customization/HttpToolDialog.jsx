@@ -186,6 +186,17 @@ export function HttpToolDialog({
     patchForm({ urlTemplate: joinUrlQuery(nextBase, params) });
   }
 
+  function addUrlParameter() {
+    const usedNames = new Set(params.map((param) => String(param.key || "")));
+    let index = params.length + 1;
+    let key = `parameter${index}`;
+    while (usedNames.has(key)) {
+      index += 1;
+      key = `parameter${index}`;
+    }
+    setParams([...params, { key, value: `{{${key}}}` }]);
+  }
+
   function setInputs(nextInputs) {
     patchForm({
       inputSchemaJsonText: inputsToSchemaText(nextInputs),
@@ -351,6 +362,17 @@ export function HttpToolDialog({
                     value="params"
                     className="mt-0 flex flex-col gap-2 outline-none"
                   >
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={addUrlParameter}
+                      >
+                        <Plus data-icon="inline-start" />
+                        Add parameter
+                      </Button>
+                    </div>
                     {params.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-border bg-background/60 px-3 py-2.5 text-xs text-muted-foreground">
                         No query parameters yet. Add one when the API expects
@@ -623,7 +645,7 @@ export function HttpToolDialog({
             <Field>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <FieldLabel>Parameters</FieldLabel>
+                  <FieldLabel>Inputs</FieldLabel>
                   <FieldDescription>
                     Values the agent must provide for this request.
                   </FieldDescription>
@@ -636,7 +658,7 @@ export function HttpToolDialog({
                   onClick={addParameter}
                 >
                   <Plus data-icon="inline-start" />
-                  Add parameter
+                  Add input
                 </Button>
               </div>
               {inputs.length === 0 ? (

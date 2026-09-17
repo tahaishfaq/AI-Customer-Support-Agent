@@ -62,8 +62,10 @@ function testSourceWiring() {
 
   const embed = read("lib/services/embed.service.js");
   assert(/isRecrawlDue/.test(embed), "embed uses isRecrawlDue");
+  assert(/syncCrawlKnowledge/.test(embed), "embed uses crawl knowledge sync");
+  const crawlKnowledge = read("lib/services/crawl-knowledge.js");
   assert(
-    /knowledgeDocument\.update/.test(embed),
+    /knowledgeDocument\.update/.test(crawlKnowledge),
     "recrawl updates existing WEB doc"
   );
 

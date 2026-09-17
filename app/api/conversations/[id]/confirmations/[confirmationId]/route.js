@@ -19,7 +19,7 @@ export async function POST(request, { params }) {
 
     const { id, confirmationId } = await params;
     const ip = clientIp(request);
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `studio-confirm:${authResult.user.id}:${id}:${ip}`,
       studioConfirmLimitOpts()
     );

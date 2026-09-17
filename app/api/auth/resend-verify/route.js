@@ -14,7 +14,7 @@ const schema = z.object({
 export async function POST(request) {
   const requestId = resolveRequestId(request);
   try {
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `resend-verify:${clientIp(request)}`,
       resendVerifyLimitOpts()
     );
@@ -44,7 +44,7 @@ export async function POST(request) {
       return jsonOk(request, { ok: true });
     }
 
-    const emailLimited = rateLimit(
+    const emailLimited = await rateLimit(
       `resend-verify-email:${String(email).toLowerCase()}`,
       resendVerifyLimitOpts()
     );

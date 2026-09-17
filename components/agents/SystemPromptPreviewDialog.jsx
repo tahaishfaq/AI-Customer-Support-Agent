@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +32,7 @@ export function SystemPromptPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(760px,90dvh)] w-[min(58rem,calc(100%-1.5rem))] flex-col gap-0 overflow-hidden border-white/10 bg-[#151519] p-0 text-white shadow-2xl sm:max-w-4xl">
+      <DialogContent className="flex h-[min(760px,90dvh)] max-h-[90dvh] w-[min(58rem,calc(100%-1.5rem))] flex-col gap-0 overflow-hidden border-white/10 bg-[#151519] p-0 text-white shadow-2xl sm:max-w-4xl">
         <DialogHeader className="shrink-0 border-b border-white/10 px-5 py-5 text-left sm:px-7">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             <Sparkles className="size-3.5" />
@@ -48,9 +47,9 @@ export function SystemPromptPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="grid gap-4 p-5 sm:p-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)]">
-            <section className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="grid h-full min-h-0 gap-4 overflow-hidden p-5 sm:p-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)]">
+            <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">Role instructions</p>
@@ -62,7 +61,7 @@ export function SystemPromptPreviewDialog({
                   {prompt.length.toLocaleString()} chars
                 </Badge>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-4">
                 <p className="whitespace-pre-wrap font-mono text-[13px] leading-7 text-white/75">
                   {prompt}
                 </p>
@@ -76,7 +75,7 @@ export function SystemPromptPreviewDialog({
               </div>
             </section>
 
-            <section className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
+            <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">Conversation preview</p>
@@ -86,7 +85,7 @@ export function SystemPromptPreviewDialog({
                   Preview only
                 </Badge>
               </div>
-              <div className="flex min-h-64 flex-col justify-end gap-3 rounded-xl border border-white/10 bg-[#0e0e11] p-4">
+              <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto rounded-xl border border-white/10 bg-[#0e0e11] p-4">
                 <div className="flex items-start gap-2">
                   <span className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                     <MessageSquareText className="size-3.5" />
@@ -112,7 +111,7 @@ export function SystemPromptPreviewDialog({
               </div>
             </section>
           </div>
-        </ScrollArea>
+          </div>
       </DialogContent>
     </Dialog>
   );

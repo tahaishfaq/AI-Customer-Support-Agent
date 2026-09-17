@@ -27,7 +27,7 @@ function contactIdempotencyKey(email, message) {
 
 export async function POST(request) {
   try {
-    const limited = rateLimit(`contact:${clientIp(request)}`, {
+    const limited = await rateLimit(`contact:${clientIp(request)}`, {
       limit: 5,
       windowMs: 60_000,
     });

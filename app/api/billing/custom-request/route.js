@@ -12,7 +12,7 @@ export async function POST(request) {
     const authResult = await requireAuth(request);
     if (authResult.error) return authResult.error;
 
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `billing:custom:${authResult.user.id}:${clientIp(request)}`,
       { limit: 6, windowMs: 60_000 }
     );

@@ -395,7 +395,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8"
+      className="rounded-xl border border-border bg-card p-6 shadow-none sm:p-8"
     >
       <FieldGroup className="gap-6">
         {isCreate ? (

@@ -11,7 +11,13 @@ import {
 } from "../lib/embed/readiness.js";
 
 assert.equal(isDemoIntegrationUrl("https://shop.com/api/demo/orders"), true);
+assert.equal(isDemoIntegrationUrl("http://127.0.0.1:3000/api/demo/orders/{{orderId}}"), true);
+assert.equal(isDemoIntegrationUrl("https://localhost:3000/api/orders"), true);
+assert.equal(isDemoIntegrationUrl("https://api.example.com/orders/{{orderId}}"), true);
+assert.equal(isDemoIntegrationUrl("https://shop.example.com/v1/status"), true);
+assert.equal(isDemoIntegrationUrl("https://docs.example.org/help"), true);
 assert.equal(isDemoIntegrationUrl("https://shop.com/api/orders"), false);
+assert.equal(isDemoIntegrationUrl("https://api.myshop.com/orders"), false);
 assert.equal(httpUrlNeedsOwnerArgs("https://api.shop.com/orders/{{id}}"), true);
 assert.equal(httpUrlNeedsOwnerArgs("https://api.shop.com/orders"), false);
 assert.equal(
@@ -78,7 +84,63 @@ const demoOnly = evaluateEmbedReadiness({
   ],
 });
 assert.equal(demoOnly.ready, false);
-assert.equal(demoOnly.checks.find((c) => c.id === "integrations").state, "warn");
+assert.equal(demoOnly.checks.find((c) => c.id === "integrations").state, "fail");
+
+const examplePlaceholder = evaluateEmbedReadiness({
+  liveOrigin: "https://shop.example",
+  lastPingAt: new Date().toISOString(),
+  setUserSeen: true,
+  embedConversations: 1,
+  needsSetUser: true,
+  actionsEnabled: true,
+  integrations: [
+    {
+      kind: "http",
+      id: "shopify",
+      name: "shopify_get_order",
+      state: "pending",
+      reason: "Not probed yet.",
+      demo: true,
+    },
+  ],
+});
+assert.equal(examplePlaceholder.ready, false);
+assert.equal(
+  examplePlaceholder.checks.find((c) => c.id === "integrations").state,
+  "fail"
+);
+
+const mixedLiveAndDemo = evaluateEmbedReadiness({
+  liveOrigin: "https://shop.example",
+  lastPingAt: new Date().toISOString(),
+  setUserSeen: true,
+  embedConversations: 2,
+  needsSetUser: true,
+  actionsEnabled: true,
+  integrations: [
+    {
+      kind: "http",
+      id: "live",
+      name: "Live catalog",
+      state: "pass",
+      reason: "HTTP 200",
+      demo: false,
+    },
+    {
+      kind: "http",
+      id: "demo",
+      name: "Demo orders",
+      state: "warn",
+      reason: "Demo URL",
+      demo: true,
+    },
+  ],
+});
+assert.equal(mixedLiveAndDemo.ready, false);
+assert.equal(
+  mixedLiveAndDemo.checks.find((c) => c.id === "integrations").state,
+  "fail"
+);
 
 const failedHttp = evaluateEmbedReadiness({
   liveOrigin: "https://shop.example",

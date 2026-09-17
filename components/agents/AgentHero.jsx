@@ -21,7 +21,7 @@ export function AgentHero({ agent, onDelete }) {
   }));
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-none">
       <div className="flex flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

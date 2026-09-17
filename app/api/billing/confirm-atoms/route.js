@@ -42,7 +42,7 @@ export async function POST(request) {
       );
     }
 
-    const limited = rateLimit(
+    const limited = await rateLimit(
       `billing:confirm:${authResult.user.id}:${clientIp(request)}`,
       { limit: 20, windowMs: 60_000 }
     );
