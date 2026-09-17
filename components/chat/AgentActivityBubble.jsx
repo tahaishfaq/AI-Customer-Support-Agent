@@ -5,9 +5,25 @@ import { Spinner } from "@/components/ui/spinner";
 import { activityLabel, normalizeActivityEvent } from "@/lib/chat/activity-state";
 import { cn } from "@/lib/utils";
 
-export function AgentActivityBubble({ activities = [], compact = false, themed = false }) {
-  const visible = activities.filter(item => normalizeActivityEvent(item) && item.mode !== "preparation");
-  if (!visible.length) return null;
+function isRunningPhase(item) {
+  if (["selected", "validating", "running"].includes(item.phase)) return true;
+  if (
+    item.mode === "preparation" &&
+    !["completed", "failed", "cancelled"].includes(item.phase)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function AgentActivityBubble({
+  activities = [],
+  compact = false,
+  themed = false,
+  fallbackLabel = null,
+}) {
+  const visible = activities.filter((item) => normalizeActivityEvent(item));
+  if (!visible.length && !fallbackLabel) return null;
 
   return (
     <div
@@ -25,13 +41,52 @@ export function AgentActivityBubble({ activities = [], compact = false, themed =
       aria-atomic="true"
       data-testid="agent-activity"
     >
-      {visible.map(item => {
-        const running = ["selected", "validating", "running"].includes(item.phase);
-        const paused = ["needs_confirmation", "needs_identity", "cancelled"].includes(item.phase);
-        const Icon = running ? Spinner : paused ? Pause : item.phase === "failed" ? CircleAlert : Check;
+      {!visible.length && fallbackLabel ? (
+        <div className="flex min-w-0 items-start gap-2" data-phase="running">
+          <Spinner
+            className="mt-0.5 size-3.5 shrink-0 motion-reduce:animate-none"
+            aria-hidden="true"
+            role="presentation"
+          />
+          <span className="min-w-0 break-words">{fallbackLabel}</span>
+        </div>
+      ) : null}
+      {visible.map((item) => {
+        const running = isRunningPhase(item);
+        const paused = ["needs_confirmation", "needs_identity", "cancelled"].includes(
+          item.phase
+        );
         return (
-          <div key={item.activityId} className="flex min-w-0 items-start gap-2" data-phase={item.phase}>
-            <Icon className="mt-0.5 size-3.5 shrink-0 motion-reduce:animate-none" aria-hidden="true" role="presentation" />
+          <div
+            key={item.activityId}
+            className="flex min-w-0 items-start gap-2"
+            data-phase={item.phase}
+          >
+            {running ? (
+              <Spinner
+                className="mt-0.5 size-3.5 shrink-0 motion-reduce:animate-none"
+                aria-hidden="true"
+                role="presentation"
+              />
+            ) : paused ? (
+              <Pause
+                className="mt-0.5 size-3.5 shrink-0"
+                aria-hidden="true"
+                role="presentation"
+              />
+            ) : item.phase === "failed" ? (
+              <CircleAlert
+                className="mt-0.5 size-3.5 shrink-0"
+                aria-hidden="true"
+                role="presentation"
+              />
+            ) : (
+              <Check
+                className="mt-0.5 size-3.5 shrink-0"
+                aria-hidden="true"
+                role="presentation"
+              />
+            )}
             <span className="min-w-0 break-words">{activityLabel(item)}</span>
           </div>
         );

@@ -1163,6 +1163,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         compact
         themed
         disabled={sending}
+        busyHint="Agent is working… wait for the reply"
         placeholder={placeholder}
         allowFileUpload={features.fileUpload}
         uploadUrl={`/api/public/agents/${agent.publicKey}/files`}

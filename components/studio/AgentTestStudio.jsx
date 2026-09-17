@@ -410,37 +410,42 @@ export function AgentTestStudio({ agent }) {
       setConversationId(result.conversationId);
       refreshConversationQuota();
       const usedKnowledge = result.usedKnowledge || [];
-      const toolSteps = result.toolSteps || [];
-      const pendingConfirmations = result.pendingConfirmations || [];
       setMessages((prev) => {
-        const withoutOptimistic = prev.filter((m) => m.id !== optimisticId && m.id !== streamingId);
-        return [
-          ...withoutOptimistic,
-          {
-            id: result.userMessage.id,
-            role: result.userMessage.role,
-            content: result.userMessage.content,
-            createdAt: result.userMessage.createdAt,
-          },
-          {
-            id: result.message.id,
-            role: result.message.role,
-            content: result.message.content,
-            responseTime: result.message.responseTime,
-            createdAt: result.message.createdAt,
-            usedKnowledge,
-            toolSteps,
-            citations: result.citations || [],
-            sources: result.sources || [],
-            pendingConfirmations,
-          },
-        ];
+        const withoutOptimistic = prev.filter(
+          (m) => m.id !== optimisticId && m.id !== streamingId
+        );
+        const merged = mergeAssistantReply(withoutOptimistic, {
+          ...result,
+          usedKnowledge,
+        });
+        // Confirmation-only / paused turns may omit assistant message — keep confirm UI.
+        if (
+          !result.message &&
+          (result.pendingConfirmations || []).length > 0 &&
+          !merged.some((m) => (m.pendingConfirmations || []).length)
+        ) {
+          merged.push({
+            id: `local-confirm-${Date.now()}`,
+            role: "ASSISTANT",
+            content: "Please confirm this action to continue.",
+            pendingConfirmations: result.pendingConfirmations,
+            local: true,
+          });
+        } else if (!result.message && result.aiPaused) {
+          merged.push({
+            id: `local-paused-${Date.now()}`,
+            role: "ASSISTANT",
+            content: "A human teammate will continue this conversation.",
+            local: true,
+          });
+        }
+        return merged;
       });
       setHistoryKey((k) => k + 1);
       setSending(false);
       clearActivities();
       sendingRef.current = false;
-      if (customization.features.notificationSound) {
+      if (customization.features.notificationSound && result.message) {
         playNotificationBeep();
       }
 
@@ -937,6 +942,7 @@ export function AgentTestStudio({ agent }) {
         onSend={send}
         compact={false}
         themed
+        busyHint="Agent is working… wait for the reply"
         placeholder={
           runActive
             ? "Auto-test running — pause or stop to type"

@@ -88,8 +88,13 @@ export function MessageList({
       ) : null}
       {messages.map((msg) => (
         <div key={msg.id} className="flex w-full flex-col items-start gap-2">
-          {msg.streaming && activeActivities.length ? (
-            <AgentActivityBubble activities={activeActivities} compact={compact} themed={themed} />
+          {msg.streaming ? (
+            <AgentActivityBubble
+              activities={activeActivities}
+              compact={compact}
+              themed={themed}
+              fallbackLabel="Working on your request…"
+            />
           ) : null}
           <MessageBubble
           role={msg.role}
@@ -115,11 +120,16 @@ export function MessageList({
           />
         </div>
       ))}
-      {loading && !messages.some((m) => m.streaming) && activeActivities.length ? (
-        <AgentActivityBubble activities={activeActivities} compact={compact} themed={themed} />
-      ) : null}
       {loading && !messages.some((m) => m.streaming) ? (
-        <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
+        <div className="flex w-full flex-col items-start gap-2">
+          <AgentActivityBubble
+            activities={activeActivities}
+            compact={compact}
+            themed={themed}
+            fallbackLabel="Working on your request…"
+          />
+          <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
+        </div>
       ) : null}
       {humanTyping ? (
         <div className="flex items-end gap-2">

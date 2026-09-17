@@ -174,6 +174,8 @@ function formFromAction(action) {
     testArgs = { orderId: "ORD-100" };
   } else if (keys.includes("query")) {
     testArgs = { query: "Hel" };
+  } else if (keys.includes("key") && keys.includes("value")) {
+    testArgs = { key: "newsletter", value: "weekly" };
   } else if (keys.length) {
     testArgs = Object.fromEntries(keys.map((k) => [k, "test"]));
   }
@@ -435,6 +437,8 @@ export function ActionsForm({
       const responseProjectionJson = parseProjectionText(
         form.responseProjectionJsonText
       );
+      // Test args stay editor-only (not stored on AgentAction). Keep them after reload.
+      const preservedTestArgsText = form.testArgsText;
       const payload = {
         name: form.name,
         description: form.description,
@@ -469,23 +473,25 @@ export function ActionsForm({
         const updated = await updateAgentAction(agentId, editingId, payload);
         const saved = updated?.id ? updated : updated?.action || payload;
         toast.success("HTTP tool updated");
-        setForm(
-          formFromAction({
+        setForm({
+          ...formFromAction({
             ...saved,
             urlTemplate: saved.urlTemplate || payload.urlTemplate,
-          })
-        );
+          }),
+          testArgsText: preservedTestArgsText || "{}",
+        });
         setEditingId(saved.id || editingId);
       } else {
         const created = await createAgentAction(agentId, payload);
         const saved = created?.id ? created : created?.action || payload;
         toast.success("HTTP tool created");
-        setForm(
-          formFromAction({
+        setForm({
+          ...formFromAction({
             ...saved,
             urlTemplate: saved.urlTemplate || payload.urlTemplate,
-          })
-        );
+          }),
+          testArgsText: preservedTestArgsText || "{}",
+        });
         setEditingId(saved.id || null);
       }
       setTestResult(null);

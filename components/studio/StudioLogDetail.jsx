@@ -14,11 +14,13 @@ import { cn } from "@/lib/utils";
 
 function toneFor(entry) {
   const s = String(entry?.status || "").toUpperCase();
-  if (s === "OK" || s === "SUCCESS") return "ok";
-  if (entry?.errorCode || s === "ERROR" || s === "TIMEOUT") return "err";
-  if (s === "PENDING" || s === "CONFIRMATION_REQUIRED" || s === "DEGRADED") {
+  const code = String(entry?.errorCode || "").toUpperCase();
+  if (code === "CONFIRMATION_REQUIRED" || s === "CONFIRMATION_REQUIRED") {
     return "warn";
   }
+  if (s === "OK" || s === "SUCCESS") return "ok";
+  if (code || s === "ERROR" || s === "TIMEOUT") return "err";
+  if (s === "PENDING" || s === "DEGRADED") return "warn";
   return "muted";
 }
 

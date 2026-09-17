@@ -28,4 +28,19 @@ const scoped = filterCapabilitiesForSourceRoute([
   { name: 'maintenance_status', entities: ['MAINTENANCE'] },
 ], routeSource('What are your plans?'));
 assert.deepEqual(scoped.map((capability) => capability.name), ['public_plans']);
-console.log('Search phrasing regression passed: explicit web requests, disabled flag, general/store boundaries, mixed route');
+
+const prefQ = 'Please update my preference: set key newsletter to weekly';
+const prefRoute = routeSource(prefQ, { webSearchEnabled: true });
+assert.equal(prefRoute.route, 'STORE', prefQ);
+assert.ok(prefRoute.signals.entities.includes('ACCOUNT'), prefQ);
+const prefTools = filterCapabilitiesForSourceRoute(
+  [
+    { name: 'update_preference', riskLevel: 'WRITE', entities: [] },
+    { name: 'request_handoff', riskLevel: 'READ', entities: ['SUPPORT'] },
+    { name: 'web_search', riskLevel: 'READ', entities: ['WEB'] },
+  ],
+  prefRoute
+).map((c) => c.name);
+assert.deepEqual(prefTools.sort(), ['request_handoff', 'update_preference'].sort());
+
+console.log('Search phrasing regression passed: explicit web requests, disabled flag, general/store boundaries, mixed route, preference STORE');

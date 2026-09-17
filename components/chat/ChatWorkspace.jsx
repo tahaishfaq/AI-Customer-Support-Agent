@@ -233,31 +233,32 @@ export function ChatWorkspace() {
         const withoutOptimistic = prev.filter(
           (m) => m.id !== optimisticId && m.id !== streamingId
         );
-        return [
-          ...withoutOptimistic,
-          {
-            id: result.userMessage.id,
-            role: result.userMessage.role,
-            content: result.userMessage.content,
-            createdAt: result.userMessage.createdAt,
-          },
-          {
-            id: result.message.id,
-            role: result.message.role,
-            content: result.message.content,
-            responseTime: result.message.responseTime,
-            createdAt: result.message.createdAt,
-            toolSteps: result.toolSteps || [],
-            pendingConfirmations: result.pendingConfirmations || [],
-            usedKnowledge: result.usedKnowledge || [],
-            citations: result.citations || [],
-            sources: result.sources || [],
-          },
-        ];
+        const merged = mergeAssistantReply(withoutOptimistic, result);
+        if (
+          !result.message &&
+          (result.pendingConfirmations || []).length > 0 &&
+          !merged.some((m) => (m.pendingConfirmations || []).length)
+        ) {
+          merged.push({
+            id: `local-confirm-${Date.now()}`,
+            role: "ASSISTANT",
+            content: "Please confirm this action to continue.",
+            pendingConfirmations: result.pendingConfirmations,
+            local: true,
+          });
+        } else if (!result.message && result.aiPaused) {
+          merged.push({
+            id: `local-paused-${Date.now()}`,
+            role: "ASSISTANT",
+            content: "A human teammate will continue this conversation.",
+            local: true,
+          });
+        }
+        return merged;
       });
       setHistoryKey((k) => k + 1);
       refreshConversationQuota();
-      if (customization.features.notificationSound) {
+      if (customization.features.notificationSound && result.message) {
         playNotificationBeep();
       }
       if (result.degraded) {

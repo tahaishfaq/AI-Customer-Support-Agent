@@ -161,6 +161,10 @@ export function MessageBubble({
         .map((s) => {
           if (!s?.name) return null;
           const ok = s.status === "OK";
+          const waiting =
+            String(s.errorCode || "").toUpperCase() === "CONFIRMATION_REQUIRED" ||
+            String(s.status || "").toUpperCase() === "CONFIRMATION_REQUIRED";
+          if (waiting) return `${s.name} → waiting for confirm`;
           const code = s.httpStatus != null ? String(s.httpStatus) : s.status;
           return ok ? `${s.name} → ${code}` : `${s.name} → ${s.status || "error"}`;
         })

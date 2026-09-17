@@ -452,7 +452,8 @@ export function HttpToolDialog({
                     />
                     <p className="mb-2 text-xs text-muted-foreground">
                       Test inputs used when you press Test. They also resolve
-                      URL, headers, and body variables.
+                      URL, headers, and body variables. Not stored on the tool —
+                      only the body template above is saved permanently.
                     </p>
                     <Textarea
                       value={form.testArgsText}

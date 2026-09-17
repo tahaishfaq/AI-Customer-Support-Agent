@@ -111,12 +111,21 @@ export async function POST(request, { params }) {
     // No streaming yet → TTFT ≈ total wall time (header for F02 baselines).
     return jsonOk(request, result, 200, durationHeaders(started));
   } catch (error) {
+    if (error?.code === "CONVERSATION_OWNERSHIP_CHANGED") {
+      return jsonError(
+        request,
+        409,
+        "Conversation changed during this reply. Start a new message.",
+        { code: error.code }
+      );
+    }
     if (
       error.status === 400 ||
       error.status === 401 ||
       error.status === 402 ||
       error.status === 403 ||
       error.status === 404 ||
+      error.status === 409 ||
       error.status === 500 ||
       error.status === 502 ||
       error.status === 503
@@ -134,6 +143,7 @@ export async function POST(request, { params }) {
       route: "studio-chat",
       status: 500,
       durationMs: durationMsSince(started),
+      code: error?.code || null,
     });
     return jsonError(request, 500, "Unable to process chat");
   }

@@ -11,18 +11,29 @@ import { cn } from "@/lib/utils";
 
 function statusTone(status, errorCode) {
   const s = String(status || "").toUpperCase();
+  const code = String(errorCode || "").toUpperCase();
+  // Waiting for Confirm is expected policy pause — not a failed outbound call.
+  if (code === "CONFIRMATION_REQUIRED" || s === "CONFIRMATION_REQUIRED") {
+    return "warn";
+  }
   if (s === "OK" || s === "SUCCESS") return "ok";
   if (
     s === "ERROR" ||
     s === "TIMEOUT" ||
     s === "SSRF_BLOCKED" ||
-    s === "SCHEMA_INVALID" ||
-    errorCode
+    s === "SCHEMA_INVALID"
   ) {
     return "err";
   }
-  if (s === "PENDING" || s === "CONFIRMATION_REQUIRED") return "warn";
+  if (code && code !== "HANDOFF") return "err";
+  if (s === "PENDING") return "warn";
   return "muted";
+}
+
+function displayStatus(entry) {
+  const code = String(entry?.errorCode || "").toUpperCase();
+  if (code === "CONFIRMATION_REQUIRED") return "CONFIRMATION_REQUIRED";
+  return entry?.status || "";
 }
 
 export function explainIssue(entry) {
@@ -109,9 +120,17 @@ function SessionRow({ entry, selected = false, onSelect }) {
           ) : null}
 
           <div className="col-span-full flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            {entry.status ? (
-              <Badge variant="outline" className="rounded-full text-[10px]">
-                {entry.status}
+            {entry.status || entry.errorCode ? (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "rounded-full text-[10px]",
+                  tone === "warn" && "border-amber-500/40 text-amber-800 dark:text-amber-200",
+                  tone === "err" && "border-destructive/40 text-destructive",
+                  tone === "ok" && "border-emerald-500/40 text-emerald-800 dark:text-emerald-200"
+                )}
+              >
+                {displayStatus(entry) || entry.status}
               </Badge>
             ) : null}
             {entry.httpStatus != null ? (
@@ -119,7 +138,8 @@ function SessionRow({ entry, selected = false, onSelect }) {
                 HTTP {entry.httpStatus}
               </Badge>
             ) : null}
-            {entry.errorCode ? (
+            {entry.errorCode &&
+            String(entry.errorCode).toUpperCase() !== "CONFIRMATION_REQUIRED" ? (
               <Badge variant="destructive" className="rounded-full text-[10px]">
                 {entry.errorCode}
               </Badge>
