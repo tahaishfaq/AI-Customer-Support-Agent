@@ -74,18 +74,26 @@ function testSourceWiring() {
 
   const knowledgeUi = read("components/knowledge/KnowledgeList.jsx");
   assert(/CrawlSchedulePanel/.test(knowledgeUi), "Knowledge UI schedule panel");
-  assert(/Retry crawl/.test(knowledgeUi), "Knowledge UI crawl retry");
+  assert(/Crawl site/.test(knowledgeUi), "Knowledge UI crawl site button");
+  assert(/homepageUrl/.test(knowledgeUi), "Knowledge UI homepage URL field");
   assert(/retrySiteCrawl/.test(knowledgeUi), "Knowledge UI calls retry API");
 
   const retryRoute = read("app/api/agents/[id]/crawl/retry/route.js");
   assert(/retrySiteCrawlForAgent/.test(retryRoute), "crawl retry route");
+  assert(/homepageUrl/.test(retryRoute), "crawl retry accepts homepageUrl");
   assert(/runCrawlJob/.test(retryRoute), "crawl retry runs job");
 
   const knowledgeSvc = read("lib/services/knowledge.service.js");
   assert(/force:\s*true/.test(knowledgeSvc), "owner retry forces enqueue");
+  assert(/parseOwnerCrawlStartUrl/.test(knowledgeSvc), "owner homepage URL parse");
 
   const embedSvc = read("lib/services/embed.service.js");
   assert(/force === true/.test(embedSvc), "enqueueOneTimeCrawl force option");
+  assert(/startUrl/.test(embedSvc), "enqueueOneTimeCrawl startUrl seed");
+
+  const crawler = read("lib/services/site-crawler.js");
+  assert(/parseOwnerCrawlStartUrl/.test(crawler), "parseOwnerCrawlStartUrl export");
+  assert(/auth-path/.test(crawler), "blocks auth start paths");
 
   const scheduleUi = read("components/knowledge/CrawlSchedulePanel.jsx");
   assert(/CRAWL_RECRAWL_OPTIONS/.test(scheduleUi), "schedule select options");

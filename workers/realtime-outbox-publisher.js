@@ -30,6 +30,9 @@ const redis = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
   enableReadyCheck: true,
 });
+redis.on("error", (error) => {
+  console.error("[realtime-outbox] redis error", String(error?.message || error));
+});
 
 let stopping = false;
 

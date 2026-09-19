@@ -144,6 +144,7 @@
     "test:f09g": "node scripts/test-f09g.mjs",
     "test:f09": "node scripts/test-f09.mjs",
     "test:crawl-schedule": "node scripts/test-crawl-schedule.mjs",
+    "test:crawl-homepage-url": "tsx --import ./scripts/register-aliases.mjs scripts/test-crawl-homepage-url.mjs",
     "test:crawl-transport": "tsx --import ./scripts/register-aliases.mjs scripts/test-crawl-transport.mjs",
     "test:crawl-discovery": "tsx --import ./scripts/register-aliases.mjs scripts/test-crawl-discovery.mjs",
     "test:crawl-persistence-live": "tsx --import ./scripts/register-aliases.mjs scripts/test-crawl-persistence-live.mjs",

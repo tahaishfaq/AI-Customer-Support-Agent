@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
@@ -12,6 +12,7 @@ import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
 import { listKnowledge, retrySiteCrawl } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
@@ -55,6 +56,7 @@ export function KnowledgeList({
 }) {
   const [textOpen, setTextOpen] = useState(false);
   const [retryBusy, setRetryBusy] = useState(false);
+  const [homepageUrl, setHomepageUrl] = useState("");
   const queryClient = useQueryClient();
   const knowledgeQuery = useQuery({
     queryKey: queryKeys.knowledge.list(agentId),
@@ -73,16 +75,30 @@ export function KnowledgeList({
   const crawlActive =
     latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING";
 
-  const canRetryCrawl =
-    Boolean(siteKnowledgeOrigin || latestCrawl?.origin) &&
-    latestCrawl?.status === "FAILED" &&
-    !crawlActive;
+  const suggestedOrigin =
+    siteKnowledgeOrigin || latestCrawl?.origin || "";
+
+  useEffect(() => {
+    if (latestCrawl?.status !== "FAILED") return;
+    if (homepageUrl.trim()) return;
+    if (suggestedOrigin) setHomepageUrl(suggestedOrigin);
+  }, [latestCrawl?.status, suggestedOrigin, homepageUrl]);
+
+  const canRetryCrawl = latestCrawl?.status === "FAILED" && !crawlActive;
+  const retryOriginReady = Boolean(
+    homepageUrl.trim() || suggestedOrigin
+  );
 
   async function handleRetryCrawl() {
     if (retryBusy || !canRetryCrawl) return;
+    const url = homepageUrl.trim() || suggestedOrigin;
+    if (!url) {
+      toast.error("Enter your site homepage URL (https://…)");
+      return;
+    }
     setRetryBusy(true);
     try {
-      const result = await retrySiteCrawl(agentId);
+      const result = await retrySiteCrawl(agentId, { homepageUrl: url });
       queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
         ...(previous || { documents: [] }),
         latestCrawl: result.latestCrawl || {
@@ -177,29 +193,36 @@ export function KnowledgeList({
 
       {latestCrawl?.status === "FAILED" ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <CrawlStatusBadge status="FAILED" />
-                <p className="text-sm font-medium text-destructive">
-                  Website crawl failed
-                </p>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {(latestCrawl.error || "")
-                  .replace(/^CRAWL_FAILED:\s*/i, "")
-                  .trim() || "The one-time site crawl could not finish."}{" "}
-                Retry crawls only public, non-authenticated pages on{" "}
-                {(siteKnowledgeOrigin || latestCrawl.origin || "your site")
-                  .replace(/^https?:\/\//, "")}
-                .
-              </p>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <CrawlStatusBadge status="FAILED" />
+            <p className="text-sm font-medium text-destructive">
+              Website crawl failed
+            </p>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {(latestCrawl.error || "")
+              .replace(/^CRAWL_FAILED:\s*/i, "")
+              .trim() || "The one-time site crawl could not finish."}{" "}
+            Enter your public homepage URL and we will crawl that site’s public
+            pages (login, account, and admin paths are skipped).
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              placeholder="https://yoursite.com"
+              value={homepageUrl}
+              onChange={(event) => setHomepageUrl(event.target.value)}
+              disabled={retryBusy}
+              className="sm:max-w-md"
+              aria-label="Site homepage URL"
+            />
             <Button
               type="button"
               size="sm"
               variant="outline"
-              disabled={!canRetryCrawl || retryBusy}
+              disabled={!canRetryCrawl || !retryOriginReady || retryBusy}
               onClick={() => void handleRetryCrawl()}
             >
               {retryBusy ? (
@@ -207,9 +230,13 @@ export function KnowledgeList({
               ) : (
                 <RefreshCw data-icon="inline-start" />
               )}
-              Retry crawl
+              Crawl site
             </Button>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Must be a public https site. Localhost is not allowed — use your
+            deployed domain (for local testing, enter any public https URL).
+          </p>
         </div>
       ) : null}
 

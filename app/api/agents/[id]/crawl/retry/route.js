@@ -25,8 +25,17 @@ export async function POST(request, { params }) {
       );
     }
 
+    let homepageUrl = "";
+    try {
+      const body = await request.json();
+      homepageUrl = String(body?.homepageUrl || body?.origin || "").trim();
+    } catch {
+      homepageUrl = "";
+    }
+
     const result = await retrySiteCrawlForAgent(id, authResult.user.id, {
       requestId,
+      homepageUrl: homepageUrl || undefined,
     });
 
     after(async () => {

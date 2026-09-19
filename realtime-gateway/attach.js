@@ -39,6 +39,10 @@ export async function attachRealtimeGateway(httpServer) {
     password: config.redisPassword,
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
+    retryStrategy(times) {
+      if (times > 8) return null;
+      return Math.min(times * 250, 5_000);
+    },
   };
   const pubClient = new Redis(config.redisUrl, redisOptions);
   const subClient = pubClient.duplicate();
@@ -56,6 +60,21 @@ export async function attachRealtimeGateway(httpServer) {
     lastConnectionRejectionReason: null,
     lastDisconnectReason: null,
   };
+
+  function attachRedisErrorHandler(redis, label) {
+    redis.on("error", (error) => {
+      metrics.redisErrors += 1;
+      const message = String(error?.message || error);
+      // Avoid drowning the console when Upstash DNS/network is down locally.
+      if (metrics.redisErrors <= 3 || metrics.redisErrors % 25 === 0) {
+        console.error(`[realtime] redis ${label}`, { message });
+      }
+    });
+  }
+  attachRedisErrorHandler(pubClient, "pub");
+  attachRedisErrorHandler(subClient, "sub");
+  attachRedisErrorHandler(streamClient, "stream");
+
   const connectionAttempts = new Map();
 
   function consumeConnectionAttempt(key) {
