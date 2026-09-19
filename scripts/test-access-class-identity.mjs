@@ -84,17 +84,43 @@ assert.ok(
     misconfigured.code === "END_USER_TOKEN_REQUIRED"
 );
 
-// ACCOUNT_READ with subject but missing end-user token is denied.
+// ACCOUNT_READ with host_session subject alone is denied on embed (need HS256).
+const accountHostOnly = evaluateActionPolicy({
+  action: { ...account, name: "get_my_order" },
+  customerSubject: "cust-a",
+  endUserAccessToken: "opaque-tok",
+  publicAccess: true,
+  confirmationStatus: "APPROVED",
+  identityStrategy: "host_session",
+  toolArgs: { orderId: "91823" },
+});
+assert.equal(accountHostOnly.allow, false);
+assert.equal(accountHostOnly.code, "IDENTITY_PROOF_REQUIRED");
+
+// ACCOUNT_READ with HS256 subject but missing end-user token is denied.
 const accountNoToken = evaluateActionPolicy({
   action: { ...account, name: "get_my_order" },
   customerSubject: "cust-a",
   endUserAccessToken: null,
   publicAccess: true,
   confirmationStatus: "APPROVED",
+  identityStrategy: "hs256_jwt",
   toolArgs: { orderId: "91823" },
 });
 assert.equal(accountNoToken.allow, false);
 assert.equal(accountNoToken.code, "END_USER_TOKEN_REQUIRED");
+
+// ACCOUNT_READ with HS256 + token allowed.
+const accountOk = evaluateActionPolicy({
+  action: { ...account, name: "get_my_order" },
+  customerSubject: "cust-a",
+  endUserAccessToken: "tok",
+  publicAccess: true,
+  confirmationStatus: "APPROVED",
+  identityStrategy: "hs256_jwt",
+  toolArgs: { orderId: "91823" },
+});
+assert.equal(accountOk.allow, true);
 
 // GUEST_LOOKUP without subject is not an identity deny (confirm still required on embed).
 const guestAnon = evaluateActionPolicy({

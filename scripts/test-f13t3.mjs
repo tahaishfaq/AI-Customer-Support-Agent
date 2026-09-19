@@ -60,17 +60,28 @@ function main() {
   assert(getRisk.requiresConfirmation === false, "get_demo_time no confirm");
 
   assert(exists("app/api/demo/mcp/route.js"), "demo mcp route");
-  assert(/get_demo_time/.test(read("app/api/demo/mcp/route.js")), "get_demo_time");
+  assert(/get_demo_time/.test(read("app/api/demo/mcp/route.js")), "get_demo_time alias");
+  assert(
+    /aide_demo_get_time/.test(read("lib/mcp/demo-tools.js")),
+    "aide_demo_get_time primary"
+  );
 
   const actionsForm = read("components/customization/ActionsForm.jsx");
   assert(/value="mcp"/.test(actionsForm), "MCP tab present");
-  assert(/Coming soon/.test(actionsForm), "MCP tab Coming soon");
-  assert(!/McpServersPanel/.test(actionsForm), "ActionsForm does not mount McpServersPanel");
+  assert(/McpServersPanel/.test(actionsForm), "ActionsForm mounts McpServersPanel");
+  assert(!/MCP servers will land here/.test(actionsForm), "no MCP coming-soon stub");
 
   assert(exists("components/customization/McpServersPanel.jsx"), "McpServersPanel file kept");
   const mcpPanel = read("components/customization/McpServersPanel.jsx");
-  assert(/Custom MCP server/.test(mcpPanel), "Custom MCP server");
-  assert(/Use demo MCP/.test(mcpPanel), "Use demo MCP");
+  assert(/Custom MCP/.test(mcpPanel) || /openFromCatalog/.test(mcpPanel), "Custom MCP catalog");
+  assert(/Use demo MCP/.test(mcpPanel) || /aide-demo/.test(mcpPanel), "Use demo MCP");
+  assert(/probeDraftAgentMcpServer/.test(mcpPanel), "draft probe before save");
+  assert(/Needs confirm/.test(mcpPanel), "WRITE needs-confirm label");
+  assert(/filterMcpCatalog/.test(mcpPanel), "UX-2 catalog filter");
+  assert(/github/.test(mcpPanel) || /GitHub/.test(mcpPanel), "GitHub catalog card");
+  assert(!/Notion/.test(mcpPanel), "Notion not in MCP panel yet");
+  assert(!/Linear/.test(mcpPanel), "Linear not in MCP panel yet");
+  assert(!/Stripe/.test(mcpPanel), "Stripe not in MCP panel yet");
 
   const toolLoop = read("lib/actions/tool-loop.js");
   const invoke = read("lib/actions/invoke-tool.js");
@@ -88,10 +99,12 @@ function main() {
       /executeMcpToolAction/.test(mcp),
     "executeMcpToolAction wiring"
   );
+  assert(/probeDraftMcpServerForAgent/.test(mcp), "draft probe service");
 
   for (const rel of [
     "app/api/agents/[id]/mcp-servers/route.js",
     "app/api/agents/[id]/mcp-servers/[serverId]/probe/route.js",
+    "app/api/agents/[id]/mcp-servers/probe-draft/route.js",
     "app/api/agents/[id]/mcp-servers/[serverId]/tools/[toolId]/route.js",
   ]) {
     assert(exists(rel), `missing ${rel}`);
@@ -142,7 +155,7 @@ function main() {
 
   console.log("ok  schema + migration AgentMcpServer/Tool");
   console.log("ok  mcp client exports + risk heuristics");
-  console.log("ok  demo MCP + ActionsForm Coming soon + tool-loop");
+  console.log("ok  demo MCP + ActionsForm MCP panel + tool-loop");
   console.log("ok  API routes + parseMcpHttpBody / sanitizeMcpFunctionName");
   console.log("\nF13-T3 smoke passed");
 }

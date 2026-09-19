@@ -16,6 +16,8 @@ const nextConfig = {
   // Allow ngrok (and similar tunnels) to load /_next/* in development —
   // without this, login/auth JS is blocked and the form looks broken.
   allowedDevOrigins: [
+    "127.0.0.1",
+    "localhost",
     "album-wielder-kinsman.ngrok-free.dev",
     "*.ngrok-free.dev",
     "*.ngrok-free.app",

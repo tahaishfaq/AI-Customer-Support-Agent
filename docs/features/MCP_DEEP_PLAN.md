@@ -1,7 +1,7 @@
 # M01 — MCP Tools UX (deferred)
 
-**Status:** Backend MCP path **shipped** (F13 + Stage 5). This plan = optional **owner UX** — after go-live + sockets.  
-**Do next:** [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) · [`SOCKET_REALTIME_PLAN.md`](SOCKET_REALTIME_PLAN.md)  
+**Status:** UX-1 + DS1 + UX-2 + M3 (GitHub OAuth, no DCR) shipped 2026-09-18. Remaining: R1 / M1 optional.  
+**Do next:** [`../OPEN_SEQUENCE.md`](../OPEN_SEQUENCE.md) · set `GITHUB_MCP_OAUTH_*` env for live OAuth · or go-live OWNER gates  
 **Shipped tools hub:** [`../shipped/F13_TOOLS_HUB.md`](../shipped/F13_TOOLS_HUB.md)
 
 ---
@@ -408,10 +408,10 @@ Har phase ke baad **test**, phir agla.
 
 **Test gate**
 
-- [ ] Demo probe still lists tools  
-- [ ] Studio READ call works after rename/alias  
-- [ ] Error path returns `isError`-style helpful text, not internal dumps  
-- [ ] Orchestrator / F13 smokes green  
+- [x] Demo probe still lists tools (primary + legacy aliases)  
+- [x] Studio READ call works after rename/alias (`aide_demo_get_time` + `get_demo_time`)  
+- [x] Error path returns `isError`-style helpful text, not internal dumps  
+- [x] Orchestrator / F13 smokes green (`test:mcp-demo-ds1` · `test:f13t3`)  
 
 **Exit:** Demo MCP is a **reference-quality** small server, not just a JSON-RPC stub.
 
@@ -419,25 +419,25 @@ Har phase ke baad **test**, phir agla.
 
 
 
-## Phase UX-2 — Catalog: Custom + 4 common only
+## Phase UX-2 — Catalog: Custom + Aide demo + **GitHub only**
 
-**Goal:** Botpress jaisi lambi marketplace **nahi** — sirf **Custom + Aide demo + 4 cards**.
-
-**4 cards (locked recommendation):** GitHub · Notion · Linear · Stripe  
+**Goal:** Botpress jaisi lambi marketplace **nahi**. Live common cards: **GitHub** only (Notion / Linear / Stripe deferred).
 
 **Build**
 
-- `lib/mcp/catalog.js` — exactly these entries + `custom` + `aide-demo`  
-- Each: name, short blurb, icon, authHint (`bearer`), docsUrl, `defaultUrl` or null, `comingSoon` if URL unknown  
+- `lib/mcp/catalog.js` — `aide-demo` + `custom` + `github`  
+- Each: name, short blurb, authHint (`bearer` for GitHub), docsUrl, `defaultUrl`  
 - Click → prefill New MCP dialog (name/url/auth)  
-- No OAuth buttons until M3 — copy: “Paste personal access token / API key as Bearer”  
-- Search filters within this small list only
+- No OAuth until M3 — copy: “Paste personal access token as Bearer”  
+- Search filters within this small list only  
 
 **Test gate**
 
-- [ ] Exactly 4 common + custom + demo visible (not 20+)  
-- [ ] Prefill works; bad token → clear probe error  
-- [ ] Adding a 5th live card requires an explicit catalog change  
+- [x] Exactly demo + custom + **1** common (GitHub) — not 20+  
+- [x] Prefill works (`openFromCatalog`)  
+- [x] Adding Notion/Linear/Stripe requires an explicit catalog change  
+
+**Test:** `npm run test:mcp-catalog`
 
 ---
 
@@ -509,20 +509,20 @@ Har phase ke baad **test**, phir agla.
 
 
 
-## Phase M3 — OAuth (Botpress GitHub modal jaisa)
+## Phase M3 — OAuth (Botpress GitHub modal jaisa) ✅ 2026-09-18
 
-**Goal:** Selected providers ke liye “Connect with OAuth”.
+**Goal:** GitHub catalog → **Connect with OAuth** (no DCR).
 
-**Build (heavy)**
+**Reality (Botpress gap):** `https://api.githubcopilot.com/mcp/` rejects Dynamic Client Registration. Botpress shows the same error and asks for a pre-registered OAuth App + redirect URI.
 
-- Aide OAuth callback URL (per env): e.g. `{APP}/api/mcp/oauth/callback`  
-- Store client id/secret per catalog provider (platform env) **or** owner-pasted app credentials  
-- Token → `ActionCredential`  
-- Handle “no dynamic client registration” like Botpress (manual app + redirect URI copy)
+**Aide approach (no DCR):**
 
-**Test gate:** one provider sandbox OAuth → tools/list → one READ call.
+1. Platform GitHub OAuth App with callback `{APP}/api/mcp/oauth/github/callback`
+2. Env: `GITHUB_MCP_OAUTH_CLIENT_ID` + `GITHUB_MCP_OAUTH_CLIENT_SECRET`
+3. Owner clicks **Connect with OAuth** → GitHub authorize → code exchange → token encrypted as `ActionCredential` → attached to MCP server as Bearer
+4. If env missing: UI shows callback URL + honest DCR note; PAT Save & probe still works
 
-**Note:** Is phase ke baghair bhi Custom + Bearer MCP **poora kaam** karta hai.
+**Test:** `npm run test:mcp-github-oauth`
 
 ---
 
@@ -589,15 +589,31 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve. Orchestrator (`r
 - [x] mcp-builder skill installed under `.agents/skills/mcp-builder/`  
 - [x] Decision 7–8 locked (skill + Orchestrator)  
 - [ ] Decisions 1–6 locked  
-- [ ] UX-1 approved + done + tested  
-- [ ] DS1 (demo MCP quality via skill) …  
-- [ ] UX-2 (4 common) …  
+- [x] UX-1 approved + done + tested (2026-09-18 — panel mounted, draft probe, WRITE labels, F13 smokes updated)  
+- [x] DS1 (demo MCP quality via skill) — 2026-09-18 (`aide_demo_*` + aliases, annotations, actionable errors)  
+- [x] UX-2 (catalog) — 2026-09-18: Aide demo + Custom + **GitHub only** (Notion/Linear/Stripe deferred)  
 - [ ] R1 (pick best tool + tight answers) …  
 - [ ] M1 …  
 - [ ] M2 …  
-- [ ] M3 …  
+- [x] M3 — GitHub Connect with OAuth (no DCR; platform OAuth App) — 2026-09-18  
 - [ ] M4 …  
 - [ ] M5 …  
+
+---
+
+## Appendix — Demo MCP (`/api/demo/mcp`)
+
+| Tool | Risk | Notes |
+|------|------|--------|
+| `aide_demo_get_time` | READ | Preferred. `annotations.readOnlyHint` |
+| `aide_demo_create_note` | WRITE | Preferred. Confirm-gated in Aide |
+| `get_demo_time` | READ | Legacy alias — **callable**, not listed |
+| `create_demo_note` | WRITE | Legacy alias — **callable**, not listed |
+
+JSON-RPC: `initialize` · `tools/list` · `tools/call` · `ping`. Source: `lib/mcp/demo-tools.js`.  
+Inspector: point MCP Inspector at `POST {APP}/api/demo/mcp` (no auth).
+
+**Test:** `npm run test:mcp-demo-ds1`
 
 ---
 
@@ -609,14 +625,15 @@ Botpress jaisa GitHub one-click OAuth: **M3** — alag approve. Orchestrator (`r
 | Path                                           | Role                    |
 | ---------------------------------------------- | ----------------------- |
 | `.agents/skills/mcp-builder/`                  | Anthropic MCP **server** skill |
-| `components/customization/McpServersPanel.jsx` | UI (unmounted)          |
-| `components/customization/ActionsForm.jsx`     | MCP = Coming soon       |
+| `components/customization/McpServersPanel.jsx` | Owner MCP UI (mounted)  |
+| `components/customization/ActionsForm.jsx`     | Tools → MCP tab         |
 | `lib/mcp/client.js`                            | list/call               |
-| `lib/services/mcp.service.js`                  | CRUD + execute          |
+| `lib/services/mcp.service.js`                  | CRUD + draft probe + execute |
 | `lib/capabilities/registry.js`                 | MCP + HTTP + builtins   |
-| `lib/actions/invoke-tool.js`                   | Chat invoke + WRITE gap |
+| `lib/actions/invoke-tool.js`                   | Chat invoke             |
 | `lib/orchestrator/`                            | `runTurn` (do not fork for MCP) |
 | `app/api/demo/mcp/route.js`                    | Demo server (DS1 target)|
+| `app/api/agents/[id]/mcp-servers/probe-draft/` | Ephemeral tools/list    |
 | `docs/shipped/F13_TOOLS_HUB.md`               | Shipped backend story   |
 | `docs/shipped/ORCHESTRATOR_LAYER_PLAN.md`     | O01 done                |
 

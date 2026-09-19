@@ -48,8 +48,13 @@ function testSourceWiring() {
   }
 
   const chat = read("lib/services/chat.service.js");
+  const turnCtx = read("lib/services/ai/turn-context.js");
   assert(/runTurn/.test(chat), "chat.service uses orchestrator runTurn");
-  assert(/listEnabledActionsForAgent/.test(chat), "loads enabled actions");
+  assert(
+    /listEnabledActionsForAgent/.test(chat) ||
+      /listEnabledActionsForAgent/.test(turnCtx),
+    "loads enabled actions"
+  );
   assert(/toolSteps/.test(chat), "returns toolSteps");
 
   const orch = read("lib/orchestrator/index.js");

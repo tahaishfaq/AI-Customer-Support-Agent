@@ -1,6 +1,6 @@
 /**
  * F13-T1 smoke — Tools tabs: Integrations · MCP · HTTP.
- * Integrations + MCP are EmptyState "Coming soon"; default tab is HTTP.
+ * MCP mounts McpServersPanel; Integrations uses ConnectionWizard + OpenAPI.
  * Run: npm run test:f13t1
  */
 import fs from "node:fs";
@@ -66,9 +66,9 @@ function main() {
   assert(!/value="connection"/.test(form), "no Connection top-level tab");
   assert(!/value="capabilities"/.test(form), "no Capabilities top-level tab");
   assert(!/value="advanced"/.test(form), "no Advanced top-level tab");
-  assert(/Coming soon/.test(form), "Integrations/MCP Coming soon");
-  assert(/EmptyState/.test(form), "EmptyState import usage");
-  assert(!/McpServersPanel/.test(form), "MCP tab does not mount McpServersPanel");
+  assert(/McpServersPanel/.test(form), "MCP tab mounts McpServersPanel");
+  assert(!/MCP servers will land here/.test(form), "no MCP coming-soon stub");
+  assert(/ConnectionWizard/.test(form), "Integrations ConnectionWizard");
   assert(!/Search integrations/.test(form), "no pack search UI");
   assert(!/>Connection</.test(form), "no Connection collapsible in UI");
   assert(/setTab\("http"\)/.test(form), "openCreate/Edit → HTTP");
@@ -87,7 +87,7 @@ function main() {
   assert(/T1/.test(plan) && /done|✅/.test(plan), "F13 plan marks T1");
 
   console.log("ok  vertical category helpers");
-  console.log("ok  ActionsForm tabs · Coming soon · default HTTP");
+  console.log("ok  ActionsForm tabs · MCP panel · default HTTP");
   console.log("\nF13-T1 smoke passed");
 }
 

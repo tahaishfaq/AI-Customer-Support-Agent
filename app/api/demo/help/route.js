@@ -2,25 +2,45 @@ import { NextResponse } from "next/server";
 
 const ARTICLES = [
   {
+    id: "help-escrow",
+    title: "How Brandly escrow works",
+    snippet:
+      "Brand funds the campaign in Stripe escrow before work starts. Funds release to the creator after deliverable approval.",
+  },
+  {
+    id: "help-payout",
+    title: "Instant payouts for creators",
+    snippet:
+      "Complete KYC and add a verified bank account under Billing. Approved campaign payouts typically arrive within 24 hours.",
+  },
+  {
+    id: "help-matching",
+    title: "AI matching algorithm",
+    snippet:
+      "Brandly AI compares niche, audience demographics, engagement, and past performance to suggest high-ROI brand–creator fits.",
+  },
+  {
+    id: "help-dispute",
+    title: "Resolving campaign disputes",
+    snippet:
+      "Open a support ticket with the campaign ID. Moderation reviews the brief, deliverables, and chat within 3–5 business days.",
+  },
+  {
+    id: "help-profile",
+    title: "Creator profile setup",
+    snippet:
+      "Complete your profile and connect YouTube, Instagram, or TikTok via OAuth so brands see verified stats.",
+  },
+  {
     id: "help-refund",
     title: "Refund policy",
-    snippet: "Refunds are available within 14 days of purchase.",
-  },
-  {
-    id: "help-shipping",
-    title: "Shipping times",
-    snippet: "Standard shipping takes 3–5 business days.",
-  },
-  {
-    id: "help-password",
-    title: "Reset password",
-    snippet: "Use Forgot password on the login page to reset.",
+    snippet: "Refunds are available within 14 days of purchase for unused plan fees where applicable.",
   },
 ];
 
 /**
- * F13-T0 demo help search.
- * GET /api/demo/help?q=refund
+ * F13-T0 / Brandly demo help search.
+ * GET /api/demo/help?q=escrow
  */
 export async function GET(request) {
   const q = String(request.nextUrl.searchParams.get("q") || "")

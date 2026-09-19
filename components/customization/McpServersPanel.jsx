@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +35,15 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   createAgentMcpServer,
   deleteAgentMcpServer,
+  getGithubMcpOauthStatus,
   listAgentMcpServers,
   probeAgentMcpServer,
+  probeDraftAgentMcpServer,
+  startGithubMcpOauth,
   updateAgentMcpServer,
   updateAgentMcpTool,
 } from "@/lib/api/mcp";
+import { filterMcpCatalog, getMcpCatalogEntry } from "@/lib/mcp/catalog";
 import { cn } from "@/lib/utils";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateMcpQuery } from "@/lib/query/invalidation";
@@ -51,6 +55,7 @@ const EMPTY_FORM = {
   authType: "NONE",
   headerName: "Authorization",
   enabled: true,
+  catalogId: null,
 };
 
 function defaultDemoUrl() {
@@ -59,7 +64,7 @@ function defaultDemoUrl() {
 }
 
 /**
- * F13-T3 — MCP tab: add server → probe → enable tool subset.
+ * F13-T3 / M01 UX-2 — MCP tab: catalog → add → probe → enable tool subset.
  */
 export function McpServersPanel({ agentId, killOn = true }) {
   const queryClient = useQueryClient();
@@ -72,23 +77,86 @@ export function McpServersPanel({ agentId, killOn = true }) {
   const loading = mcpQuery.isPending;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [catalogQuery, setCatalogQuery] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftProbing, setDraftProbing] = useState(false);
+  const [draftPreview, setDraftPreview] = useState(null);
   const [probeBusy, setProbeBusy] = useState(null);
   const [toolBusy, setToolBusy] = useState(null);
+  const [oauthBusy, setOauthBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
+
+  const catalogEntries = filterMcpCatalog(catalogQuery);
+  const isGithubDialog = form.catalogId === "github";
+  const githubOauthQuery = useQuery({
+    queryKey: ["mcp", "github-oauth", agentId],
+    queryFn: () => getGithubMcpOauthStatus(agentId),
+    enabled: Boolean(agentId) && dialogOpen && isGithubDialog,
+  });
+  const githubOauth = githubOauthQuery.data;
 
   async function refreshMcp() {
     await invalidateMcpQuery(queryClient, agentId);
   }
 
-  function openCreate(demo = false) {
+  function openFromCatalog(entryId) {
+    const entry = getMcpCatalogEntry(entryId) || getMcpCatalogEntry("custom");
+    const isDemo = entry.id === "aide-demo";
+    const authType =
+      entry.authHint === "bearer" || entry.authHint === "oauth"
+        ? "BEARER"
+        : entry.authHint === "header"
+          ? "HEADER"
+          : "NONE";
     setForm({
       ...EMPTY_FORM,
-      name: demo ? "AIDE demo MCP" : "Custom MCP",
-      url: demo ? defaultDemoUrl() : "",
-      authType: "NONE",
+      catalogId: entry.id,
+      name: entry.defaultName || entry.name,
+      url: isDemo ? defaultDemoUrl() : entry.defaultUrl || "",
+      authType,
+      headerName: "Authorization",
     });
+    setDraftPreview(null);
     setDialogOpen(true);
+  }
+
+  async function handleGithubOauthConnect() {
+    setOauthBusy(true);
+    try {
+      const result = await startGithubMcpOauth(agentId, {
+        name: form.name.trim() || "GitHub MCP",
+        url: form.url.trim(),
+      });
+      if (!result?.authorizeUrl) {
+        throw new Error("OAuth authorize URL missing");
+      }
+      window.location.assign(result.authorizeUrl);
+    } catch (err) {
+      toast.error(err.message || "Unable to start GitHub OAuth");
+      setOauthBusy(false);
+    }
+  }
+
+  async function handleDraftProbe() {
+    setDraftProbing(true);
+    setDraftPreview(null);
+    try {
+      const result = await probeDraftAgentMcpServer(agentId, {
+        url: form.url.trim(),
+        transport: form.transport,
+        authType: form.authType,
+        headerName:
+          form.authType === "HEADER" ? form.headerName || "Authorization" : null,
+      });
+      setDraftPreview(result);
+      toast.success(
+        `Draft probe OK — ${result.discovered ?? result.tools?.length ?? 0} tools`
+      );
+    } catch (err) {
+      toast.error(err.message || "Draft MCP probe failed");
+    } finally {
+      setDraftProbing(false);
+    }
   }
 
   async function handleCreate() {
@@ -106,6 +174,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
       const server = created?.server || created;
       toast.success("MCP server saved — probing tools…");
       setDialogOpen(false);
+      setDraftPreview(null);
       await refreshMcp();
       if (server?.id) {
         await handleProbe(server.id);
@@ -176,29 +245,68 @@ export function McpServersPanel({ agentId, killOn = true }) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             Connect a remote MCP endpoint, discover tools, enable a subset.
             HTTPS + SSRF apply. Kill switch disables MCP with HTTP actions.
+            Enable tools, then mention them in agent instructions if the model
+            never calls them.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <p className="text-xs font-medium text-foreground">Catalog</p>
+          <Input
+            value={catalogQuery}
+            onChange={(e) => setCatalogQuery(e.target.value)}
+            placeholder="Filter catalog…"
+            className={cn(fieldClass, "h-8 max-w-[220px] text-xs")}
             disabled={!killOn}
-            onClick={() => openCreate(true)}
-          >
-            <Plug data-icon="inline-start" />
-            Use demo MCP
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!killOn}
-            onClick={() => openCreate(false)}
-          >
-            <Plus data-icon="inline-start" />
-            Custom MCP server
-          </Button>
+          />
         </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {catalogEntries.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              disabled={!killOn || entry.comingSoon}
+              onClick={() => openFromCatalog(entry.id)}
+              className={cn(
+                "rounded-xl border border-border bg-muted/20 p-3 text-left transition-colors",
+                killOn && !entry.comingSoon
+                  ? "hover:border-primary/40 hover:bg-muted/40"
+                  : "opacity-60"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground">
+                  {entry.name}
+                </span>
+                {entry.kind === "common" ? (
+                  <Badge variant="outline" className="rounded-full text-[10px]">
+                    Common
+                  </Badge>
+                ) : null}
+                {entry.comingSoon ? (
+                  <Badge variant="secondary" className="rounded-full text-[10px]">
+                    Soon
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                {entry.blurb}
+              </p>
+              {entry.authHint === "oauth" || entry.authHint === "bearer" ? (
+                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                  {entry.authHint === "oauth"
+                    ? "Auth: Connect with OAuth (or PAT)"
+                    : "Auth: Bearer PAT (no OAuth yet)"}
+                </p>
+              ) : null}
+            </button>
+          ))}
+        </div>
+        {catalogEntries.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No catalog matches.</p>
+        ) : null}
       </div>
 
       {loading ? (
@@ -210,9 +318,13 @@ export function McpServersPanel({ agentId, killOn = true }) {
         <EmptyState
           icon={Plug}
           title="No MCP servers yet"
-          description="Add AIDE’s demo MCP or a remote Streamable HTTP endpoint, then enable tools for Studio."
+          description="Pick Aide demo, Custom, or GitHub from the catalog, then enable tools for Studio."
           action={
-            <Button type="button" size="sm" onClick={() => openCreate(true)}>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => openFromCatalog("aide-demo")}
+            >
               <Plus data-icon="inline-start" />
               Use demo MCP
             </Button>
@@ -275,6 +387,10 @@ export function McpServersPanel({ agentId, killOn = true }) {
                     <ul className="flex flex-col gap-2">
                       {server.tools.map((tool) => {
                         const busy = toolBusy === tool.id;
+                        const isWrite =
+                          tool.riskLevel === "WRITE" ||
+                          tool.riskLevel === "DESTRUCTIVE" ||
+                          tool.requiresConfirmation;
                         return (
                           <li
                             key={tool.id}
@@ -284,18 +400,38 @@ export function McpServersPanel({ agentId, killOn = true }) {
                             )}
                           >
                             <div className="min-w-0">
-                              <p className="text-sm font-medium">{tool.name}</p>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <p className="text-sm font-medium">{tool.name}</p>
+                                {isWrite ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="rounded-full text-[10px]"
+                                  >
+                                    Needs confirm
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="secondary"
+                                    className="rounded-full text-[10px]"
+                                  >
+                                    READ
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-[11px] text-muted-foreground">
                                 {tool.functionName}
                                 {" · "}
                                 {tool.riskLevel}
-                                {tool.requiresConfirmation
-                                  ? " · needs confirm"
-                                  : ""}
                               </p>
                               {tool.description ? (
                                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                                   {tool.description}
+                                </p>
+                              ) : null}
+                              {isWrite ? (
+                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                  Writable MCP tools require visitor Confirm before
+                                  the call (same path as HTTP WRITE).
                                 </p>
                               ) : null}
                             </div>
@@ -348,18 +484,29 @@ export function McpServersPanel({ agentId, killOn = true }) {
         <Plug />
         <AlertTitle>Demo path</AlertTitle>
         <AlertDescription>
-          Use demo MCP → probe → enable <code>get_demo_time</code> → ask in Test
-          studio for the time. WRITE tool <code>create_demo_note</code> stays
-          confirmation-gated until F14 chat consent.
+          Use demo MCP → Test connection (draft) → Save &amp; probe → enable{" "}
+          <code>aide_demo_get_time</code> (or legacy <code>get_demo_time</code>) →
+          ask in Test studio. WRITE tools like{" "}
+          <code>aide_demo_create_note</code> stay confirm-gated at runtime.
         </AlertDescription>
       </Alert>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setDraftPreview(null);
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add MCP server</DialogTitle>
+            <DialogTitle>
+              {isGithubDialog ? "GitHub" : "Add MCP server"}
+            </DialogTitle>
             <DialogDescription>
-              Streamable HTTP preferred. Stdio is out of scope on serverless.
+              {isGithubDialog
+                ? "Remote GitHub MCP. OAuth uses a pre-registered GitHub OAuth App (no dynamic client registration)."
+                : "Prefer Test connection before Save. Streamable HTTP preferred. Stdio is out of scope on serverless."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-2">
@@ -370,84 +517,204 @@ export function McpServersPanel({ agentId, killOn = true }) {
                   setForm((p) => ({ ...p, name: e.target.value }))
                 }
                 className={fieldClass}
+                readOnly={isGithubDialog}
               />
             </FieldBlock>
-            <FieldBlock label="URL" hint="HTTPS in production. Demo: /api/demo/mcp">
+            <FieldBlock
+              label="URL"
+              hint={
+                isGithubDialog
+                  ? "Official remote MCP host"
+                  : "HTTPS in production. Demo: /api/demo/mcp"
+              }
+            >
               <Input
                 value={form.url}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, url: e.target.value }))
-                }
+                onChange={(e) => {
+                  setDraftPreview(null);
+                  setForm((p) => ({ ...p, url: e.target.value }));
+                }}
                 className={cn(fieldClass, "font-mono text-xs")}
                 placeholder="https://mcp.example.com/mcp"
+                readOnly={isGithubDialog}
               />
             </FieldBlock>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FieldBlock label="Transport">
-                <select
-                  value={form.transport}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, transport: e.target.value }))
-                  }
-                  className={cn(
-                    fieldClass,
-                    "w-full border border-border bg-card px-3 text-sm"
-                  )}
-                >
-                  <option value="HTTP">HTTP</option>
-                  <option value="SSE">SSE</option>
-                </select>
-              </FieldBlock>
-              <FieldBlock label="Auth">
-                <select
-                  value={form.authType}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, authType: e.target.value }))
-                  }
-                  className={cn(
-                    fieldClass,
-                    "w-full border border-border bg-card px-3 text-sm"
-                  )}
-                >
-                  <option value="NONE">None</option>
-                  <option value="BEARER">Bearer</option>
-                  <option value="HEADER">Header</option>
-                </select>
-              </FieldBlock>
-            </div>
-            {form.authType === "HEADER" ? (
-              <FieldBlock label="Header name">
-                <Input
-                  value={form.headerName}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, headerName: e.target.value }))
-                  }
-                  className={fieldClass}
-                />
-              </FieldBlock>
+
+            {isGithubDialog ? (
+              <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                <p className="text-sm font-medium text-foreground">
+                  Authorize Aide to access GitHub on your behalf
+                </p>
+                {githubOauthQuery.isPending ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Spinner className="size-3.5" />
+                    Checking OAuth setup…
+                  </div>
+                ) : githubOauth?.configured ? (
+                  <>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={!killOn || oauthBusy || !form.url.trim()}
+                      onClick={handleGithubOauthConnect}
+                    >
+                      {oauthBusy ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : (
+                        <ExternalLink data-icon="inline-start" />
+                      )}
+                      Connect with OAuth
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground">
+                      You will leave Aide to authorize on GitHub, then return
+                      here. Token is stored encrypted as a workspace credential.
+                    </p>
+                  </>
+                ) : (
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <p className="text-amber-700 dark:text-amber-400">
+                      Platform OAuth App not configured. GitHub MCP rejects
+                      dynamic client registration — same as Botpress — so set
+                      env secrets first.
+                    </p>
+                    <p>
+                      Callback URL (register on the GitHub OAuth App):
+                    </p>
+                    <code className="block break-all rounded-md border border-border bg-card px-2 py-1.5 font-mono text-[10px] text-foreground">
+                      {githubOauth?.redirectUri ||
+                        `${typeof window !== "undefined" ? window.location.origin : ""}/api/mcp/oauth/github/callback`}
+                    </code>
+                    <p>
+                      Set{" "}
+                      <code className="font-mono">GITHUB_MCP_OAUTH_CLIENT_ID</code>{" "}
+                      and{" "}
+                      <code className="font-mono">
+                        GITHUB_MCP_OAUTH_CLIENT_SECRET
+                      </code>
+                      , restart, then reopen this dialog. Until then use Save
+                      &amp; probe + PAT credential.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FieldBlock label="Transport">
+                    <select
+                      value={form.transport}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, transport: e.target.value }))
+                      }
+                      className={cn(
+                        fieldClass,
+                        "w-full border border-border bg-card px-3 text-sm"
+                      )}
+                    >
+                      <option value="HTTP">HTTP</option>
+                      <option value="SSE">SSE</option>
+                    </select>
+                  </FieldBlock>
+                  <FieldBlock label="Auth">
+                    <select
+                      value={form.authType}
+                      onChange={(e) => {
+                        setDraftPreview(null);
+                        setForm((p) => ({ ...p, authType: e.target.value }));
+                      }}
+                      className={cn(
+                        fieldClass,
+                        "w-full border border-border bg-card px-3 text-sm"
+                      )}
+                    >
+                      <option value="NONE">None</option>
+                      <option value="BEARER">Bearer</option>
+                      <option value="HEADER">Header</option>
+                    </select>
+                  </FieldBlock>
+                </div>
+                {form.authType === "HEADER" ? (
+                  <FieldBlock label="Header name">
+                    <Input
+                      value={form.headerName}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, headerName: e.target.value }))
+                      }
+                      className={fieldClass}
+                    />
+                  </FieldBlock>
+                ) : null}
+                {form.authType !== "NONE" ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Authenticated draft probe needs a workspace credential after
+                    Save.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Test connection runs tools/list without saving. Save &amp;
+                    probe persists the server and syncs tools.
+                  </p>
+                )}
+              </>
+            )}
+
+            {!isGithubDialog && draftPreview?.tools?.length ? (
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium text-foreground">
+                  Draft preview ({draftPreview.discovered} tools)
+                </p>
+                <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
+                  {draftPreview.tools.map((t) => (
+                    <li key={t.name}>
+                      {t.name}
+                      {t.riskLevel === "WRITE" || t.requiresConfirmation
+                        ? " · Needs confirm"
+                        : " · READ"}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
-            <p className="text-xs text-muted-foreground">
-              Attach a workspace credential on the server after create if auth
-              is required (Integrations → Connection).
-            </p>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving}
-              onClick={() => setDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={saving || !form.name.trim() || !form.url.trim()}
-              onClick={handleCreate}
-            >
-              {saving ? <Spinner data-icon="inline-start" /> : null}
-              Save & probe
-            </Button>
+          <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+            {!isGithubDialog ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={
+                  draftProbing ||
+                  saving ||
+                  !form.url.trim() ||
+                  form.authType !== "NONE"
+                }
+                onClick={handleDraftProbe}
+              >
+                {draftProbing ? <Spinner data-icon="inline-start" /> : null}
+                Test connection
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving || oauthBusy}
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              {!isGithubDialog || !githubOauth?.configured ? (
+                <Button
+                  type="button"
+                  disabled={saving || !form.name.trim() || !form.url.trim()}
+                  onClick={handleCreate}
+                >
+                  {saving ? <Spinner data-icon="inline-start" /> : null}
+                  Save &amp; probe
+                </Button>
+              ) : null}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

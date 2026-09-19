@@ -46,7 +46,7 @@ function testMerchantHelpers() {
   const embed = buildEmbedSnippet("pk_test", "https://app.example.com");
   assert.match(embed, /embed\.js/);
   assert.match(embed, /setUser/);
-  assert.match(embed, /ACCOUNT_READ|never unlocks ACCOUNT/i);
+  assert.match(embed, /ACCOUNT_READ|never unlocks ACCOUNT|HS256|Aide-signed/i);
   console.log("ok  merchant snippets + embed snippet");
 }
 
@@ -119,10 +119,50 @@ function testForgedBrowserIdDenied() {
     publicAccess: true,
     confirmationStatus: "APPROVED",
     endUserAccessToken: "tok",
+    identityStrategy: "hs256_jwt",
     toolArgs: { orderId: "91823" },
   });
   assert.equal(allowed.allow, true);
+
+  const hostSessionDenied = evaluateActionPolicy({
+    action: { ...account, name: "get_my_order" },
+    customerSubject: "user_abc",
+    publicAccess: true,
+    confirmationStatus: "APPROVED",
+    endUserAccessToken: "tok",
+    identityStrategy: "host_session",
+    toolArgs: { orderId: "91823" },
+  });
+  assert.equal(hostSessionDenied.allow, false);
+  assert.equal(hostSessionDenied.code, "IDENTITY_PROOF_REQUIRED");
   console.log("ok  forged browser customerId does not unlock ACCOUNT_READ");
+}
+
+function testAudBinding() {
+  const agentA = "agent_aaa";
+  const agentB = "agent_bbb";
+  const good = mintEndUserIdentityToken({
+    sub: "user_x",
+    iss: `aide:agent:${agentA}`,
+    aud: "aide-embed",
+  });
+  const claims = verifyCustomerIdentityToken(good.token, {
+    expectedAgentId: agentA,
+    expectedAud: "aide-embed",
+  });
+  assert.equal(claims.sub, "user_x");
+
+  let rejected = false;
+  try {
+    verifyCustomerIdentityToken(good.token, {
+      expectedAgentId: agentB,
+      expectedAud: "aide-embed",
+    });
+  } catch (e) {
+    rejected = e.code === "IDENTITY_INVALID";
+  }
+  assert.equal(rejected, true);
+  console.log("ok  JWT iss bound to agent");
 }
 
 function testWiring() {
@@ -144,5 +184,6 @@ function testWiring() {
 testMerchantHelpers();
 testMintAndResolve();
 testForgedBrowserIdDenied();
+testAudBinding();
 testWiring();
 console.log("identity-productization: ok");

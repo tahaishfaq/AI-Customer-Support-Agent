@@ -54,8 +54,16 @@ function main() {
   );
 
   const chat = read("lib/services/chat.service.js");
-  assert(/buildChatSystemPrompt/.test(chat), "chat uses builder");
-  assert(/Could not build agent prompt|prompt-builder failed/.test(chat), "build fail → 500 path");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /buildChatSystemPrompt/.test(chat) || /buildChatSystemPrompt/.test(turnCtx),
+    "chat uses builder"
+  );
+  assert(
+    /Could not build agent prompt|prompt-builder failed/.test(chat) ||
+      /Could not build agent prompt|prompt-builder failed/.test(turnCtx),
+    "build fail → 500 path"
+  );
 
   const classify = read("lib/services/ai/classify.js");
   assert(/GENERAL.*NEUTRAL|DEFAULT/.test(classify), "classify fallback preserved");

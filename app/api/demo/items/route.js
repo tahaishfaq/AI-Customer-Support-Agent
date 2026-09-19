@@ -3,26 +3,34 @@ import { NextResponse } from "next/server";
 const ITEMS = [
   {
     id: "ITEM-1",
-    name: "Starter plan",
+    name: "Brandly Starter",
     category: "plans",
     price: 29,
+    includes: ["1 active campaign", "AI matching", "Basic analytics"],
   },
   {
     id: "ITEM-2",
-    name: "Pro plan",
+    name: "Brandly Pro",
     category: "plans",
     price: 79,
+    includes: [
+      "Unlimited campaigns",
+      "Priority AI matching",
+      "Escrow + Stripe payouts",
+      "Team seats",
+    ],
   },
   {
     id: "ITEM-3",
-    name: "Onboarding kit",
+    name: "Creator onboarding kit",
     category: "addons",
     price: 49,
+    includes: ["Profile review", "Social OAuth setup guide"],
   },
 ];
 
 /**
- * F13-T0 demo catalog list.
+ * Brandly demo catalog list.
  * GET /api/demo/items
  */
 export async function GET() {

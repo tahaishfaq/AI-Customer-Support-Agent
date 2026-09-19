@@ -46,9 +46,20 @@ const publicRoute = read(
 assert(/role:\s*\{\s*not:\s*"INTERNAL"\s*\}/.test(publicRoute), "public filters INTERNAL");
 
 const chat = read("lib/services/chat.service.js");
-assert(/role:\s*\{\s*not:\s*"INTERNAL"\s*\}/.test(chat), "chat history skips INTERNAL");
-assert(/formatDeskNotesForPrompt/.test(chat), "desk notes fed into prompt");
-assert(/role:\s*"INTERNAL"/.test(chat), "loads INTERNAL notes separately");
+const turnCtx = read("lib/services/ai/turn-context.js");
+assert(
+  /role:\s*\{\s*not:\s*"INTERNAL"\s*\}/.test(chat) ||
+    /role:\s*\{\s*not:\s*"INTERNAL"\s*\}/.test(turnCtx),
+  "chat history skips INTERNAL"
+);
+assert(
+  /formatDeskNotesForPrompt/.test(chat) || /formatDeskNotesForPrompt/.test(turnCtx),
+  "desk notes fed into prompt"
+);
+assert(
+  /role:\s*"INTERNAL"/.test(chat) || /role:\s*"INTERNAL"/.test(turnCtx),
+  "loads INTERNAL notes separately"
+);
 
 const prompt = read("lib/services/ai/prompt-builder.js");
 assert(/formatDeskNotesForPrompt/.test(prompt), "formatDeskNotesForPrompt");

@@ -54,9 +54,20 @@ function main() {
   }
 
   const chat = read("lib/services/chat.service.js");
-  assert(/buildChatSystemPrompt/.test(chat), "chat uses prompt-builder");
-  assert(/formatClarifyQuestion|resolveRetrieveQuery/.test(chat), "F08 clarify path kept");
-  assert(/selectKnowledgeChunks/.test(chat), "F08 retrieve still wired");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /buildChatSystemPrompt/.test(chat) || /buildChatSystemPrompt/.test(turnCtx),
+    "chat uses prompt-builder"
+  );
+  assert(
+    /formatClarifyQuestion|resolveRetrieveQuery/.test(chat) ||
+      /formatClarifyQuestion|resolveRetrieveQuery/.test(turnCtx),
+    "F08 clarify path kept"
+  );
+  assert(
+    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
+    "F08 retrieve still wired"
+  );
 
   const retrieve = read("lib/services/ai/knowledge-retrieve.js");
   assert(/expandQueryTokensWithFuzzy|findTypoClarifications/.test(retrieve), "F08 fuzzy intact");

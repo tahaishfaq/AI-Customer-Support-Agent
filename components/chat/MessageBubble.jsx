@@ -1,11 +1,12 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
-import { ThumbsUp } from "lucide-react";
+import { Check, Copy, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { ChatAttachmentPreview } from "@/components/chat/ChatAttachmentPreview";
 import { ActionConfirmCard } from "@/components/chat/ActionConfirmCard";
 import { AvatarImage } from "@/components/ui/avatar-image";
+import { Button } from "@/components/ui/button";
 import { parseChatAttachment } from "@/lib/utils/chat-attachments";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +128,9 @@ export function MessageBubble({
   onFeedback,
   usedKnowledge = null,
   showKnowledgeDetails = false,
+  showCopy = false,
   toolSteps = null,
+  searchUsed = false,
   citations = null,
   sources = null,
   pendingConfirmations = null,
@@ -140,6 +143,7 @@ export function MessageBubble({
   const [feedback, setFeedback] = useState(initialFeedback);
   const [reason, setReason] = useState(initialFeedbackReason || "");
   const [askReason, setAskReason] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isUp = feedback === "up" || feedback === "UP";
   const isDown = feedback === "down" || feedback === "DOWN";
   const REASON_MAX = 200;
@@ -156,6 +160,24 @@ export function MessageBubble({
         })
         .filter(Boolean)
     : [];
+  const sourceChips = [];
+  if (knowledgeTitles.length > 0) sourceChips.push("Knowledge");
+  const mcpOkSteps = Array.isArray(toolSteps)
+    ? toolSteps.filter(
+        (s) =>
+          String(s?.name || "")
+            .toLowerCase()
+            .includes("mcp_") &&
+          (s?.ok === true || String(s?.status || "").toUpperCase() === "OK")
+      )
+    : [];
+  if (mcpOkSteps.length) {
+    const githubish = mcpOkSteps.some((s) =>
+      /github/.test(String(s?.name || "").toLowerCase())
+    );
+    sourceChips.push(githubish ? "Connected GitHub" : "Connected MCP");
+  }
+  if (searchUsed) sourceChips.push("Online");
   const toolLabels = Array.isArray(toolSteps)
     ? toolSteps
         .map((s) => {
@@ -186,6 +208,27 @@ export function MessageBubble({
     /!\[[^\]]*\]\(https?:/.test(content || "") ||
     /Attached file:/i.test(content || "");
   const bodyText = hasAttachment ? caption : parsedFile.display || content;
+
+  async function copyMessage() {
+    const text = String(bodyText || content || "").trim();
+    if (!text || typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  const canCopy =
+    Boolean(showCopy) &&
+    !pending &&
+    !streaming &&
+    !isInternal &&
+    Boolean(String(bodyText || content || "").trim());
 
   return (
     <div
@@ -338,6 +381,30 @@ export function MessageBubble({
         ) : null}
       </div>
 
+      {canCopy ? (
+        <div
+          className={cn(
+            "flex max-w-[85%] sm:max-w-[75%]",
+            isUser ? "justify-end" : showAgentAvatar ? "ml-8 justify-start" : "ml-1 justify-start"
+          )}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className={cn(
+              "text-muted-foreground hover:text-foreground",
+              themed && "text-[var(--wc-muted)] hover:text-[var(--wc-assistant-fg)]"
+            )}
+            aria-label={copied ? "Copied" : "Copy message"}
+            title={copied ? "Copied" : "Copy message"}
+            onClick={copyMessage}
+          >
+            {copied ? <Check /> : <Copy />}
+          </Button>
+        </div>
+      ) : null}
+
       {!isUser && !pending && showKnowledgeDetails && knowledgeTitles.length > 0 ? (
         <p
           className={cn(
@@ -350,6 +417,21 @@ export function MessageBubble({
             Used knowledge:
           </span>{" "}
           {knowledgeTitles.join(" · ")}
+        </p>
+      ) : null}
+
+      {!isUser && !pending && showKnowledgeDetails && sourceChips.length > 0 ? (
+        <p
+          className={cn(
+            "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1",
+            themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+          )}
+        >
+          <span className="font-medium text-[var(--color-primary)]">
+            Sources:
+          </span>{" "}
+          {sourceChips.join(" · ")}
         </p>
       ) : null}
 

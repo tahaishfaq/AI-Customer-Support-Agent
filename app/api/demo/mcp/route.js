@@ -1,34 +1,15 @@
 /**
- * F13-T3 — Local demo MCP endpoint (JSON-RPC over HTTP).
- * Tools: get_demo_time (READ), create_demo_note (WRITE).
+ * F13-T3 / DS1 — Local demo MCP endpoint (JSON-RPC over HTTP).
+ * Primary tools: aide_demo_get_time (READ), aide_demo_create_note (WRITE).
+ * Legacy aliases: get_demo_time, create_demo_note.
  */
 import { NextResponse } from "next/server";
-
-const TOOLS = [
-  {
-    name: "get_demo_time",
-    description: "Return the current server time (demo READ tool).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        timezone: { type: "string", description: "Optional IANA timezone label" },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "create_demo_note",
-    description: "Create a demo note (WRITE — requires confirmation in AIDE).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string", description: "Note body" },
-      },
-      required: ["text"],
-      additionalProperties: false,
-    },
-  },
-];
+import {
+  DEMO_MCP_PROTOCOL_VERSION,
+  DEMO_MCP_SERVER_INFO,
+  callDemoMcpTool,
+  listDemoMcpTools,
+} from "@/lib/mcp/demo-tools";
 
 function jsonRpcResult(id, result) {
   return NextResponse.json({ jsonrpc: "2.0", id: id ?? null, result });
@@ -42,50 +23,6 @@ function jsonRpcError(id, code, message) {
   });
 }
 
-function handleCall(name, args = {}) {
-  if (name === "get_demo_time") {
-    const tz = typeof args.timezone === "string" ? args.timezone : "UTC";
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            ok: true,
-            timezone: tz,
-            iso: new Date().toISOString(),
-            source: "aide_demo_mcp",
-          }),
-        },
-      ],
-    };
-  }
-  if (name === "create_demo_note") {
-    const text = String(args.text || "").trim();
-    if (!text) {
-      return {
-        isError: true,
-        content: [{ type: "text", text: "text is required" }],
-      };
-    }
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            ok: true,
-            id: `note_${Date.now()}`,
-            text,
-          }),
-        },
-      ],
-    };
-  }
-  return {
-    isError: true,
-    content: [{ type: "text", text: `Unknown tool: ${name}` }],
-  };
-}
-
 export async function POST(request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") {
@@ -96,9 +33,9 @@ export async function POST(request) {
 
   if (method === "initialize") {
     return jsonRpcResult(id, {
-      protocolVersion: "2024-11-05",
+      protocolVersion: DEMO_MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: "aide-demo-mcp", version: "0.1.0" },
+      serverInfo: { ...DEMO_MCP_SERVER_INFO },
     });
   }
 
@@ -107,14 +44,14 @@ export async function POST(request) {
   }
 
   if (method === "tools/list") {
-    return jsonRpcResult(id, { tools: TOOLS });
+    return jsonRpcResult(id, { tools: listDemoMcpTools() });
   }
 
   if (method === "tools/call") {
     const name = params?.name;
     const args = params?.arguments || {};
     if (!name) return jsonRpcError(id, -32602, "Missing tool name");
-    return jsonRpcResult(id, handleCall(name, args));
+    return jsonRpcResult(id, callDemoMcpTool(name, args));
   }
 
   if (method === "ping") {
@@ -125,10 +62,12 @@ export async function POST(request) {
 }
 
 export async function GET() {
+  const tools = listDemoMcpTools();
   return NextResponse.json({
     ok: true,
-    name: "aide-demo-mcp",
-    hint: "POST JSON-RPC: initialize · tools/list · tools/call",
-    tools: TOOLS.map((t) => t.name),
+    ...DEMO_MCP_SERVER_INFO,
+    protocolVersion: DEMO_MCP_PROTOCOL_VERSION,
+    hint: "POST JSON-RPC: initialize · tools/list · tools/call. Prefer aide_demo_* tool names.",
+    tools: tools.map((t) => t.name),
   });
 }

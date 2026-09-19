@@ -34,9 +34,11 @@ function main() {
   assert(/Per-agent scope/i.test(f05), "F05-A identity");
 
   const chat = read("lib/services/chat.service.js");
+  const turnCtx = read("lib/services/ai/turn-context.js");
   assert(/usedKnowledge/.test(chat), "chat returns usedKnowledge");
   assert(
-    /selectKnowledgeChunks|buildKnowledgeBlock/.test(chat),
+    /selectKnowledgeChunks|buildKnowledgeBlock/.test(chat) ||
+      /selectKnowledgeChunks/.test(turnCtx),
     "knowledge block builder"
   );
 

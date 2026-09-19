@@ -33,8 +33,10 @@ function main() {
       chat.includes("CLASSIFY_AFTER_RETURN"),
     "chat must after()-classify with insightsPending lag flag"
   );
+  const turnCtx = read("lib/services/ai/turn-context.js");
   assert(
-    chat.includes("MAX_KNOWLEDGE_CHARS"),
+    turnCtx.includes("MAX_KNOWLEDGE_CHARS") ||
+      chat.includes("MAX_KNOWLEDGE_CHARS"),
     "KB stuffing soft cap must remain (F08 does smarter retrieval)"
   );
   console.log("ok  classify after-return + KB cap");

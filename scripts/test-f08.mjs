@@ -61,7 +61,11 @@ function main() {
   );
 
   const chat = read("lib/services/chat.service.js");
-  assert(/selectKnowledgeChunks/.test(chat), "chat uses retrieve");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
+    "chat uses retrieve"
+  );
   assert(/usedKnowledge/.test(chat), "usedKnowledge for studio");
 
   assert(/test:f08/.test(read("package.json")), "npm run test:f08");

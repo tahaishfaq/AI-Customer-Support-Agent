@@ -160,6 +160,45 @@ export function FeaturesForm({ features, onChange }) {
           </Select>
         </FieldBlock>
       </FormSection>
+
+      <FormSection title="Embed origins">
+        <FieldBlock
+          label="Origin policy"
+          hint="All = first live HTTPS site claim locks the agent (existing behavior). Allowlist = only listed origins may call public embed APIs or claim the lock. Localhost / Aide app preview still allowed."
+        >
+          <Select
+            value={features.allowedOriginsMode || "all"}
+            onValueChange={(allowedOriginsMode) => {
+              if (allowedOriginsMode != null) patch({ allowedOriginsMode });
+            }}
+          >
+            <SelectTrigger className={fieldClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">All (auto-lock first site)</SelectItem>
+                <SelectItem value="allowlist">Allowlist only</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </FieldBlock>
+
+        {(features.allowedOriginsMode || "all") === "allowlist" ? (
+          <FieldBlock
+            label="Allowed origins"
+            hint="One origin per line (https://shop.example.com). Must include your live site. Empty allowlist blocks public embed."
+          >
+            <textarea
+              className={fieldClass + " min-h-[100px] resize-y font-mono text-xs"}
+              value={features.allowedOrigins || ""}
+              onChange={(e) => patch({ allowedOrigins: e.target.value })}
+              placeholder={"https://www.example.com\nhttps://shop.example.com"}
+              spellCheck={false}
+            />
+          </FieldBlock>
+        ) : null}
+      </FormSection>
     </div>
   );
 }

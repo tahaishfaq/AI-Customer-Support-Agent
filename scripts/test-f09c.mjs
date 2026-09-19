@@ -48,7 +48,11 @@ function main() {
   assert(/answerStyle.*SHORT.*DETAILED|enum\(\["SHORT", "DETAILED"\]\)/.test(validation), "zod answerStyle");
 
   const chat = read("lib/services/chat.service.js");
-  assert(/agent\.answerStyle/.test(chat), "chat passes answerStyle");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /agent\.answerStyle/.test(chat) || /agent\.answerStyle/.test(turnCtx),
+    "chat passes answerStyle"
+  );
 
   const packs = read("lib/services/test-questions.service.js");
   assert(/buildGroundingExcerptForStudio/.test(packs), "studio pack uses live grounding");

@@ -66,7 +66,7 @@ function main() {
   }
 
   const actionsForm = read("components/customization/ActionsForm.jsx");
-  assert(/Coming soon/.test(actionsForm), "Integrations/MCP Coming soon");
+  assert(/McpServersPanel/.test(actionsForm), "Integrations/MCP panel mounted");
   assert(/useState\("http"\)/.test(actionsForm), "default HTTP tab");
 
   const deploy = read("components/customization/DeployForm.jsx");
@@ -81,7 +81,7 @@ function main() {
 
   console.log("ok  F13-T0 site_demo_v1 templates + pack");
   console.log("ok  demo API routes");
-  console.log("ok  Tools UI Coming soon + Deploy install prompt");
+  console.log("ok  Tools UI MCP panel + Deploy install prompt");
   console.log("\nF13-T0 smoke passed");
 }
 

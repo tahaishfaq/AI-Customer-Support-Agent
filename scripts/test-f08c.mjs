@@ -35,8 +35,9 @@ function main() {
   assert(/SCORE_FLOOR|MIN_RELATIVE_SCORE/.test(mod), "score floor");
 
   const chat = read("lib/services/chat.service.js");
+  const turnCtx = read("lib/services/ai/turn-context.js");
   assert(
-    /siteKnowledgeOrigin/.test(chat),
+    /siteKnowledgeOrigin/.test(chat) || /siteKnowledgeOrigin/.test(turnCtx),
     "chat passes siteKnowledgeOrigin"
   );
 

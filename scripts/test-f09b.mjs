@@ -99,7 +99,11 @@ function main() {
   assert(/## Response rules/.test(excerpt), "studio excerpt includes rules");
 
   const chat = read("lib/services/chat.service.js");
-  assert(/buildChatSystemPrompt/.test(chat), "chat uses prompt-builder");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /buildChatSystemPrompt/.test(chat) || /buildChatSystemPrompt/.test(turnCtx),
+    "chat uses prompt-builder"
+  );
   assert(!/function buildSystemPrompt/.test(chat), "inline builder removed");
   assert(/formatClarifyQuestion/.test(chat), "clarify path kept");
 

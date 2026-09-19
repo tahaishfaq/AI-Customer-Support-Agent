@@ -110,7 +110,9 @@ export function MessageList({
           onFeedback={onFeedback}
           usedKnowledge={msg.usedKnowledge}
           showKnowledgeDetails={showKnowledgeDetails}
+          showCopy={showKnowledgeDetails}
           toolSteps={msg.toolSteps}
+          searchUsed={Boolean(msg.searchUsed)}
           citations={msg.citations}
           sources={msg.sources}
           pendingConfirmations={msg.pendingConfirmations}

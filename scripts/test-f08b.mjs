@@ -35,10 +35,18 @@ function main() {
   );
 
   const chat = read("lib/services/chat.service.js");
-  assert(/selectKnowledgeChunks/.test(chat), "chat wires selectKnowledgeChunks");
+  const turnCtx = read("lib/services/ai/turn-context.js");
+  assert(
+    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
+    "chat wires selectKnowledgeChunks"
+  );
   assert(!/function buildKnowledgeBlock/.test(chat), "blind buildKnowledgeBlock removed");
   assert(/usedKnowledge/.test(chat), "usedKnowledge kept");
-  assert(/detectKnowledgeLanguage\(knowledgeDocs\)/.test(chat), "language on full docs");
+  assert(
+    /detectKnowledgeLanguage\(knowledgeDocs\)/.test(chat) ||
+      /detectKnowledgeLanguage\(knowledgeDocs\)/.test(turnCtx),
+    "language on full docs"
+  );
 
   // Tokenize drops stopwords, keeps content terms
   const tokens = tokenize("What is the refund policy please");

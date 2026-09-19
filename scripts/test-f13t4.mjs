@@ -52,8 +52,27 @@ async function maybeLiveDemoMcp() {
     const json = await res.json();
     const tools = json?.result?.tools || [];
     const names = tools.map((t) => t.name);
-    assert(names.includes("get_demo_time"), "live demo lists get_demo_time");
-    assert(names.includes("create_demo_note"), "live demo lists create_demo_note");
+    assert(
+      names.includes("aide_demo_get_time"),
+      "live demo lists aide_demo_get_time"
+    );
+    assert(
+      names.includes("aide_demo_create_note"),
+      "live demo lists aide_demo_create_note"
+    );
+    assert(
+      !names.includes("get_demo_time"),
+      "legacy get_demo_time not listed (still callable)"
+    );
+    assert(
+      !names.includes("create_demo_note"),
+      "legacy create_demo_note not listed (still callable)"
+    );
+    const timeTool = tools.find((t) => t.name === "aide_demo_get_time");
+    assert(
+      timeTool?.annotations?.readOnlyHint === true,
+      "aide_demo_get_time has readOnlyHint"
+    );
 
     const call = await fetch(url, {
       method: "POST",
@@ -65,13 +84,36 @@ async function maybeLiveDemoMcp() {
         jsonrpc: "2.0",
         id: 2,
         method: "tools/call",
-        params: { name: "get_demo_time", arguments: { timezone: "UTC" } },
+        params: { name: "aide_demo_get_time", arguments: { timezone: "UTC" } },
       }),
       signal: AbortSignal.timeout(4000),
     });
     const called = await call.json();
-    const text = called?.result?.content?.[0]?.text || "";
-    assert(/aide_demo_mcp|iso/.test(text), "live get_demo_time returns payload");
+    const texts = (called?.result?.content || [])
+      .map((c) => c.text || "")
+      .join("\n");
+    assert(/aide_demo_mcp|iso/.test(texts), "live aide_demo_get_time returns payload");
+    assert(/Server time/.test(texts), "live aide_demo_get_time markdown summary");
+
+    const legacy = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "get_demo_time", arguments: { timezone: "UTC" } },
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+    const legacyJson = await legacy.json();
+    const legacyText = (legacyJson?.result?.content || [])
+      .map((c) => c.text || "")
+      .join("\n");
+    assert(/aide_demo_mcp|iso/.test(legacyText), "legacy get_demo_time still works");
     return { ok: true };
   } catch (err) {
     return { ok: false, reason: err.message || "unreachable" };

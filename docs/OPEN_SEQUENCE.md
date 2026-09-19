@@ -47,7 +47,7 @@
 | # | Item | Notes |
 |---|------|-------|
 | **17** | **Q4** Socket → invalidate Query cache | Done (RealtimeQuerySync) |
-| **18** | **M01 MCP Tools UX** | [`features/MCP_DEEP_PLAN.md`](features/MCP_DEEP_PLAN.md) — don’t reopen orchestrator |
+| **18** | **M01 MCP Tools UX** | UX-1–UX-2 + M3 GitHub OAuth (no DCR) done 2026-09-18 — [`features/MCP_DEEP_PLAN.md`](features/MCP_DEEP_PLAN.md) |
 | **19** | **F10 Semantic RAG** | embeds on BullMQ `knowledge` queue — [`features/F10_SEMANTIC_RAG.md`](features/F10_SEMANTIC_RAG.md) |
 | **20** | F00 live DoD ticks / deck | Owner — [`features/F00_DOD_DEMO_BUFFER.md`](features/F00_DOD_DEMO_BUFFER.md) · log [`shipped/F00_PROGRESS.md`](shipped/F00_PROGRESS.md) |
 | **21** | Email EM4 webhook / EM5 product updates | Optional — [`features/EMAIL_RESEND_PLAN.md`](features/EMAIL_RESEND_PLAN.md) |
