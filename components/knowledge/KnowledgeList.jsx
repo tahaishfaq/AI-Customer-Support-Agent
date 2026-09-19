@@ -2,16 +2,18 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 import { AddTextKnowledgeDialog } from "@/components/knowledge/AddTextKnowledgeDialog";
 import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
-import { listKnowledge } from "@/lib/api/knowledge";
+import { listKnowledge, retrySiteCrawl } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateKnowledgeQuery } from "@/lib/query/invalidation";
@@ -52,6 +54,7 @@ export function KnowledgeList({
   onWebSearchChange,
 }) {
   const [textOpen, setTextOpen] = useState(false);
+  const [retryBusy, setRetryBusy] = useState(false);
   const queryClient = useQueryClient();
   const knowledgeQuery = useQuery({
     queryKey: queryKeys.knowledge.list(agentId),
@@ -69,6 +72,35 @@ export function KnowledgeList({
 
   const crawlActive =
     latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING";
+
+  const canRetryCrawl =
+    Boolean(siteKnowledgeOrigin || latestCrawl?.origin) &&
+    latestCrawl?.status === "FAILED" &&
+    !crawlActive;
+
+  async function handleRetryCrawl() {
+    if (retryBusy || !canRetryCrawl) return;
+    setRetryBusy(true);
+    try {
+      const result = await retrySiteCrawl(agentId);
+      queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
+        ...(previous || { documents: [] }),
+        latestCrawl: result.latestCrawl || {
+          id: result.jobId,
+          status: "QUEUED",
+          error: null,
+          origin: result.origin,
+          finishedAt: null,
+        },
+      }));
+      toast.success("Website crawl queued");
+      void invalidateKnowledgeQuery(queryClient, agentId);
+    } catch (err) {
+      toast.error(err.message || "Unable to retry crawl");
+    } finally {
+      setRetryBusy(false);
+    }
+  }
 
   function handleCreated() {
     void invalidateKnowledgeQuery(queryClient, agentId);
@@ -145,18 +177,39 @@ export function KnowledgeList({
 
       {latestCrawl?.status === "FAILED" ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <CrawlStatusBadge status="FAILED" />
-            <p className="text-sm font-medium text-destructive">
-              Website crawl failed
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <CrawlStatusBadge status="FAILED" />
+                <p className="text-sm font-medium text-destructive">
+                  Website crawl failed
+                </p>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {(latestCrawl.error || "")
+                  .replace(/^CRAWL_FAILED:\s*/i, "")
+                  .trim() || "The one-time site crawl could not finish."}{" "}
+                Retry crawls only public, non-authenticated pages on{" "}
+                {(siteKnowledgeOrigin || latestCrawl.origin || "your site")
+                  .replace(/^https?:\/\//, "")}
+                .
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!canRetryCrawl || retryBusy}
+              onClick={() => void handleRetryCrawl()}
+            >
+              {retryBusy ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <RefreshCw data-icon="inline-start" />
+              )}
+              Retry crawl
+            </Button>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {(latestCrawl.error || "")
-              .replace(/^CRAWL_FAILED:\s*/i, "")
-              .trim() || "The one-time site crawl could not finish."}{" "}
-            Embed again on your live https origin to retry.
-          </p>
         </div>
       ) : null}
 
