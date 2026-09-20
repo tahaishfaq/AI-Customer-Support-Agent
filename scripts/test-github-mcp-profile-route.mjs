@@ -80,6 +80,13 @@ assert.match(turnCtx, /isGithubMcpAction/, "turn strips GitHub MCP on capability
 
 assert.match(loop, /name\.includes\("github"\)/, "any github MCP success counts");
 assert.match(loop, /get_me/, "get_me in inventory pattern");
+assert.match(loop, /GITHUB_REPO_LIST_NAME/, "repo-list tools gated separately");
+assert.match(loop, /userAskedForRepoList/, "repo-list utterance detection");
+assert.match(
+  loop,
+  /Previous tools did not return a repository list/,
+  "nudge when wrong tools used for repo list"
+);
 assert.match(
   loop,
   /must call an enabled GitHub MCP tool/,
@@ -90,5 +97,16 @@ assert.match(
   /stopReason !== "needs_user"/,
   "pending confirm is not inventory refuse"
 );
+
+const policy = fs.readFileSync(
+  path.join(root, "lib/services/ai/source-policy.js"),
+  "utf8"
+);
+assert.match(
+  policy,
+  /MUST call search_repositories/,
+  "system addon forbids releases/collaborators for repo lists"
+);
+assert.match(policy, /not list_releases/, "explicit anti-pattern in addon");
 
 console.log("PASS  github mcp profile route + capability ask");
