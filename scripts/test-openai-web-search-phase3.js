@@ -35,13 +35,14 @@ assert.match(publicRoute, /publicAccess: true/);
 assert.match(publicChat, /sendPublicChatMessageStream/);
 assert.match(publicChat, /streamingId/);
 assert.match(list, /AgentActivityBubble/);
-assert.match(list, /fallbackLabel="Working on your request…"/);
+assert.match(list, /fallbackLabel=\{showThinking \? "Thinking…" : null\}/);
+assert.match(list, /typingPhase/);
+assert.match(list, /thinkingPhase/);
 assert.match(list, /loading && !messages.some\(\(m\) => m.streaming\)/);
 assert.match(bubble, /fallbackLabel/);
 assert.match(workspace, /activeActivities/);
 assert.match(workspace, /onTool:/);
 assert.match(bubble, /role="status"/);
-assert.match(bubble, /motion-reduce:animate-none/);
 assert.match(bubble, /normalizeActivityEvent/);
 
 console.log("OpenAI hosted web-search Phase 3 activity contract passed");

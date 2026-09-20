@@ -45,8 +45,9 @@ function testMerchantHelpers() {
 
   const embed = buildEmbedSnippet("pk_test", "https://app.example.com");
   assert.match(embed, /embed\.js/);
-  assert.match(embed, /setUser/);
-  assert.match(embed, /ACCOUNT_READ|never unlocks ACCOUNT|HS256|Aide-signed/i);
+  assert.match(embed, /data-aide-key="pk_test"/);
+  assert.doesNotMatch(embed, /setUser|__AIDE_CHAT_USER__/);
+  assert.doesNotMatch(embed, /ACTIONS_IDENTITY_SECRET|HS256|ACCOUNT_READ/);
   console.log("ok  merchant snippets + embed snippet");
 }
 
@@ -168,7 +169,9 @@ function testAudBinding() {
 function testWiring() {
   assert.match(read("app/api/agents/[id]/identity/mint/route.js"), /mintEndUserIdentityToken/);
   assert.match(read("components/customization/DeployForm.jsx"), /EmbedIdentityGuide/);
-  assert.match(read("components/customization/EmbedIdentityGuide.jsx"), /Signed-in visitors/);
+  assert.match(read("components/customization/EmbedIdentityGuide.jsx"), /Logged-in customers/);
+  assert.match(read("components/customization/EmbedIdentityGuide.jsx"), /Optional setup/);
+  assert.match(read("components/customization/EmbedIdentityGuide.jsx"), /Show code/);
   assert.match(read("docs/features/EMBED_END_USER_IDENTITY.md"), /Host session/);
   assert.match(read("lib/api/agents.js"), /identity\/mint/);
   assert.match(read("app/embed.js/route.js"), /__AIDE_CHAT_USER__/);

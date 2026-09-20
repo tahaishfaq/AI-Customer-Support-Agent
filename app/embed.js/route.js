@@ -125,8 +125,8 @@ export function GET(request) {
       maxW = bounds.width;
       maxH = bounds.height;
     }
-    var width = 60;
-    var height = 60;
+    var width = 80;
+    var height = 56;
     if (data && data.width && data.height) {
       width = clampFrame(data.width, 56, maxW);
       height = clampFrame(data.height, 56, maxH);
@@ -165,7 +165,7 @@ export function GET(request) {
     var resizeTick = 0;
     var ackTick = 0;
     var lastGeneration = 0;
-    var lastFrame = { open: false, width: 60, height: 60 };
+    var lastFrame = { open: false, width: 80, height: 56 };
     var revealTimer;
 
     function reveal() {

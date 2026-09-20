@@ -11,6 +11,8 @@ import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
+import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
+import { listKnowledge } from "@/lib/api/knowledge";
 import { AgentPicker } from "@/components/chat/AgentPicker";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -68,6 +70,8 @@ export function ChatWorkspace() {
   const [widgetOpen, setWidgetOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [knowledgePreview, setKnowledgePreview] = useState(null);
+  const [knowledgePreviewOpen, setKnowledgePreviewOpen] = useState(false);
   const sendLockRef = useRef(false);
   const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
 
@@ -186,6 +190,7 @@ export function ChatWorkspace() {
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: text, local: true },
+      { id: streamingId, role: "ASSISTANT", content: "", streaming: true },
     ]);
 
     try {
@@ -201,7 +206,7 @@ export function ChatWorkspace() {
             if (existing) {
               return prev.map((item) =>
                 item.id === streamingId
-                  ? { ...item, content: `${item.content}${delta}` }
+                  ? { ...item, content: `${item.content}${delta}`, streaming: true }
                   : item
               );
             }
@@ -442,6 +447,23 @@ export function ChatWorkspace() {
           onConfirmDecision={handleConfirmDecision}
           confirmBusy={sending}
           activeActivities={activeActivities}
+          onSourceClarifyReply={(label) => {
+            if (!label || sending) return;
+            send(label);
+          }}
+          onOpenKnowledge={async (meta) => {
+            if (!meta?.id || !agentId) return;
+            try {
+              const { documents } = await listKnowledge(agentId);
+              const full =
+                (documents || []).find((d) => d.id === meta.id) || meta;
+              setKnowledgePreview(full);
+              setKnowledgePreviewOpen(true);
+            } catch {
+              setKnowledgePreview(meta);
+              setKnowledgePreviewOpen(true);
+            }
+          }}
           onFeedback={async (messageId, rating, reason) => {
             if (!messageId) return;
             await fetch(`/api/messages/${messageId}/feedback`, {
@@ -568,6 +590,11 @@ export function ChatWorkspace() {
           {chatBody}
         </ChatWidget>
       </EmbedPreview>
+      <PreviewKnowledgeDialog
+        document={knowledgePreview}
+        open={knowledgePreviewOpen}
+        onOpenChange={setKnowledgePreviewOpen}
+      />
     </div>
   );
 }

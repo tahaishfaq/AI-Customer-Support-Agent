@@ -239,7 +239,17 @@ export function StudioAgentTraces({ agentId, conversationId = null }) {
                           {run.actionName || "tool"} · {run.status}
                           {run.httpStatus != null ? ` · HTTP ${run.httpStatus}` : ""}
                           {run.durationMs != null ? ` · ${run.durationMs}ms` : ""}
-                          {run.errorCode ? ` · ${run.errorCode}` : ""}
+                          {run.policyOutcome ? (
+                            <span className="text-amber-700 dark:text-amber-400">
+                              {" "}
+                              · policy {run.policyOutcome}
+                            </span>
+                          ) : run.errorCode ? (
+                            ` · ${run.errorCode}`
+                          ) : (
+                            ""
+                          )}
+                          {run.confirmationRequired ? " · needs confirm" : ""}
                         </li>
                       ))}
                     </ul>

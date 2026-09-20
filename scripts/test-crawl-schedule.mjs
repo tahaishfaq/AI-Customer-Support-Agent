@@ -74,26 +74,32 @@ function testSourceWiring() {
 
   const knowledgeUi = read("components/knowledge/KnowledgeList.jsx");
   assert(/CrawlSchedulePanel/.test(knowledgeUi), "Knowledge UI schedule panel");
-  assert(/Crawl site/.test(knowledgeUi), "Knowledge UI crawl site button");
-  assert(/homepageUrl/.test(knowledgeUi), "Knowledge UI homepage URL field");
-  assert(/retrySiteCrawl/.test(knowledgeUi), "Knowledge UI calls retry API");
+  assert(/CrawlNowPanel/.test(knowledgeUi), "Knowledge UI crawl now panel");
+  assert(/Re-crawl now/.test(read("components/knowledge/CrawlNowPanel.jsx")), "Re-crawl now button");
+  assert(/retrySiteCrawl/.test(read("components/knowledge/CrawlNowPanel.jsx")), "Crawl now calls retry API");
+  assert(/site-crawler-browser/.test(read("lib/services/embed.service.js")), "embed crawl uses browser module");
+  assert(/looksLikeThinSpaShell/.test(read("lib/services/site-crawler.js")), "SPA shell detect");
+  assert(/CRAWL_BROWSER_ENABLED/.test(read("lib/services/site-crawler-browser.js")), "browser crawl flag");
 
   const retryRoute = read("app/api/agents/[id]/crawl/retry/route.js");
   assert(/retrySiteCrawlForAgent/.test(retryRoute), "crawl retry route");
   assert(/homepageUrl/.test(retryRoute), "crawl retry accepts homepageUrl");
+  assert(/urls/.test(retryRoute), "crawl retry accepts urls list");
   assert(/runCrawlJob/.test(retryRoute), "crawl retry runs job");
 
   const knowledgeSvc = read("lib/services/knowledge.service.js");
   assert(/force:\s*true/.test(knowledgeSvc), "owner retry forces enqueue");
-  assert(/parseOwnerCrawlStartUrl/.test(knowledgeSvc), "owner homepage URL parse");
+  assert(/parseOwnerCrawlUrlList/.test(knowledgeSvc), "owner multi URL parse");
 
   const embedSvc = read("lib/services/embed.service.js");
   assert(/force === true/.test(embedSvc), "enqueueOneTimeCrawl force option");
-  assert(/startUrl/.test(embedSvc), "enqueueOneTimeCrawl startUrl seed");
+  assert(/startUrls/.test(embedSvc), "enqueueOneTimeCrawl startUrls seed");
 
   const crawler = read("lib/services/site-crawler.js");
   assert(/parseOwnerCrawlStartUrl/.test(crawler), "parseOwnerCrawlStartUrl export");
+  assert(/parseOwnerCrawlUrlList/.test(crawler), "parseOwnerCrawlUrlList export");
   assert(/auth-path/.test(crawler), "blocks auth start paths");
+  assert(/mixed-origin/.test(crawler), "rejects mixed origins");
 
   const scheduleUi = read("components/knowledge/CrawlSchedulePanel.jsx");
   assert(/CRAWL_RECRAWL_OPTIONS/.test(scheduleUi), "schedule select options");

@@ -6,14 +6,14 @@ import { ArrowUpRight, Mic, Plus, Settings2, Star } from "lucide-react";
 import { LandingReveal } from "@/components/landing/LandingReveal";
 
 const LOGOS = [
-  "Northline",
-  "Cascade",
-  "Orbit",
-  "PeakForm",
-  "Lumen",
-  "Harbor",
-  "Summit",
-  "Vertex",
+  { name: "Notion", src: "/landing/clients/notion.svg" },
+  { name: "Stripe", src: "/landing/clients/stripe.svg" },
+  { name: "Linear", src: "/landing/clients/linear.svg" },
+  { name: "Vercel", src: "/landing/clients/vercel.svg" },
+  { name: "Figma", src: "/landing/clients/figma.svg" },
+  { name: "Slack", src: "/landing/clients/slack.svg" },
+  { name: "GitHub", src: "/landing/clients/github.svg" },
+  { name: "Intercom", src: "/landing/clients/intercom.svg" },
 ];
 
 const ROTATING_LINES = [
@@ -90,7 +90,7 @@ function LogoCarousel() {
   return (
     <div className="mt-14 text-center sm:mt-16">
       <p className="text-[12px] font-medium tracking-[0.14em] text-[var(--landing-muted)] uppercase">
-        [ 1000+ Trusted Clients ]
+        [ Built for modern product teams ]
       </p>
       <div className="relative mt-6 overflow-hidden">
         <div
@@ -102,12 +102,17 @@ function LogoCarousel() {
           className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white to-transparent sm:w-20"
         />
         <div className="landing-logo-marquee flex w-max items-center gap-3 sm:gap-3.5">
-          {loop.map((name, i) => (
+          {loop.map((brand, i) => (
             <span
-              key={`${name}-${i}`}
-              className="landing-dot-frame flex h-[3.25rem] w-[9.5rem] shrink-0 items-center justify-center bg-[#f7f6f4] text-[13px] font-semibold tracking-tight text-[var(--landing-muted)] sm:w-[10.5rem]"
+              key={`${brand.name}-${i}`}
+              className="landing-dot-frame flex h-[3.25rem] w-[9.5rem] shrink-0 items-center justify-center bg-[#f7f6f4] sm:w-[10.5rem]"
             >
-              {name}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={brand.src}
+                alt={brand.name}
+                className="h-5 w-auto max-w-[7rem] object-contain opacity-70 brightness-0"
+              />
             </span>
           ))}
         </div>

@@ -1,28 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, ChevronRight, Copy, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   FieldBlock,
   FormSection,
 } from "@/components/customization/CustomizationFields";
 import {
-  IDENTITY_PRODUCT_RULES,
   buildHostSessionSetUserSnippet,
   buildHs256JwtSetUserSnippet,
-  describeIdentityStrategies,
 } from "@/lib/embed/identity-merchant";
+import { cn } from "@/lib/utils";
+
+function CodeBlock({ id, text, copied, onCopy }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-zinc-950">
+      <div className="flex justify-end border-b border-white/10 px-2 py-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-zinc-200 hover:bg-white/10 hover:text-white"
+          onClick={() => onCopy(id, text)}
+        >
+          {copied === id ? (
+            <Check data-icon="inline-start" className="text-emerald-400" />
+          ) : (
+            <Copy data-icon="inline-start" />
+          )}
+          {copied === id ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-zinc-200">
+        <code>{text}</code>
+      </pre>
+    </div>
+  );
+}
 
 /**
- * Deploy-tab guide: how merchants bind signed-in visitors for ACCOUNT tools.
+ * Optional identity help — collapsed by default so Deploy stays install-first.
  */
 export function EmbedIdentityGuide() {
-  const strategies = describeIdentityStrategies();
   const hostSnippet = buildHostSessionSetUserSnippet();
   const jwtSnippet = buildHs256JwtSetUserSnippet();
   const [copied, setCopied] = useState(null);
+  const [showNameCode, setShowNameCode] = useState(false);
+  const [showAccountCode, setShowAccountCode] = useState(false);
 
   async function copySnippet(which, text) {
     try {
@@ -36,86 +67,97 @@ export function EmbedIdentityGuide() {
   }
 
   return (
-    <FormSection title="Signed-in visitors">
-      <FieldBlock
-        label="Why this matters"
-        hint="ACCOUNT_READ / ACCOUNT_WRITE on the public embed need an Aide-signed HS256 JWT from your backend. Browser setUser subject alone is not enough. Guests can still use public or GUEST_LOOKUP tools."
-      >
-        <ul className="space-y-1.5 text-sm text-muted-foreground">
-          {strategies.map((s) => (
-            <li key={s.id}>
-              <span className="font-medium text-foreground">{s.title}.</span>{" "}
-              {s.summary}
-            </li>
-          ))}
-        </ul>
-      </FieldBlock>
+    <FormSection title="Logged-in customers">
+      <p className="text-sm text-muted-foreground">
+        Most sites can skip this. The embed script above already runs chat for
+        visitors. Open this only if the bot should know who is signed in on your
+        site.
+      </p>
 
-      <FieldBlock
-        label="Aide-signed JWT (required for ACCOUNT tools)"
-        hint="Mint on your server with ACTIONS_IDENTITY_SECRET (or owner mint API). Never put the secret in the browser."
+      <Collapsible
+        defaultOpen={false}
+        className="group overflow-hidden rounded-xl border border-border bg-muted/20"
       >
-        <div className="overflow-hidden rounded-xl border border-border bg-zinc-950">
-          <div className="flex justify-end border-b border-white/10 px-2 py-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-zinc-200 hover:bg-white/10 hover:text-white"
-              onClick={() => copySnippet("jwt", jwtSnippet)}
+        <CollapsibleTrigger className="flex w-full items-start gap-2 px-3 py-3 text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40">
+          <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[open]:rotate-90" />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <UserRound className="size-3.5 text-muted-foreground" aria-hidden />
+              Optional setup
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Show their name, or answer “my order / my account” questions.
+            </span>
+          </span>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <div className="space-y-4 border-t border-border px-3 py-3">
+            <FieldBlock
+              label="1. Show their name in chat"
+              hint="Nice-to-have. Paste after your site login. Does not unlock order or account tools by itself."
             >
-              {copied === "jwt" ? (
-                <Check data-icon="inline-start" className="text-emerald-400" />
-              ) : (
-                <Copy data-icon="inline-start" />
-              )}
-              {copied === "jwt" ? "Copied" : "Copy"}
-            </Button>
-          </div>
-          <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-zinc-200">
-            <code>{jwtSnippet}</code>
-          </pre>
-        </div>
-      </FieldBlock>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(showNameCode && "bg-muted")}
+                onClick={() => setShowNameCode((v) => !v)}
+              >
+                {showNameCode ? "Hide code" : "Show code"}
+              </Button>
+              {showNameCode ? (
+                <div className="mt-2">
+                  <CodeBlock
+                    id="host"
+                    text={hostSnippet}
+                    copied={copied}
+                    onCopy={copySnippet}
+                  />
+                </div>
+              ) : null}
+            </FieldBlock>
 
-      <FieldBlock
-        label="Host setUser (display / outbound token)"
-        hint="Optional for display name and merchant outbound Bearer. Does not authorize ACCOUNT tools by itself."
-      >
-        <div className="overflow-hidden rounded-xl border border-border bg-zinc-950">
-          <div className="flex justify-end border-b border-white/10 px-2 py-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-zinc-200 hover:bg-white/10 hover:text-white"
-              onClick={() => copySnippet("host", hostSnippet)}
+            <FieldBlock
+              label="2. Answer order or account questions"
+              hint="Your backend issues a short-lived signed pass for the logged-in user. Never put secrets in the browser."
             >
-              {copied === "host" ? (
-                <Check data-icon="inline-start" className="text-emerald-400" />
-              ) : (
-                <Copy data-icon="inline-start" />
-              )}
-              {copied === "host" ? "Copied" : "Copy"}
-            </Button>
+              <ol className="mb-2 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+                <li>Customer logs into your website.</li>
+                <li>Your server creates a signed pass for that customer.</li>
+                <li>Your page gives that pass to the chat widget.</li>
+              </ol>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(showAccountCode && "bg-muted")}
+                onClick={() => setShowAccountCode((v) => !v)}
+              >
+                {showAccountCode ? "Hide code" : "Show code"}
+              </Button>
+              {showAccountCode ? (
+                <div className="mt-2 space-y-2">
+                  <CodeBlock
+                    id="jwt"
+                    text={jwtSnippet}
+                    copied={copied}
+                    onCopy={copySnippet}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    On logout, call{" "}
+                    <code className="text-[11px]">aideChat.clearUser()</code>.
+                    Developer details:{" "}
+                    <code className="text-[11px]">
+                      docs/features/EMBED_END_USER_IDENTITY.md
+                    </code>
+                  </p>
+                </div>
+              ) : null}
+            </FieldBlock>
           </div>
-          <pre className="overflow-x-auto p-3 text-[11px] leading-relaxed text-zinc-200">
-            <code>{hostSnippet}</code>
-          </pre>
-        </div>
-      </FieldBlock>
-
-      <FieldBlock label="Rules">
-        <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-          {IDENTITY_PRODUCT_RULES.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Full guide:{" "}
-          <code className="text-[11px]">docs/features/EMBED_END_USER_IDENTITY.md</code>
-        </p>
-      </FieldBlock>
+        </CollapsibleContent>
+      </Collapsible>
     </FormSection>
   );
 }

@@ -18,6 +18,8 @@ export function useDeskWaitingCount() {
   const { data } = useQuery({
     queryKey: queryKeys.desk.waiting,
     queryFn: getInboxWaitingCount,
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
     refetchInterval: realtimeConnected ? false : DESK_NAV_BADGE_POLL_MS,
   });
 

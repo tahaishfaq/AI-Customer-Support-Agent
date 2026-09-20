@@ -20,6 +20,7 @@ function testLoopStreaming() {
   const loop = read("lib/orchestrator/loop.js");
   assert(/streaming/.test(loop) && /onEvent/.test(loop), "loop accepts streaming/onEvent");
   assert(/chatCompletionStream/.test(loop), "final text can token-stream");
+  assert(/chatCompletionStreamTurn/.test(loop), "tool-enabled turns can token-stream");
   assert(/type:\s*"tool"/.test(loop) || /type: "tool"/.test(loop), "emits tool progress");
   assert(/type:\s*"delta"/.test(loop) || /type: "delta"/.test(loop), "emits deltas");
   assert(!/executeHttpAction/.test(loop), "still no direct HTTP");

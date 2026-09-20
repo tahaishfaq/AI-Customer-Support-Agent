@@ -26,16 +26,34 @@ export async function POST(request, { params }) {
     }
 
     let homepageUrl = "";
+    let urls = [];
     try {
       const body = await request.json();
       homepageUrl = String(body?.homepageUrl || body?.origin || "").trim();
+      if (Array.isArray(body?.urls)) {
+        urls = body.urls.map((u) => String(u || "").trim()).filter(Boolean);
+      } else if (typeof body?.urls === "string" && body.urls.trim()) {
+        urls = body.urls
+          .split(/[\n,]+/)
+          .map((u) => u.trim())
+          .filter(Boolean);
+      }
+      if (!urls.length && homepageUrl.includes("\n")) {
+        urls = homepageUrl
+          .split(/[\n,]+/)
+          .map((u) => u.trim())
+          .filter(Boolean);
+        homepageUrl = "";
+      }
     } catch {
       homepageUrl = "";
+      urls = [];
     }
 
     const result = await retrySiteCrawlForAgent(id, authResult.user.id, {
       requestId,
       homepageUrl: homepageUrl || undefined,
+      urls: urls.length ? urls : undefined,
     });
 
     after(async () => {

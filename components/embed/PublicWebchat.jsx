@@ -573,7 +573,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     setHistoryOpen(false);
     const optimisticId = `local-${Date.now()}`;
     const streamingId = `streaming-assistant-${Date.now()}`;
-    const nextUser = [...messages, { id: optimisticId, role: "USER", content: text, local: true }];
+    const nextUser = [
+      ...messages,
+      { id: optimisticId, role: "USER", content: text, local: true },
+      // Reserve assistant slot immediately so tool activity streams above a live bubble
+      // (avoids empty "…" pending row while MCP/HTTP runs).
+      { id: streamingId, role: "ASSISTANT", content: "", streaming: true },
+    ];
     setMessages(nextUser);
 
     try {
@@ -600,7 +606,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
             if (existing) {
               return prev.map((item) =>
                 item.id === streamingId
-                  ? { ...item, content: `${item.content}${delta}` }
+                  ? { ...item, content: `${item.content}${delta}`, streaming: true }
                   : item
               );
             }
@@ -1111,6 +1117,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         onConfirmDecision={handleConfirmDecision}
         confirmBusy={sending}
         activeActivities={activeActivities}
+        onSourceClarifyReply={(label) => {
+          if (!label || sending) return;
+          send(label);
+        }}
       />
       {error ? (
         <div className="mx-2 mb-1 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-2 py-1.5 text-[12px] text-[var(--color-danger)]">
@@ -1163,7 +1173,6 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         compact
         themed
         disabled={sending}
-        busyHint="Agent is working… wait for the reply"
         placeholder={placeholder}
         allowFileUpload={features.fileUpload}
         uploadUrl={`/api/public/agents/${agent.publicKey}/files`}

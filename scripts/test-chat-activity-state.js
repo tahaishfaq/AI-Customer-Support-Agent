@@ -22,9 +22,25 @@ test('turn boundaries, duplicate delivery and terminal states reject stale updat
   assert.equal(reduceActivityEvent(state, event({ sequence: 4, phase: 'selected' })), state);
   assert.equal(reduceActivityEvent(state, event({ sequence: 4, mode: 'mcp', phase: 'running' })), state);
   state = reduceActivityEvent(state, event({ sequence: 5, phase: 'completed' }));
-  assert.equal(reduceActivityEvent(state, event({ sequence: 6, phase: 'running' })), state);
+  // Multi-tool same mode: completed can reopen into running.
+  state = reduceActivityEvent(state, event({ sequence: 6, phase: 'running' }));
+  assert.equal(state.activities[0].phase, 'running');
+  state = reduceActivityEvent(state, event({ sequence: 7, phase: 'completed' }));
+  assert.equal(state.activities[0].phase, 'completed');
+  // Illegal phase from completed still rejected.
+  assert.equal(reduceActivityEvent(state, event({ sequence: 8, phase: 'cancelled' })), state);
   state = closeActivityState(state);
   assert.equal(reduceActivityEvent(state, event({ activityId: 'late' })), state);
+});
+
+test('mcp tool chain reuses one activity row', () => {
+  let state = createActivityState('turn-1');
+  state = reduceActivityEvent(state, event({ activityId: 'mode-mcp', mode: 'mcp', phase: 'running', sequence: 1 }));
+  state = reduceActivityEvent(state, event({ activityId: 'mode-mcp', mode: 'mcp', phase: 'completed', sequence: 2 }));
+  state = reduceActivityEvent(state, event({ activityId: 'mode-mcp', mode: 'mcp', phase: 'running', sequence: 3 }));
+  assert.equal(state.activities.length, 1);
+  assert.equal(state.activities[0].phase, 'running');
+  assert.equal(activityLabel(state.activities[0]), 'Running connected tool');
 });
 
 test('independent invocations and bounded state do not overwrite each other', () => {
@@ -43,7 +59,7 @@ test('confirmation can resume without being mislabeled completed or failed', () 
   state = reduceActivityEvent(state, event({ sequence: 2, phase: 'needs_confirmation' }));
   assert.equal(activityLabel(state.activities[0]), 'Waiting for your confirmation');
   state = reduceActivityEvent(state, event({ sequence: 3, phase: 'running' }));
-  assert.equal(activityLabel(state.activities[0]), 'Checking your connected service');
+  assert.equal(activityLabel(state.activities[0]), 'Calling connected service');
   assert.equal(activityLabel(event({ phase: 'failed' })), 'Unable to complete this check');
   assert.equal(activityLabel(event({ phase: 'completed', outcome: 'replayed' })), 'Using a previous result');
   assert.equal(activityLabel(event({ phase: 'needs_identity' })), 'Waiting for verification');
@@ -59,7 +75,7 @@ test('coalesced search events retain truthful mode-specific completion instead o
   let state = createActivityState('turn-1');
   for (const [index, phase] of ['selected','running','completed'].entries()) {
     const next = event({mode:'web_search',phase,sequence:index+1});
-    if (phase === 'selected') assert.equal(activityLabel(next),'Preparing web search');
+    if (phase === 'selected') assert.equal(activityLabel(next),'Starting web search');
     state = reduceActivityEvent(state,next);
   }
   assert.equal(state.activities[0].phase,'completed');

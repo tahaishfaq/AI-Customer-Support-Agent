@@ -20,7 +20,7 @@ export function ChatComposer({
   allowFileUpload = false,
   themed = false,
   uploadUrl,
-  busyHint = "Agent is responding…",
+  busyHint: _busyHint,
 }) {
   const [value, setValue] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -31,7 +31,8 @@ export function ChatComposer({
   const minH = themed ? 32 : 36;
   const maxH = themed ? 64 : 72;
   const busy = disabled || uploading;
-  const activePlaceholder = busy ? busyHint : placeholder;
+  // Typing feedback lives in the message list — keep a normal placeholder while busy.
+  const activePlaceholder = placeholder;
   const emojis = [
     "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
     "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",

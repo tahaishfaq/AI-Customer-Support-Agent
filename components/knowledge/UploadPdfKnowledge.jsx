@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { AidePreloader } from "@/components/ui/aide-preloader";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -123,7 +124,10 @@ export function UploadPdfKnowledge({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="relative sm:max-w-lg">
+          {loading ? (
+            <AidePreloader variant="overlay" label="Uploading PDF…" />
+          ) : null}
           <DialogHeader>
             <DialogTitle>Upload PDF</DialogTitle>
             <DialogDescription>

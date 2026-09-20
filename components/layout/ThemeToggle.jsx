@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
 /** Light default; toggles optional dark for Desk / Studio / app shell. */
 export function ThemeToggle({ className }) {
   const { theme, setTheme } = useTheme();
+  const { status } = useSession();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -20,6 +22,21 @@ export function ThemeToggle({ className }) {
   }, []);
 
   const dark = mounted && theme === "dark";
+
+  async function persistTheme(next) {
+    setTheme(next);
+    if (status !== "authenticated") return;
+    try {
+      await fetch("/api/user/theme", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next }),
+      });
+    } catch {
+      // Local theme already applied; sync can retry on next load.
+    }
+  }
 
   return (
     <Tooltip>
@@ -31,7 +48,7 @@ export function ThemeToggle({ className }) {
             size="icon-sm"
             className={className}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            onClick={() => setTheme(dark ? "light" : "dark")}
+            onClick={() => persistTheme(dark ? "light" : "dark")}
           />
         }
       >

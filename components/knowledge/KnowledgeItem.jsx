@@ -75,8 +75,14 @@ export function KnowledgeItem({ document, onDeleted }) {
               {isWeb && document.origin
                 ? `${document.origin.replace(/^https?:\/\//, "")} · ${formatDate(document.createdAt)}`
                 : formatDate(document.createdAt)}
+              {` · ${String(document.content || "").length.toLocaleString()} chars`}
               {large ? " · Large — relevant sections used in chat" : ""}
             </span>
+            {String(document.content || "").trim() ? (
+              <span className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted-foreground/90">
+                {String(document.content).replace(/\s+/g, " ").trim()}
+              </span>
+            ) : null}
           </span>
         </button>
 

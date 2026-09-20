@@ -3,7 +3,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 // Desired sizes never depend on rendered content/iframe measurements.
-// 4px non-anchored gutter + 520px panel + 12px gap + 56px launcher.
+// Open: 4px gutter + 380px panel ≈ 384. Closed launcher: rounded-rect + gutter.
+const CLOSED_LAUNCHER_W = 80;
+const CLOSED_LAUNCHER_H = 56;
+
 export function useEmbedFrame({ enabled, open, proactive, customLauncher, position, parentOrigin }) {
   const sequence = useRef(0);
   const [applied, setApplied] = useState(null);
@@ -13,7 +16,7 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
     if (!enabled || window.parent === window || !parentOrigin) return;
     // A later transition can reuse the same state key (A -> B -> A). Clear
     // readiness before the new host acknowledgement, or the panel could paint
-    // inside the previous 60px launcher frame for one render.
+    // inside the previous closed launcher frame for one render.
     setApplied(null);
     let origin;
     try {
@@ -26,8 +29,20 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
     let fallbackAllowed = false;
     let acknowledged = false;
     let tick = 0;
-    const width = open ? 384 : proactive ? 264 : customLauncher ? 148 : 60;
-    const height = open ? 592 : proactive ? 184 : 60;
+    const width = open
+      ? 384
+      : proactive
+        ? 264
+        : customLauncher
+          ? 148
+          : CLOSED_LAUNCHER_W;
+    const height = open
+      ? 592
+      : proactive
+        ? 184
+        : customLauncher
+          ? 60
+          : CLOSED_LAUNCHER_H;
     function accept(anchor) {
       if (!disposed) setApplied({ key, position: anchor });
     }

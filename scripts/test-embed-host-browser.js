@@ -8,7 +8,7 @@ const { chromium, expect } = require('@playwright/test');
 const HOST = 'https://host.example.test';
 const APP = 'https://widget.example.test';
 const OTHER = 'https://other.example.test';
-const frameData = { source: 'hapy-widget', type: 'frame', open: false, width: 60, height: 60 };
+const frameData = { source: 'hapy-widget', type: 'frame', open: false, width: 80, height: 56 };
 
 async function main() {
   const source = fs.readFileSync(path.join(__dirname, '../app/embed.js/route.js'), 'utf8');
@@ -145,7 +145,7 @@ async function main() {
       await send({ ...frameData, version: 2, generation: 1, position: 'bottom-right' });
       assert.deepEqual(await box(), before);
       await send({ ...frameData, version: 2, generation: 3, position: 'bottom-right' });
-      assert.equal((await box()).width, 60);
+      assert.equal((await box()).width, 80);
     });
     await run('container embed keeps host dimensions and ignores floating messages', async ({ page, send, box }) => {
       const before = await box();

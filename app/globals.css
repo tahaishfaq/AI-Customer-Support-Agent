@@ -1122,6 +1122,8 @@ html:has([data-hapy-embed]) nextjs-portal {
   }
 }
 
+/* Embed / studio chat launcher gleam ring lives in components/ui/shiny-button.jsx */
+
 .landing-reviews-col {
   mask-image: linear-gradient(
     to bottom,
@@ -1304,4 +1306,111 @@ html:has([data-hapy-embed]) nextjs-portal {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-primary);
+}
+
+/* —— AIDE brand loader —— */
+.aide-loader-ring {
+  background: color-mix(in srgb, var(--color-primary, #ea580c) 8%, var(--background, #fff));
+}
+
+.aide-loader-orbit {
+  border-top-color: var(--color-primary, #ea580c);
+  border-right-color: color-mix(in srgb, var(--color-primary, #ea580c) 35%, transparent);
+  animation: aide-loader-spin 0.9s linear infinite;
+}
+
+.aide-loader-mark {
+  animation: aide-loader-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes aide-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aide-loader-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aide-loader-orbit,
+  .aide-loader-mark {
+    animation: none !important;
+  }
+
+  .aide-loader-orbit {
+    border-color: color-mix(in srgb, var(--color-primary, #ea580c) 45%, transparent);
+  }
+
+  .aide-loader-mark {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* —— Launcher face morph (logo/avatar ↔ X) —— */
+.aide-launcher-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.aide-launcher-face > .aide-launcher-layer {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+  will-change: opacity, transform;
+}
+
+.aide-launcher-face > .aide-launcher-closed {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.aide-launcher-face > .aide-launcher-open {
+  opacity: 0;
+  transform: scale(0.72) rotate(-45deg);
+  pointer-events: none;
+}
+
+.aide-launcher-face[data-open="true"] > .aide-launcher-closed {
+  opacity: 0;
+  transform: scale(0.72) rotate(45deg);
+  pointer-events: none;
+}
+
+.aide-launcher-face[data-open="true"] > .aide-launcher-open {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aide-launcher-face > .aide-launcher-layer {
+    transition: none;
+  }
+
+  .aide-launcher-face > .aide-launcher-closed,
+  .aide-launcher-face > .aide-launcher-open,
+  .aide-launcher-face[data-open="true"] > .aide-launcher-closed,
+  .aide-launcher-face[data-open="true"] > .aide-launcher-open {
+    transform: none;
+  }
 }

@@ -7,6 +7,10 @@ import { ChatAttachmentPreview } from "@/components/chat/ChatAttachmentPreview";
 import { ActionConfirmCard } from "@/components/chat/ActionConfirmCard";
 import { AvatarImage } from "@/components/ui/avatar-image";
 import { Button } from "@/components/ui/button";
+import {
+  isSourceClarifyAssistantMessage,
+  sourceClarifyButtonsFromContent,
+} from "@/lib/services/ai/intent-clarify";
 import { parseChatAttachment } from "@/lib/utils/chat-attachments";
 import { cn } from "@/lib/utils";
 
@@ -136,6 +140,9 @@ export function MessageBubble({
   pendingConfirmations = null,
   onConfirmDecision = null,
   confirmBusy = false,
+  showSourceClarifyButtons = false,
+  onSourceClarifyReply = null,
+  onOpenKnowledge = null,
 }) {
   const isUser = role === "USER";
   const isHuman = role === "HUMAN";
@@ -148,6 +155,15 @@ export function MessageBubble({
   const isDown = feedback === "down" || feedback === "DOWN";
   const REASON_MAX = 200;
   const showAgentAvatar = themed && !isUser && identity;
+  const sourceClarifyButtons =
+    !isUser &&
+    !pending &&
+    !streaming &&
+    showSourceClarifyButtons &&
+    typeof onSourceClarifyReply === "function" &&
+    isSourceClarifyAssistantMessage(content)
+      ? sourceClarifyButtonsFromContent(content)
+      : [];
   const knowledgeTitles = Array.isArray(usedKnowledge)
     ? usedKnowledge.map((d) => d?.name).filter(Boolean)
     : [];
@@ -284,31 +300,50 @@ export function MessageBubble({
                 ? "bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
                 : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
           )}
-          style={themed ? { borderRadius: "0.375rem" } : undefined}
+          style={
+            themed
+              ? {
+                  borderRadius: "var(--wc-radius, 0.75rem)",
+                  boxShadow: isUser
+                    ? "none"
+                    : "0 2px 12px rgba(15, 23, 42, 0.06)",
+                }
+              : undefined
+          }
         >
-          {pending && !streaming ? (
+          {(pending || (streaming && !bodyText)) && !(streaming && bodyText) ? (
             <span
-              className="inline-flex items-center gap-1 py-1"
+              className="inline-flex flex-col gap-1 py-0.5"
               aria-label="Assistant is typing"
             >
               <span
                 className={cn(
-                  "size-1.5 animate-pulse rounded-full",
-                  themed ? "bg-[var(--wc-muted)]" : "bg-[var(--color-muted)]"
+                  "text-[11px] font-medium",
+                  themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
                 )}
-              />
-              <span
-                className={cn(
-                  "size-1.5 animate-pulse rounded-full [animation-delay:150ms]",
-                  themed ? "bg-[var(--wc-muted)]" : "bg-[var(--color-muted)]"
-                )}
-              />
-              <span
-                className={cn(
-                  "size-1.5 animate-pulse rounded-full [animation-delay:300ms]",
-                  themed ? "bg-[var(--wc-muted)]" : "bg-[var(--color-muted)]"
-                )}
-              />
+              >
+                Typing…
+              </span>
+              <span className="inline-flex items-center gap-1" aria-hidden>
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full motion-safe:animate-pulse",
+                    themed ? "bg-[var(--wc-primary)]" : "bg-[var(--color-primary)]"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full motion-safe:animate-pulse [animation-delay:150ms]",
+                    themed ? "bg-[var(--wc-primary)]" : "bg-[var(--color-primary)]"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full motion-safe:animate-pulse [animation-delay:300ms]",
+                    themed ? "bg-[var(--wc-primary)]" : "bg-[var(--color-primary)]"
+                  )}
+                />
+              </span>
             </span>
           ) : (
             <div className="space-y-1">
@@ -327,18 +362,18 @@ export function MessageBubble({
                       <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
                     ) : null}
                   </p>
+                ) : streaming ? (
+                  <p className="whitespace-pre-wrap">
+                    {bodyText}
+                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
+                  </p>
                 ) : (
                   <div className="markdown-body">
                     <ReactMarkdown components={markdownComponents}>
                       {bodyText}
                     </ReactMarkdown>
-                    {streaming ? (
-                      <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
-                    ) : null}
                   </div>
                 )
-              ) : streaming ? (
-                <span className="inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
               ) : null}
             </div>
           )}
@@ -406,18 +441,63 @@ export function MessageBubble({
       ) : null}
 
       {!isUser && !pending && showKnowledgeDetails && knowledgeTitles.length > 0 ? (
-        <p
+        <div
           className={cn(
-            "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
-            showAgentAvatar ? "ml-8" : "ml-1",
-            themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+            "flex max-w-[85%] flex-col gap-1 sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1"
           )}
         >
-          <span className="font-medium text-[var(--color-primary)]">
-            Used knowledge:
-          </span>{" "}
-          {knowledgeTitles.join(" · ")}
-        </p>
+          <p
+            className={cn(
+              "text-[11px] leading-snug",
+              themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+            )}
+          >
+            <span className="font-medium text-[var(--color-primary)]">
+              Used knowledge:
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-1.5" aria-label="Open used knowledge">
+            {(Array.isArray(usedKnowledge) ? usedKnowledge : [])
+              .filter((d) => d?.name)
+              .map((doc) => {
+                const canOpen =
+                  typeof onOpenKnowledge === "function" && Boolean(doc.id);
+                const label = doc.name;
+                if (!canOpen) {
+                  return (
+                    <span
+                      key={doc.id || label}
+                      className={cn(
+                        "rounded-full border px-2 py-1 text-[11px]",
+                        themed
+                          ? "border-[var(--wc-border)] text-[var(--wc-muted)]"
+                          : "border-[var(--color-border)] text-[var(--color-muted)]"
+                      )}
+                    >
+                      {label}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() => onOpenKnowledge(doc)}
+                    className={cn(
+                      "max-w-full truncate rounded-full border px-2 py-1 text-left text-[11px] font-medium underline underline-offset-2",
+                      themed
+                        ? "border-[var(--wc-border)] text-[var(--wc-primary)] hover:bg-[var(--wc-primary)]/5"
+                        : "border-[var(--color-border)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
+                    )}
+                    title="Open full indexed knowledge text"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+          </div>
+        </div>
       ) : null}
 
       {!isUser && !pending && showKnowledgeDetails && sourceChips.length > 0 ? (
@@ -524,6 +604,35 @@ export function MessageBubble({
             </div>
           ))
         : null}
+
+      {sourceClarifyButtons.length > 0 ? (
+        <div
+          className={cn(
+            "flex w-full max-w-[min(100%,22rem)] flex-wrap gap-1.5",
+            showAgentAvatar ? "ml-8" : "ml-1"
+          )}
+          role="group"
+          aria-label="Choose where to look"
+        >
+          {sourceClarifyButtons.map((btn) => (
+            <button
+              key={btn.key}
+              type="button"
+              disabled={confirmBusy}
+              onClick={() => onSourceClarifyReply?.(btn.label)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-left text-[12px] font-medium transition-colors",
+                themed
+                  ? "border-[var(--wc-border)] bg-[var(--wc-shell)] text-[var(--wc-shell-fg)] hover:border-[var(--wc-primary)] hover:text-[var(--wc-primary)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              )}
+            >
+              <span className="tabular-nums opacity-60">{btn.n}. </span>
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {!isUser && !pending && showFeedback && role === "ASSISTANT" ? (
         <div

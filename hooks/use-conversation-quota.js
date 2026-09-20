@@ -10,7 +10,7 @@ import {
 import { queryKeys } from "@/lib/query/keys";
 
 const REFRESH_EVENT = "aide:conversation-quota-refresh";
-const BILLING_FALLBACK_POLL_MS = 60_000;
+const BILLING_FALLBACK_POLL_MS = 120_000;
 
 export function refreshConversationQuota() {
   if (typeof window !== "undefined") {
@@ -24,6 +24,8 @@ export function useConversationQuota({ enabled = true } = {}) {
     queryKey: queryKeys.billing.status,
     queryFn: getBillingStatus,
     enabled,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     refetchInterval: realtimeConnected ? false : BILLING_FALLBACK_POLL_MS,
   });
 

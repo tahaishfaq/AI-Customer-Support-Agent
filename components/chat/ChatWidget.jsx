@@ -5,7 +5,6 @@ import {
   Bell,
   BellOff,
   Globe2,
-  MessageCircle,
   X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -13,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { monogram } from "@/components/conversations/format";
 import { widgetStyleVars } from "@/lib/customization/theme";
 import { WidgetBrand } from "@/components/chat/WidgetBrand";
+import { AideLogoMark } from "@/components/brand/AideLogo";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 function Avatar({ src, label, className, style }) {
   if (src) {
@@ -264,28 +265,57 @@ export function ChatWidget({
           {open ? "Close chat" : "Chat with us"}
         </button>
       ) : (
-        <button
-          type="button"
-          className="flex size-14 items-center justify-center overflow-hidden rounded-full border-0 text-white shadow-none outline-none"
+        <ShinyButton
+          variant="launcher"
+          buttonRef={launcherRef}
+          accentColor={primary}
+          fillColor="var(--wc-shell, #ffffff)"
+          labelColor="var(--wc-shell-fg, #0f172a)"
+          cornerRadius={16}
+          className="shadow-none outline-none"
+          data-open={open ? "true" : "false"}
           style={{
-            ...(coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0 } : {}),
-            backgroundColor: primary,
-            boxShadow: "none",
+            ...(coordinatedFrame
+              ? {
+                  position: "absolute",
+                  bottom: 0,
+                  [align === "start" ? "left" : "right"]: 0,
+                }
+              : {}),
+            "--wc-primary": primary,
           }}
           aria-label={open ? "Close chat widget" : "Open chat widget"}
           aria-expanded={open}
           aria-controls="aide-chat-panel"
           onClick={onToggle}
         >
-          {open ? (
-            <X className="size-5" aria-hidden />
-          ) : launcherSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={launcherSrc} alt="" className="size-full object-cover" />
-          ) : (
-            <MessageCircle className="size-5" />
-          )}
-        </button>
+          <span className="aide-launcher-face" data-open={open ? "true" : "false"}>
+            <span className="aide-launcher-layer aide-launcher-closed" aria-hidden={open}>
+              {launcherSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={launcherSrc}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                <AideLogoMark
+                  variant={dark ? "light" : "dark"}
+                  size="sm"
+                  className="h-4"
+                  title="AIDE"
+                />
+              )}
+            </span>
+            <span className="aide-launcher-layer aide-launcher-open" aria-hidden={!open}>
+              <X
+                className="size-5"
+                style={{ color: "var(--wc-shell-fg, #0f172a)" }}
+                aria-hidden
+              />
+            </span>
+          </span>
+        </ShinyButton>
       )}
     </div>
   );

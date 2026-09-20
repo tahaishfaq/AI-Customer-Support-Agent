@@ -31,4 +31,25 @@ const http = parseOwnerCrawlStartUrl("http://example.com");
 assert.equal(http.skip, true);
 assert.equal(http.reason, "not-https");
 
+const { parseOwnerCrawlUrlList } = await import(
+  "../lib/services/site-crawler.js"
+);
+
+const multi = parseOwnerCrawlUrlList(
+  "https://docs.example.com/\nhttps://docs.example.com/help\nhttps://docs.example.com/pricing"
+);
+assert.equal(multi.skip, false);
+assert.equal(multi.origin, "https://docs.example.com");
+assert.deepEqual(multi.startUrls, [
+  "https://docs.example.com/",
+  "https://docs.example.com/help",
+  "https://docs.example.com/pricing",
+]);
+
+const mixed = parseOwnerCrawlUrlList(
+  "https://a.example.com\nhttps://b.example.com"
+);
+assert.equal(mixed.skip, true);
+assert.equal(mixed.reason, "mixed-origin");
+
 console.log("PASS  crawl homepage URL parse");

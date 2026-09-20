@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  ExternalLink,
+  Plug,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
+import { githubMcpAuthIssues } from "@/lib/mcp/github-auth-status";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +23,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +77,122 @@ function defaultDemoUrl() {
 }
 
 /**
+ * Collapsed tools list with enable-all and consistent one-row toggles.
+ */
+function McpToolsDropdown({
+  server,
+  killOn,
+  toolBusy,
+  bulkBusy,
+  onToggleTool,
+  onSetAll,
+}) {
+  const tools = Array.isArray(server.tools) ? server.tools : [];
+  const enabledCount = tools.filter((t) => t.enabled).length;
+  const allOn = tools.length > 0 && enabledCount === tools.length;
+  const rowDisabled = bulkBusy || !killOn || !server.enabled;
+
+  return (
+    <Collapsible
+      defaultOpen={false}
+      className="group overflow-hidden rounded-xl border border-border bg-muted/10"
+    >
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 text-left outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/40">
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[open]:rotate-90" />
+          <span className="min-w-0 text-sm font-medium">
+            Tools{" "}
+            <span className="font-normal text-muted-foreground">
+              ({enabledCount}/{tools.length} on)
+            </span>
+          </span>
+        </CollapsibleTrigger>
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            disabled={rowDisabled || allOn}
+            onClick={() => onSetAll(server, true)}
+          >
+            {bulkBusy ? <Spinner data-icon="inline-start" /> : null}
+            Enable all
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            disabled={rowDisabled || enabledCount === 0}
+            onClick={() => onSetAll(server, false)}
+          >
+            Disable all
+          </Button>
+        </div>
+      </div>
+
+      <CollapsibleContent>
+        <ul className="max-h-72 divide-y divide-border overflow-y-auto">
+          {tools.map((tool) => {
+            const busy = toolBusy === tool.id || bulkBusy;
+            const isWrite =
+              tool.riskLevel === "WRITE" ||
+              tool.riskLevel === "DESTRUCTIVE" ||
+              tool.requiresConfirmation;
+            return (
+              <li
+                key={tool.id}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5",
+                  tool.enabled && "bg-primary/5"
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="truncate text-sm font-medium">{tool.name}</p>
+                    {isWrite ? (
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 rounded-full text-[10px]"
+                      >
+                        Needs confirm
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 rounded-full text-[10px]"
+                      >
+                        READ
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {tool.functionName}
+                    {" · "}
+                    {tool.riskLevel}
+                    {tool.description ? ` — ${tool.description}` : ""}
+                  </p>
+                </div>
+                <Switch
+                  className="shrink-0"
+                  checked={Boolean(tool.enabled)}
+                  disabled={busy || rowDisabled}
+                  onCheckedChange={(checked) =>
+                    onToggleTool(server, tool, checked === true)
+                  }
+                  aria-label={`Enable ${tool.name}`}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/**
  * F13-T3 / M01 UX-2 — MCP tab: catalog → add → probe → enable tool subset.
  */
 export function McpServersPanel({ agentId, killOn = true }) {
@@ -74,6 +203,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
     enabled: Boolean(agentId),
   });
   const servers = mcpQuery.data || [];
+  const githubAuthBroken = githubMcpAuthIssues(servers);
   const loading = mcpQuery.isPending;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -83,6 +213,7 @@ export function McpServersPanel({ agentId, killOn = true }) {
   const [draftPreview, setDraftPreview] = useState(null);
   const [probeBusy, setProbeBusy] = useState(null);
   const [toolBusy, setToolBusy] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(null);
   const [oauthBusy, setOauthBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
 
@@ -224,6 +355,41 @@ export function McpServersPanel({ agentId, killOn = true }) {
     }
   }
 
+  async function handleSetAllTools(server, enabled) {
+    const tools = Array.isArray(server.tools) ? server.tools : [];
+    if (!tools.length) return;
+    const targets = tools.filter((t) => Boolean(t.enabled) !== enabled);
+    if (!targets.length) {
+      toast.message(enabled ? "All tools already on" : "All tools already off");
+      return;
+    }
+    setBulkBusy(server.id);
+    try {
+      const results = await Promise.allSettled(
+        targets.map((tool) =>
+          updateAgentMcpTool(agentId, server.id, tool.id, { enabled })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed) {
+        toast.error(
+          `${failed} tool${failed === 1 ? "" : "s"} failed to update`
+        );
+      } else {
+        toast.success(
+          enabled
+            ? `Enabled ${targets.length} tools`
+            : `Disabled ${targets.length} tools`
+        );
+      }
+      await refreshMcp();
+    } catch (err) {
+      toast.error(err.message || "Unable to update tools");
+    } finally {
+      setBulkBusy(null);
+    }
+  }
+
   function handleDelete(server) {
     setConfirmState({
       title: "Delete MCP server?",
@@ -250,6 +416,16 @@ export function McpServersPanel({ agentId, killOn = true }) {
           </p>
         </div>
       </div>
+
+      {githubAuthBroken.length > 0 ? (
+        <Alert className="border-amber-500/40 bg-amber-500/5">
+          <AlertTitle>GitHub MCP authentication failed</AlertTitle>
+          <AlertDescription>
+            {githubAuthBroken[0].name} needs reconnect (OAuth or a fresh token).
+            Probe error: {githubAuthBroken[0].lastError.slice(0, 120)}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -384,68 +560,14 @@ export function McpServersPanel({ agentId, killOn = true }) {
                       No tools yet — run Test connection / probe.
                     </p>
                   ) : (
-                    <ul className="flex flex-col gap-2">
-                      {server.tools.map((tool) => {
-                        const busy = toolBusy === tool.id;
-                        const isWrite =
-                          tool.riskLevel === "WRITE" ||
-                          tool.riskLevel === "DESTRUCTIVE" ||
-                          tool.requiresConfirmation;
-                        return (
-                          <li
-                            key={tool.id}
-                            className={cn(
-                              "flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border px-3 py-2",
-                              tool.enabled && "ring-1 ring-primary/20"
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <p className="text-sm font-medium">{tool.name}</p>
-                                {isWrite ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="rounded-full text-[10px]"
-                                  >
-                                    Needs confirm
-                                  </Badge>
-                                ) : (
-                                  <Badge
-                                    variant="secondary"
-                                    className="rounded-full text-[10px]"
-                                  >
-                                    READ
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-muted-foreground">
-                                {tool.functionName}
-                                {" · "}
-                                {tool.riskLevel}
-                              </p>
-                              {tool.description ? (
-                                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                                  {tool.description}
-                                </p>
-                              ) : null}
-                              {isWrite ? (
-                                <p className="mt-1 text-[11px] text-muted-foreground">
-                                  Writable MCP tools require visitor Confirm before
-                                  the call (same path as HTTP WRITE).
-                                </p>
-                              ) : null}
-                            </div>
-                            <Switch
-                              checked={tool.enabled}
-                              disabled={busy || !killOn || !server.enabled}
-                              onCheckedChange={(checked) =>
-                                handleToggleTool(server, tool, checked === true)
-                              }
-                            />
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <McpToolsDropdown
+                      server={server}
+                      killOn={killOn}
+                      toolBusy={toolBusy}
+                      bulkBusy={bulkBusy === server.id}
+                      onToggleTool={handleToggleTool}
+                      onSetAll={handleSetAllTools}
+                    />
                   )}
                 </CardContent>
                 <CardFooter className="gap-2">

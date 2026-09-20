@@ -5,6 +5,27 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { AgentActivityBubble } from "@/components/chat/AgentActivityBubble";
 import { cn } from "@/lib/utils";
 
+const LIVE_PHASES = new Set([
+  "selected",
+  "validating",
+  "running",
+  "needs_confirmation",
+  "needs_identity",
+]);
+
+/** True while prep/tools are still in flight (Thinking phase). */
+function hasLiveActivity(activities) {
+  return (Array.isArray(activities) ? activities : []).some((item) =>
+    LIVE_PHASES.has(item?.phase)
+  );
+}
+
+function hasPreparationActivity(activities) {
+  return (Array.isArray(activities) ? activities : []).some(
+    (item) => item?.mode === "preparation"
+  );
+}
+
 export function MessageList({
   messages,
   loading,
@@ -22,6 +43,8 @@ export function MessageList({
   activeActivities = [],
   instantInitialScroll = false,
   instantScrollKey = 0,
+  onSourceClarifyReply = null,
+  onOpenKnowledge = null,
 }) {
   const bottomRef = useRef(null);
   const lastScrollKey = useRef("");
@@ -42,6 +65,21 @@ export function MessageList({
     });
     mountedRef.current = true;
   }, [instantInitialScroll, instantScrollKey, messages, loading, humanTyping]);
+
+  const streamingMsg = messages.find((m) => m.streaming);
+  const streamingEmpty = Boolean(
+    streamingMsg && String(streamingMsg.content || "").length === 0
+  );
+  // Before any activity events: treat as Thinking. After prep finishes and
+  // nothing else is live: Typing (reply about to stream). Never both.
+  const liveWork = hasLiveActivity(activeActivities);
+  const prepSeen = hasPreparationActivity(activeActivities);
+  const thinkingPhase = streamingEmpty && (liveWork || !prepSeen);
+  const typingPhase = streamingEmpty && !thinkingPhase;
+  const hideCompletedActivities = Boolean(
+    streamingMsg && String(streamingMsg.content || "").length > 0
+  );
+  const lastMessageId = messages[messages.length - 1]?.id;
 
   return (
     <div
@@ -86,16 +124,25 @@ export function MessageList({
           </div>
         </div>
       ) : null}
-      {messages.map((msg) => (
+      {messages.map((msg) => {
+        const isEmptyStream =
+          Boolean(msg.streaming) && String(msg.content || "").length === 0;
+        const showThinking = Boolean(msg.streaming) && thinkingPhase && isEmptyStream;
+        const showTyping = Boolean(msg.streaming) && typingPhase && isEmptyStream;
+        const showBubble = !isEmptyStream || showTyping;
+
+        return (
         <div key={msg.id} className="flex w-full flex-col items-start gap-2">
-          {msg.streaming ? (
+          {msg.streaming && !showTyping ? (
             <AgentActivityBubble
               activities={activeActivities}
               compact={compact}
               themed={themed}
-              fallbackLabel="Working on your request…"
+              fallbackLabel={showThinking ? "Thinking…" : null}
+              hideCompleted={hideCompletedActivities}
             />
           ) : null}
+          {showBubble ? (
           <MessageBubble
           role={msg.role}
           content={msg.content}
@@ -119,18 +166,28 @@ export function MessageList({
           onConfirmDecision={onConfirmDecision}
           confirmBusy={confirmBusy}
           streaming={Boolean(msg.streaming)}
+          showSourceClarifyButtons={
+            Boolean(onSourceClarifyReply) && msg.id === lastMessageId
+          }
+          onSourceClarifyReply={onSourceClarifyReply}
+          onOpenKnowledge={onOpenKnowledge}
           />
+          ) : null}
         </div>
-      ))}
+        );
+      })}
       {loading && !messages.some((m) => m.streaming) ? (
         <div className="flex w-full flex-col items-start gap-2">
-          <AgentActivityBubble
-            activities={activeActivities}
-            compact={compact}
-            themed={themed}
-            fallbackLabel="Working on your request…"
-          />
-          <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
+          {hasLiveActivity(activeActivities) ? (
+            <AgentActivityBubble
+              activities={activeActivities}
+              compact={compact}
+              themed={themed}
+              fallbackLabel={null}
+            />
+          ) : (
+            <MessageBubble role="ASSISTANT" pending themed={themed} identity={intro} />
+          )}
         </div>
       ) : null}
       {humanTyping ? (

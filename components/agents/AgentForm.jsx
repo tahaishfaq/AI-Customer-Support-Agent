@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Expand } from "lucide-react";
+import { Expand, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { createAgent, updateAgent } from "@/lib/api/agents";
+import { createAgent, refineSystemPrompt, updateAgent } from "@/lib/api/agents";
 import {
   createTextKnowledge,
   uploadPdfKnowledge,
@@ -17,6 +17,14 @@ import { AgentFormPendingKnowledge } from "@/components/agents/AgentFormPendingK
 import { SystemPromptExpandDialog } from "@/components/agents/SystemPromptExpandDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -127,6 +135,29 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
   const [loading, setLoading] = useState(false);
   const [promptModalOpen, setPromptModalOpen] = useState(false);
   const [pendingKnowledge, setPendingKnowledge] = useState([]);
+  const [refining, setRefining] = useState(false);
+  const [refinePreview, setRefinePreview] = useState(null);
+
+  async function handleRefinePrompt() {
+    if (!systemPrompt.trim()) {
+      toast.error("Add a system prompt draft first");
+      return;
+    }
+    setRefining(true);
+    try {
+      const result = await refineSystemPrompt({
+        draft: systemPrompt,
+        answerStyle,
+        agentName: name.trim() || undefined,
+      });
+      setRefinePreview(result.refined);
+      toast.success("Review the refined prompt, then Accept or Discard");
+    } catch (err) {
+      toast.error(err.message || "Unable to refine prompt");
+    } finally {
+      setRefining(false);
+    }
+  }
 
   function applyUseCase(next) {
     const id = next?.[0];
@@ -304,17 +335,30 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
       <Field data-invalid={Boolean(fieldErrors.systemPrompt) || undefined}>
         <div className="flex items-center justify-between gap-2">
           <FieldLabel htmlFor="systemPrompt">System Prompt</FieldLabel>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 shrink-0 gap-1.5"
-            disabled={loading}
-            onClick={() => setPromptModalOpen(true)}
-          >
-            <Expand className="size-3.5" />
-            Expand
-          </Button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              disabled={loading || refining || !systemPrompt.trim()}
+              onClick={handleRefinePrompt}
+            >
+              <Sparkles className="size-3.5" />
+              {refining ? "Refining…" : "Refine with AI"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              disabled={loading}
+              onClick={() => setPromptModalOpen(true)}
+            >
+              <Expand className="size-3.5" />
+              Expand
+            </Button>
+          </div>
         </div>
         <Textarea
           id="systemPrompt"
@@ -329,7 +373,7 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
           required
         />
         <FieldDescription>
-          Role and personality only — use Expand for long prompts.
+          Role and personality only — Refine polishes tone; Expand for long prompts.
         </FieldDescription>
         {fieldErrors.systemPrompt ? (
           <FieldError>{fieldErrors.systemPrompt}</FieldError>
@@ -343,6 +387,47 @@ export function AgentForm({ mode = "create", initialAgent = null }) {
         onChange={handleSystemPromptChange}
         disabled={loading}
       />
+
+      <Dialog
+        open={Boolean(refinePreview)}
+        onOpenChange={(open) => {
+          if (!open) setRefinePreview(null);
+        }}
+      >
+        <DialogContent className="flex max-h-[min(720px,90dvh)] w-[min(42rem,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
+            <DialogTitle>Refined system prompt</DialogTitle>
+            <DialogDescription>
+              Review the AI rewrite. Accept replaces your draft (not saved until
+              you submit the form). Safety rules are still added at reply time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-sm leading-relaxed">
+              {refinePreview}
+            </pre>
+          </div>
+          <DialogFooter className="mx-0 mb-0 shrink-0 rounded-none border-t border-border bg-card px-6 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRefinePreview(null)}
+            >
+              Discard
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (refinePreview) handleSystemPromptChange(refinePreview);
+                setRefinePreview(null);
+                toast.success("Refined prompt applied");
+              }}
+            >
+              Accept
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

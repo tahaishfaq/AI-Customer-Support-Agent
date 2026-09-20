@@ -211,6 +211,7 @@ model User {
   status                    UserStatus          @default(ACTIVE)
   realtimeSessionVersion    Int                 @default(1)
   lastLoginAt               DateTime?
+  uiTheme                   String              @default("light")
   createdAt                 DateTime            @default(now())
   updatedAt                 DateTime            @updatedAt
   workspaces                Workspace[]
@@ -282,6 +283,7 @@ model Workspace {
   actionCredentials ActionCredential[]
   connections       IntegrationConnection[]
   members           WorkspaceMember[]
+  endUsers          EndUser[]
 
   @@unique([userId, name])
   @@unique([userId, slug])
@@ -302,6 +304,23 @@ model WorkspaceMember {
   @@unique([workspaceId, userId])
   @@index([userId])
   @@index([workspaceId, role])
+}
+
+/// Embed end-customer identity (stable across conversations). No raw tokens.
+model EndUser {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  subject       String
+  emailHash     String?
+  phoneHash     String?
+  lastSeenAt    DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@unique([workspaceId, subject])
+  @@index([workspaceId, lastSeenAt])
 }
 
 model Agent {
@@ -747,6 +766,7 @@ model ToolRun {
   mcpToolId        String?
   conversationId   String?
   workspaceId      String?
+  turnRunId        String?
   customerSubject  String?
   actionVersion    Int?
   actionRevisionId String?
@@ -761,6 +781,7 @@ model ToolRun {
   action           AgentAction?    @relation(fields: [actionId], references: [id], onDelete: SetNull)
   actionRevision   ActionRevision? @relation(fields: [actionRevisionId], references: [id], onDelete: SetNull)
   mcpTool          AgentMcpTool?   @relation(fields: [mcpToolId], references: [id], onDelete: SetNull)
+  turnRun          TurnRun?        @relation(fields: [turnRunId], references: [id], onDelete: SetNull)
 
   @@index([agentId, createdAt])
   @@index([actionId])
@@ -768,6 +789,7 @@ model ToolRun {
   @@index([mcpToolId])
   @@index([conversationId])
   @@index([workspaceId, createdAt])
+  @@index([turnRunId])
 }
 
 model SiteCrawlJob {
@@ -843,6 +865,7 @@ model Conversation {
   customerSubject        String?
   identityIss            String?
   identityExpiresAt      DateTime?
+  endUserId              String?
   /**
    * 1–5 after desk resolve; null if skipped or not offered yet
    */
@@ -856,6 +879,7 @@ model Conversation {
   createdAt              DateTime                   @default(now())
   agent                  Agent                      @relation(fields: [agentId], references: [id], onDelete: Cascade)
   assignedUser           User?                      @relation("AssignedConversations", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  endUser                EndUser?                   @relation(fields: [endUserId], references: [id], onDelete: SetNull)
   messages               Message[]
   actionConfirmations    ActionConfirmation[]
   publicRealtimeAccesses PublicConversationAccess[]
@@ -871,6 +895,7 @@ model Conversation {
   @@index([startedAt])
   @@index([assignedUserId])
   @@index([customerSubject])
+  @@index([endUserId])
   @@index([handoffPriority])
   @@index([csatAt])
   @@index([source])
@@ -894,6 +919,7 @@ model TurnRun {
   updatedAt        DateTime @updatedAt
   agent            Agent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  toolRuns         ToolRun[]
 
   @@unique([conversationId, clientMessageId])
   @@index([status, lastHeartbeatAt])

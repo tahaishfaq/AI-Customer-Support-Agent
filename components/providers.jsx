@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeAccountSync } from "@/components/theme/ThemeAccountSync";
 import { SessionProvider } from "@/components/session/SessionProvider";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { Toaster } from "@/components/ui/sonner";
@@ -40,6 +41,7 @@ export function Providers({ children }) {
       storageKey="hapy-theme"
     >
       <SessionProvider>
+        <ThemeAccountSync />
         {isPublicEmbed ? (
           <RealtimeProvider>
             <TooltipProvider>{children}</TooltipProvider>

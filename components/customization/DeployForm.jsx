@@ -134,7 +134,7 @@ function EmbedInstallDialog({
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>Install webchat</DialogTitle>
           <DialogDescription>
-            Pick a platform, copy the snippet, and paste it on your site.
+            One script. Pick your platform, copy, paste once on your site.
           </DialogDescription>
         </DialogHeader>
 
@@ -349,8 +349,8 @@ export function DeployForm({
       <FormSection title="Install">
         <EmbedReadinessChecklist agentId={agentId} />
         <FieldBlock
-          label="Embed code"
-          hint="Copy this onto your webpage. Regenerate if the old snippet leaked or you want to kill live widgets."
+          label="One script for your site"
+          hint="Copy once into your HTML. That is all most sites need to go live."
         >
           <div className="mb-3 flex flex-wrap gap-2">
             <Button

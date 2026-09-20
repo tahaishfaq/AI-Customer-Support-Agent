@@ -85,7 +85,38 @@ function testEmbedConfirmEveryLiveCall() {
     confirmationStatus: "APPROVED",
   });
   assert(approved.allow === true, "embed READ allowed after confirm");
-  console.log("ok  embed confirm-every-live-call (U2)");
+
+  // Owner-connected MCP READ (GitHub get_me) must not force visitor Confirm.
+  const mcpRead = evaluateActionPolicy({
+    action: {
+      ...readAction,
+      name: "mcp_github_mcp_get_me",
+      _mcp: { remoteName: "get_me" },
+      requiresConfirmation: false,
+      riskLevel: "READ",
+    },
+    publicAccess: true,
+  });
+  assert(mcpRead.allow === true, "embed MCP READ auto without confirm");
+  assert(mcpRead.code == null, "embed MCP READ no error code");
+
+  const mcpWrite = evaluateActionPolicy({
+    action: {
+      ...readAction,
+      name: "mcp_github_mcp_create_issue",
+      _mcp: { remoteName: "create_issue" },
+      requiresConfirmation: true,
+      riskLevel: "WRITE",
+    },
+    publicAccess: true,
+  });
+  assert(mcpWrite.allow === false, "embed MCP WRITE still needs confirm");
+  assert(
+    mcpWrite.code === "CONFIRMATION_REQUIRED",
+    "embed MCP WRITE confirm code"
+  );
+
+  console.log("ok  embed confirm-every-live-call (U2) + MCP READ exemption");
 }
 
 function testStudioReadAuto() {

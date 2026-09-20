@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Globe2,
-  MessageCircle,
   Plus,
   Send,
   Smile,
@@ -17,6 +16,8 @@ import {
 } from "@/lib/customization/position";
 import { monogram } from "@/components/conversations/format";
 import { WidgetBrand } from "@/components/chat/WidgetBrand";
+import { AideLogoMark } from "@/components/brand/AideLogo";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 function fontFamily(_font) {
   return "var(--font-dm-sans), var(--font-sans), sans-serif";
@@ -210,7 +211,7 @@ function ChatWindow({
   );
 }
 
-function LauncherButton({ deploy, identity, primary }) {
+function LauncherButton({ deploy, identity, primary, dark = false }) {
   const src = deploy.useBotAvatar
     ? identity.avatarUrl
     : deploy.buttonImageUrl;
@@ -228,10 +229,13 @@ function LauncherButton({ deploy, identity, primary }) {
   }
 
   return (
-    <button
-      type="button"
-      className="flex size-12 shrink-0 items-center justify-center overflow-hidden text-white shadow-lg"
-      style={{ backgroundColor: primary, borderRadius: "9999px" }}
+    <ShinyButton
+      variant="launcher"
+      accentColor={primary}
+      fillColor="#ffffff"
+      cornerRadius={16}
+      className="gleam-launcher-sm shadow-md"
+      style={{ "--wc-primary": primary }}
       aria-label="Chat launcher preview"
       tabIndex={-1}
     >
@@ -239,9 +243,14 @@ function LauncherButton({ deploy, identity, primary }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="size-full object-cover" />
       ) : (
-        <MessageCircle className="size-5" />
+        <AideLogoMark
+          variant={dark ? "light" : "dark"}
+          size="sm"
+          className="h-3.5"
+          title="AIDE"
+        />
       )}
-    </button>
+    </ShinyButton>
   );
 }
 
@@ -286,7 +295,12 @@ export function CustomizationPreview({ agent, customization }) {
   };
 
   const launcher = (
-    <LauncherButton deploy={deploy} identity={identity} primary={primary} />
+    <LauncherButton
+      deploy={deploy}
+      identity={identity}
+      primary={primary}
+      dark={dark}
+    />
   );
 
   const closedStack = (
@@ -409,7 +423,9 @@ export function CustomizationPreview({ agent, customization }) {
               {openPanel}
             </div>
           ) : (
-            <div className={previewPos.container}>{closedStack}</div>
+            <div className={cn(previewPos.container, "overflow-visible")}>
+              {closedStack}
+            </div>
           )}
         </div>
       </div>

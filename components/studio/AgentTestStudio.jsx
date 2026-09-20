@@ -28,8 +28,13 @@ import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
+import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
+import { listKnowledge } from "@/lib/api/knowledge";
 import { useMinWidth } from "@/hooks/use-mobile";
+import { listAgentMcpServers } from "@/lib/api/mcp";
+import { githubMcpAuthIssues } from "@/lib/mcp/github-auth-status";
 import { useAuthStore } from "@/store/auth-store";
+import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -42,7 +47,7 @@ import {
 } from "@/components/studio/StudioActionLogs";
 import { StudioAgentTraces } from "@/components/studio/StudioAgentTraces";
 import { StudioLogDetail } from "@/components/studio/StudioLogDetail";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +73,14 @@ const DEFAULT_SCRIPTS = [
     kind: "greeting",
     prompt: "hello",
     expected: "Short welcome in the knowledge language.",
+    expectIncludes: "",
+  },
+  {
+    id: "github-access",
+    title: "GitHub access?",
+    kind: "capability",
+    prompt: "do you have access to github",
+    expected: "Answer from configured tools only. Do not call live MCP.",
     expectIncludes: "",
   },
   {
@@ -268,6 +281,9 @@ export function AgentTestStudio({ agent }) {
   /** Studio auto-setUser: mint Aide JWT for the logged-in dashboard user. */
   const [asSignedIn, setAsSignedIn] = useState(true);
   const [identitySubject, setIdentitySubject] = useState("");
+  const [knowledgePreview, setKnowledgePreview] = useState(null);
+  const [knowledgePreviewOpen, setKnowledgePreviewOpen] = useState(false);
+  const [githubAuthIssues, setGithubAuthIssues] = useState([]);
   const identityTokenRef = useRef(null);
   const identityExpiresRef = useRef(0);
   const isWideLayout = useMinWidth(1280);
@@ -323,6 +339,24 @@ export function AgentTestStudio({ agent }) {
     }
   }, [mode]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!agent?.id) {
+      setGithubAuthIssues([]);
+      return undefined;
+    }
+    listAgentMcpServers(agent.id)
+      .then((servers) => {
+        if (!cancelled) setGithubAuthIssues(githubMcpAuthIssues(servers));
+      })
+      .catch(() => {
+        if (!cancelled) setGithubAuthIssues([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [agent?.id, historyKey]);
+
   const logsWideLayout = mode === "logs" && isWideLayout;
   const detailOpen = logsWideLayout && !!selectedLog;
 
@@ -367,6 +401,7 @@ export function AgentTestStudio({ agent }) {
     setMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "USER", content: prompt, local: true },
+      { id: streamingId, role: "ASSISTANT", content: "", streaming: true },
     ]);
 
     try {
@@ -399,7 +434,7 @@ export function AgentTestStudio({ agent }) {
           if (!isCurrentActivity(activityRequest)) return;
           setMessages(previous => {
             if (previous.some(item => item.id === streamingId)) {
-              return previous.map(item => item.id === streamingId ? { ...item, content: `${item.content}${delta}` } : item);
+              return previous.map(item => item.id === streamingId ? { ...item, content: `${item.content}${delta}`, streaming: true } : item);
             }
             return [...previous, { id: streamingId, role: "ASSISTANT", content: delta, streaming: true }];
           });
@@ -876,6 +911,23 @@ export function AgentTestStudio({ agent }) {
           intro={widgetIntro(agent, customization)}
           onConfirmDecision={handleConfirmDecision}
           confirmBusy={sending}
+          onSourceClarifyReply={(label) => {
+            if (!label || sending) return;
+            send(label);
+          }}
+          onOpenKnowledge={async (meta) => {
+            if (!meta?.id || !agent?.id) return;
+            try {
+              const { documents } = await listKnowledge(agent.id);
+              const full =
+                (documents || []).find((d) => d.id === meta.id) || meta;
+              setKnowledgePreview(full);
+              setKnowledgePreviewOpen(true);
+            } catch {
+              setKnowledgePreview(meta);
+              setKnowledgePreviewOpen(true);
+            }
+          }}
           onFeedback={async (messageId, rating, reason) => {
             if (!messageId) return;
             await fetch(`/api/messages/${messageId}/feedback`, {
@@ -889,6 +941,25 @@ export function AgentTestStudio({ agent }) {
           }}
         />
       )}
+      {githubAuthIssues.length > 0 ? (
+        <Alert className="mx-3 mb-2 border-amber-500/40 bg-amber-500/5">
+          <AlertTitle>GitHub connection needs reconnect</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {githubAuthIssues[0].name} reported an auth error
+              {githubAuthIssues[0].lastError
+                ? ` (${githubAuthIssues[0].lastError.slice(0, 80)})`
+                : ""}
+              . Live GitHub asks will fail until you reconnect.
+            </span>
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href={`/agents/${agent.id}/customization?tab=actions`}>
+                Open Tools
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {agent.enabled === false ? (
         <Alert variant="destructive" className="mx-3 mb-2">
           <AlertDescription>
@@ -942,7 +1013,6 @@ export function AgentTestStudio({ agent }) {
         onSend={send}
         compact={false}
         themed
-        busyHint="Agent is working… wait for the reply"
         placeholder={
           runActive
             ? "Auto-test running — pause or stop to type"
@@ -1457,6 +1527,11 @@ export function AgentTestStudio({ agent }) {
           </ChatWidget>
         </Card>
       </div>
+      <PreviewKnowledgeDialog
+        document={knowledgePreview}
+        open={knowledgePreviewOpen}
+        onOpenChange={setKnowledgePreviewOpen}
+      />
     </div>
   );
 }

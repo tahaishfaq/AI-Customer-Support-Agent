@@ -1,20 +1,19 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { BookOpen, Plus, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { BookOpen, Plus } from "lucide-react";
 import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 import { AddTextKnowledgeDialog } from "@/components/knowledge/AddTextKnowledgeDialog";
 import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
+import { CrawlNowPanel } from "@/components/knowledge/CrawlNowPanel";
 import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
-import { listKnowledge, retrySiteCrawl } from "@/lib/api/knowledge";
+import { listKnowledge } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
+import { AidePreloader } from "@/components/ui/aide-preloader";
+import { CRAWL_PAGE_KNOWLEDGE_PREFIX } from "@/lib/services/crawl-knowledge";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateKnowledgeQuery } from "@/lib/query/invalidation";
@@ -55,8 +54,6 @@ export function KnowledgeList({
   onWebSearchChange,
 }) {
   const [textOpen, setTextOpen] = useState(false);
-  const [retryBusy, setRetryBusy] = useState(false);
-  const [homepageUrl, setHomepageUrl] = useState("");
   const queryClient = useQueryClient();
   const knowledgeQuery = useQuery({
     queryKey: queryKeys.knowledge.list(agentId),
@@ -72,50 +69,34 @@ export function KnowledgeList({
   const loading = knowledgeQuery.isPending;
   const error = knowledgeQuery.error?.message || "";
 
+  const crawlDocuments = documents.filter(
+    (doc) =>
+      doc.type === "WEB" &&
+      (String(doc.name || "").startsWith(CRAWL_PAGE_KNOWLEDGE_PREFIX) ||
+        Boolean(doc.crawlJobId) ||
+        Boolean(doc.origin))
+  );
+  const crawlIds = new Set(crawlDocuments.map((d) => d.id));
+  const manualDocuments = documents.filter((doc) => !crawlIds.has(doc.id));
+  const crawlChars = crawlDocuments.reduce(
+    (sum, doc) => sum + String(doc.content || "").length,
+    0
+  );
   const crawlActive =
     latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING";
 
-  const suggestedOrigin =
-    siteKnowledgeOrigin || latestCrawl?.origin || "";
-
-  useEffect(() => {
-    if (latestCrawl?.status !== "FAILED") return;
-    if (homepageUrl.trim()) return;
-    if (suggestedOrigin) setHomepageUrl(suggestedOrigin);
-  }, [latestCrawl?.status, suggestedOrigin, homepageUrl]);
-
-  const canRetryCrawl = latestCrawl?.status === "FAILED" && !crawlActive;
-  const retryOriginReady = Boolean(
-    homepageUrl.trim() || suggestedOrigin
-  );
-
-  async function handleRetryCrawl() {
-    if (retryBusy || !canRetryCrawl) return;
-    const url = homepageUrl.trim() || suggestedOrigin;
-    if (!url) {
-      toast.error("Enter your site homepage URL (https://…)");
-      return;
-    }
-    setRetryBusy(true);
-    try {
-      const result = await retrySiteCrawl(agentId, { homepageUrl: url });
-      queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
-        ...(previous || { documents: [] }),
-        latestCrawl: result.latestCrawl || {
-          id: result.jobId,
-          status: "QUEUED",
-          error: null,
-          origin: result.origin,
-          finishedAt: null,
-        },
-      }));
-      toast.success("Website crawl queued");
-      void invalidateKnowledgeQuery(queryClient, agentId);
-    } catch (err) {
-      toast.error(err.message || "Unable to retry crawl");
-    } finally {
-      setRetryBusy(false);
-    }
+  function handleCrawlQueued(result) {
+    queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
+      ...(previous || { documents: [] }),
+      latestCrawl: result.latestCrawl || {
+        id: result.jobId,
+        status: "QUEUED",
+        error: null,
+        origin: result.origin,
+        finishedAt: null,
+      },
+    }));
+    void invalidateKnowledgeQuery(queryClient, agentId);
   }
 
   function handleCreated() {
@@ -131,13 +112,7 @@ export function KnowledgeList({
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-2">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-xl" />
-        ))}
-      </div>
-    );
+    return <AidePreloader variant="panel" label="Loading knowledge…" />;
   }
 
   const hasWeb = documents.some((d) => d.type === "WEB");
@@ -180,6 +155,14 @@ export function KnowledgeList({
           onSaved={onWebSearchChange}
         />
 
+        <CrawlNowPanel
+          agentId={agentId}
+          siteKnowledgeOrigin={siteKnowledgeOrigin}
+          latestCrawl={latestCrawl}
+          crawlActive={crawlActive}
+          onQueued={handleCrawlQueued}
+        />
+
         <CrawlSchedulePanel
           agentId={agentId}
           crawlRecrawlHours={crawlRecrawlHours}
@@ -203,39 +186,10 @@ export function KnowledgeList({
             {(latestCrawl.error || "")
               .replace(/^CRAWL_FAILED:\s*/i, "")
               .trim() || "The one-time site crawl could not finish."}{" "}
-            Enter your public homepage URL and we will crawl that site’s public
-            pages (login, account, and admin paths are skipped).
-          </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input
-              type="url"
-              inputMode="url"
-              autoComplete="url"
-              placeholder="https://yoursite.com"
-              value={homepageUrl}
-              onChange={(event) => setHomepageUrl(event.target.value)}
-              disabled={retryBusy}
-              className="sm:max-w-md"
-              aria-label="Site homepage URL"
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={!canRetryCrawl || !retryOriginReady || retryBusy}
-              onClick={() => void handleRetryCrawl()}
-            >
-              {retryBusy ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <RefreshCw data-icon="inline-start" />
-              )}
-              Crawl site
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Must be a public https site. Localhost is not allowed — use your
-            deployed domain (for local testing, enter any public https URL).
+            Use <span className="font-medium">Re-crawl now</span> above with
+            public https page URLs (help, pricing, docs). JavaScript-only SPAs
+            with an empty HTML shell usually fail — add knowledge manually or
+            publish real HTML pages.
           </p>
         </div>
       ) : null}
@@ -277,7 +231,7 @@ export function KnowledgeList({
           description={
             crawlActive
               ? "Sources will appear here when the crawl finishes."
-              : "Add FAQ text, upload a PDF, or embed the widget on your site."
+              : "Add FAQ text, upload a PDF, or use Crawl / re-crawl above with your site URLs."
           }
           action={
             crawlActive ? null : (
@@ -294,14 +248,51 @@ export function KnowledgeList({
           }
         />
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
-          {documents.map((doc) => (
-            <KnowledgeItem
-              key={doc.id}
-              document={doc}
-              onDeleted={handleDeleted}
-            />
-          ))}
+        <div className="mt-4 space-y-4">
+          {crawlDocuments.length > 0 ? (
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Website crawl knowledge
+                </h3>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  {crawlDocuments.length} document
+                  {crawlDocuments.length === 1 ? "" : "s"} ·{" "}
+                  {crawlChars.toLocaleString()} characters indexed. Open Preview
+                  (or the row) to read the full text the agent can use.
+                </p>
+              </div>
+              {crawlDocuments.map((doc) => (
+                <KnowledgeItem
+                  key={doc.id}
+                  document={doc}
+                  onDeleted={handleDeleted}
+                />
+              ))}
+            </section>
+          ) : null}
+
+          {manualDocuments.length > 0 ? (
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
+              {crawlDocuments.length > 0 ? (
+                <div className="border-b border-border px-4 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Manual knowledge
+                  </h3>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    FAQ text and PDF uploads you added yourself.
+                  </p>
+                </div>
+              ) : null}
+              {manualDocuments.map((doc) => (
+                <KnowledgeItem
+                  key={doc.id}
+                  document={doc}
+                  onDeleted={handleDeleted}
+                />
+              ))}
+            </section>
+          ) : null}
         </div>
       )}
 
