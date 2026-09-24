@@ -7,10 +7,12 @@ import { useLayoutEffect, useRef, useState } from "react";
 const CLOSED_LAUNCHER_W = 80;
 const CLOSED_LAUNCHER_H = 56;
 
-export function useEmbedFrame({ enabled, open, proactive, customLauncher, position, parentOrigin, expanded = false }) {
+export function useEmbedFrame({ enabled, open, proactive, customLauncher, position, parentOrigin, expanded = false, closedSize = null }) {
   const sequence = useRef(0);
   const [applied, setApplied] = useState(null);
-  const key = `${open}:${Boolean(proactive)}:${customLauncher}:${position}:${parentOrigin}:${expanded}`;
+  const closedW = closedSize?.width || CLOSED_LAUNCHER_W;
+  const closedH = closedSize?.height || CLOSED_LAUNCHER_H;
+  const key = `${open}:${Boolean(proactive)}:${customLauncher}:${position}:${parentOrigin}:${expanded}:${closedW}x${closedH}`;
 
   useLayoutEffect(() => {
     if (!enabled || window.parent === window || !parentOrigin) return;
@@ -35,14 +37,14 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
         ? 264
         : customLauncher
           ? 148
-          : CLOSED_LAUNCHER_W;
+          : closedW;
     const height = open
       ? expanded ? 880 : 592
       : proactive
         ? 184
         : customLauncher
           ? 60
-          : CLOSED_LAUNCHER_H;
+          : closedH;
     function accept(anchor) {
       if (!disposed) setApplied({ key, position: anchor });
     }
@@ -82,7 +84,7 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
       window.removeEventListener('message', onMessage);
       window.removeEventListener('resize', onResize);
     };
-  }, [enabled, open, proactive, customLauncher, position, parentOrigin, expanded, key]);
+  }, [enabled, open, proactive, customLauncher, position, parentOrigin, expanded, closedW, closedH, key]);
 
   return {
     panelReady: !enabled || (open && applied?.key === key),

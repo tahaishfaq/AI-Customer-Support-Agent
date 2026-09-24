@@ -4,9 +4,7 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
-  ChevronDown,
   Globe2,
-  MessageCircle,
   X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -16,6 +14,8 @@ import { widgetStyleVars } from "@/lib/customization/theme";
 import { WidgetBrand } from "@/components/chat/WidgetBrand";
 import { AideLogoMark } from "@/components/brand/AideLogo";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { WidgetLauncher } from "@/components/chat/WidgetLauncher";
+import { launcherBox } from "@/lib/customization/launcher";
 
 function Avatar({ src, label, className, style }) {
   if (src) {
@@ -73,6 +73,8 @@ export function ChatWidget({
   const primary = appearance.primaryColor || "var(--color-primary)";
   const dark = appearance.theme === "dark";
   const launcherRef = useRef(null);
+  /** Panel sits above the launcher: its height + 12px gap (68 for the original launcher). */
+  const panelBottom = messenger ? launcherBox(deploy).height + 16 : 68;
 
   const launcherSrc = deploy.useBotAvatar
     ? identity.avatarUrl
@@ -100,6 +102,8 @@ export function ChatWidget({
     <div
       className={cn(
         "flex min-h-0 flex-col overflow-hidden border-0 shadow-none outline-none ring-0",
+        // Expand / collapse glides instead of jumping (size only; reduced motion = instant).
+        "transition-[width,height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         fullPage
           ? "h-full w-full rounded-none"
           : expanded
@@ -229,14 +233,14 @@ export function ChatWidget({
           data-testid="embed-panel-surface"
           className="transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
           aria-hidden={!open || !panelReady}
-          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: expanded ? "100%" : "min(380px, 100%)", height: expanded ? "calc(100% - 68px)" : "min(520px, calc(100% - 68px))", opacity: open && panelReady ? 1 : 0, visibility: open && panelReady ? "visible" : "hidden", pointerEvents: open && panelReady ? "auto" : "none", transform: open && panelReady ? "translateY(0) scale(1)" : "translateY(8px) scale(0.985)", transformOrigin: align === "start" ? "bottom left" : "bottom right" }}
+          style={{ position: "absolute", bottom: panelBottom, [align === "start" ? "left" : "right"]: 0, width: expanded ? "100%" : "min(380px, 100%)", height: expanded ? `calc(100% - ${panelBottom}px)` : `min(520px, calc(100% - ${panelBottom}px))`, opacity: open && panelReady ? 1 : 0, visibility: open && panelReady ? "visible" : "hidden", pointerEvents: open && panelReady ? "auto" : "none", transform: open && panelReady ? "translateY(0) scale(1)" : "translateY(8px) scale(0.985)", transformOrigin: align === "start" ? "bottom left" : "bottom right" }}
         >
           {panel}
         </div>
       ) : open ? panel : null}
 
       {proactive ? (
-        <div style={coordinatedFrame ? { position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, maxWidth: "100%", minWidth: 0, maxHeight: 112, overflowY: "auto", overflowWrap: "anywhere" } : undefined} className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-md bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
+        <div style={coordinatedFrame ? { position: "absolute", bottom: panelBottom, [align === "start" ? "left" : "right"]: 0, maxWidth: "100%", minWidth: 0, maxHeight: 112, overflowY: "auto", overflowWrap: "anywhere" } : undefined} className="relative mb-0.5 flex w-max min-w-[200px] max-w-[260px] shrink-0 items-start gap-2 rounded-md bg-white p-2.5 pb-3 shadow-md ring-1 ring-black/5">
           <div
             className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold text-white"
             style={{ backgroundColor: primary }}
@@ -266,29 +270,13 @@ export function ChatWidget({
       ) : null}
 
       {messenger ? (
-        <button
-          type="button"
-          ref={launcherRef}
-          className="flex size-14 items-center justify-center overflow-hidden rounded-full shadow-[0_6px_20px_rgba(15,23,42,0.22)] outline-none transition-transform hover:scale-[1.04] focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
-          style={{
-            ...(coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0 } : {}),
-            backgroundColor: "var(--wc-primary)",
-            color: "var(--wc-primary-fg)",
-          }}
-          aria-label={open ? "Close chat widget" : "Open chat widget"}
-          aria-expanded={open}
-          aria-controls="aide-chat-panel"
+        <WidgetLauncher
+          customization={customization}
+          open={open}
           onClick={onToggle}
-        >
-          {open ? (
-            <ChevronDown className="size-7" aria-hidden />
-          ) : launcherSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={launcherSrc} alt="" className="size-full object-cover" />
-          ) : (
-            <MessageCircle className="size-7" fill="currentColor" aria-hidden />
-          )}
-        </button>
+          buttonRef={launcherRef}
+          style={coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0 } : undefined}
+        />
       ) : customLauncher ? (
         <button
           type="button"

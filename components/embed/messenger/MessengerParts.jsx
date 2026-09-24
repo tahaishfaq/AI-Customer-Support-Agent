@@ -2,14 +2,38 @@
 
 import { House, MessageSquareText, X } from "lucide-react";
 import { monogram } from "@/components/conversations/format";
+import { AideLogoMark } from "@/components/brand/AideLogo";
 import { cn } from "@/lib/utils";
 
-/** Company logo (white-label) or AIDE mark, then the agent + team avatars stacked. */
-export function MessengerBrand({ logoUrl, avatarUrl, teamAvatars = [], name, size = "md", onDark = false }) {
+/**
+ * Company logo (white-label) — else the AIDE logo unless branding is hidden — then the agent +
+ * team avatars stacked. `logoVariant` is the AIDE mark for the background ("light" on dark).
+ */
+export function MessengerBrand({
+  logoUrl,
+  avatarUrl,
+  teamAvatars = [],
+  name,
+  size = "md",
+  onDark = false,
+  showAideLogo = false,
+  logoVariant = "dark",
+  monogramFallback = true,
+}) {
   const avatarSize = size === "lg" ? "size-12" : "size-8";
   const avatars = [avatarUrl, ...teamAvatars].filter(Boolean).slice(0, 3);
+  const aideLogo = !logoUrl && showAideLogo;
   return (
     <span className="flex min-w-0 items-center">
+      {aideLogo ? (
+        // Small chip: dark logo on a light chip (light theme), light logo on a dark chip (dark theme).
+        <span
+          className="mr-2.5 inline-flex shrink-0 items-center rounded-md px-2.5 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.12)]"
+          style={{ backgroundColor: logoVariant === "light" ? "#1f2023" : "#f4f4f2" }}
+        >
+          <AideLogoMark variant={logoVariant} size="sm" className="h-3.5" title="AIDE" />
+        </span>
+      ) : null}
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -31,7 +55,7 @@ export function MessengerBrand({ logoUrl, avatarUrl, teamAvatars = [], name, siz
             />
           ))}
         </span>
-      ) : !logoUrl ? (
+      ) : !logoUrl && !aideLogo && monogramFallback ? (
         <span
           className={cn(avatarSize, "flex shrink-0 items-center justify-center rounded-full text-sm font-semibold")}
           style={{

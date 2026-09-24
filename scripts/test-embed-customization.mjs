@@ -85,3 +85,16 @@ test("white-label plans: paid + active, or admin", () => {
   assert.equal(isWhiteLabelPlan({ unlocked: false, planType: "POPULAR" }), false);
   assert.equal(isWhiteLabelPlan({ role: "ADMIN" }), true);
 });
+
+test("launcher defaults to the original AIDE launcher; geometry drives the host frame", async () => {
+  const { launcherBox, launcherFrame } = await import("@/lib/customization/launcher");
+  const merged = mergeCustomization({});
+  assert.equal(merged.deploy.launcherShape, "pill");
+  assert.equal(merged.deploy.launcherBorder, "gradient");
+  assert.deepEqual(launcherBox(merged.deploy), { shape: "pill", size: "md", width: 68, height: 40, radius: 16 });
+  assert.deepEqual(launcherFrame(merged.deploy), { width: 80, height: 56 });
+  assert.deepEqual(launcherFrame({ launcherShape: "circle", launcherSize: "lg" }), { width: 80, height: 80 });
+  assert.equal(launcherBox({ launcherShape: "bogus" }).shape, "pill");
+  assert.equal(customizationSchema.safeParse({ deploy: { launcherBorderColor: "red" } }).success, false);
+  assert.equal(customizationSchema.safeParse({ deploy: { launcherShape: "circle", launcherBorder: "none", launcherBorderColor: null } }).success, true);
+});

@@ -342,6 +342,13 @@ export function GET(request) {
           anchorSettled = true;
         }
       } else if (lastFrame.version === 2) return;
+      // Expand / collapse while open glides; every other resize (open, close) stays instant.
+      var glide = lastFrame.open === true && data.open === true &&
+        Boolean(lastFrame.expanded) !== (data.expanded === true) &&
+        !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      setStyle(iframe, "transition", glide
+        ? "width 300ms cubic-bezier(0.22,1,0.36,1), height 300ms cubic-bezier(0.22,1,0.36,1)"
+        : "");
       lastFrame = {
         version: data.version, generation: data.generation,
         open: event.data.open, width: event.data.width, height: event.data.height,

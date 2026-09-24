@@ -270,6 +270,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                   publicKey={publicKey}
                   deploy={draft.deploy}
                   identity={draft.identity}
+                  appearance={draft.appearance}
                   crawlRecrawlHours={agent.crawlRecrawlHours ?? 0}
                   siteCrawledAt={agent.siteCrawledAt}
                   siteKnowledgeOrigin={agent.siteKnowledgeOrigin}

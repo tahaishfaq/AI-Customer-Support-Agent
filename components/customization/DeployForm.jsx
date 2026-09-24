@@ -53,6 +53,7 @@ import { EmbedReadinessChecklist } from "@/components/customization/EmbedReadine
 import { EmbedIdentityGuide } from "@/components/customization/EmbedIdentityGuide";
 import { cn } from "@/lib/utils";
 import { PlanLock } from "@/components/customization/WhiteLabelFields";
+import { WidgetLauncher } from "@/components/chat/WidgetLauncher";
 
 const PLATFORMS = [
   {
@@ -219,6 +220,7 @@ export function DeployForm({
   publicKey,
   deploy,
   identity,
+  appearance = {},
   onChange,
   onPublicKeyChange,
   crawlRecrawlHours = 0,
@@ -471,6 +473,67 @@ export function DeployForm({
                   Element
                 </span>
               </ChoiceCard>
+            </div>
+          </FieldBlock>
+        ) : null}
+
+        {deploy.chatInterface === "toggle" ? (
+          <FieldBlock label="Launcher style" hint="Shape, size and ring of the chat button. Default is the original AIDE launcher.">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-center rounded-lg border border-border bg-muted/40 py-5" style={{ "--wc-primary": appearance?.primaryColor || "#ea580c" }}>
+                <WidgetLauncher customization={{ deploy, identity, appearance }} preview aria-label="Launcher preview" />
+              </div>
+              {[
+                ["launcherShape", "Shape", [["pill", "Rounded"], ["circle", "Circle"], ["square", "Square"]]],
+                ["launcherSize", "Size", [["sm", "Small"], ["md", "Medium"], ["lg", "Large"]]],
+                ["launcherBorder", "Ring", [["gradient", "Gradient"], ["solid", "Solid"], ["none", "None"]]],
+              ].map(([key, label, options]) => (
+                <div key={key}>
+                  <p className="mb-1.5 text-xs font-medium text-foreground/80">{label}</p>
+                  <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="radiogroup" aria-label={`Launcher ${label.toLowerCase()}`}>
+                    {options.map(([value, text]) => {
+                      const selected = (deploy[key] || { launcherShape: "pill", launcherSize: "md", launcherBorder: "gradient" }[key]) === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => patch({ [key]: value })}
+                          className={cn(
+                            "rounded-md px-3 py-1.5 text-sm transition-colors",
+                            selected ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {text}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {(deploy.launcherBorder || "gradient") !== "none" ? (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-foreground/80">Ring color</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="color"
+                      aria-label="Launcher ring color"
+                      value={deploy.launcherBorderColor || appearance?.primaryColor || "#ea580c"}
+                      onChange={(e) => patch({ launcherBorderColor: e.target.value })}
+                      className="h-9 w-12 cursor-pointer rounded-md border border-border bg-card p-1"
+                    />
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {deploy.launcherBorderColor || "Brand color"}
+                    </span>
+                    {deploy.launcherBorderColor ? (
+                      <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => patch({ launcherBorderColor: null })}>
+                        Use brand color
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </FieldBlock>
         ) : null}

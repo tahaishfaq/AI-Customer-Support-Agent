@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AvatarImage } from "@/components/ui/avatar-image";
 import {
@@ -16,6 +15,7 @@ import { ConversationHeader } from "@/components/embed/messenger/ConversationHea
 import { MessengerTabBar } from "@/components/embed/messenger/MessengerParts";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { ChatComposer } from "@/components/chat/ChatComposer";
+import { WidgetLauncher } from "@/components/chat/WidgetLauncher";
 
 function fontFamily(_font) {
   return "var(--font-dm-sans), var(--font-sans), sans-serif";
@@ -49,25 +49,6 @@ const SAMPLE_CONVERSATIONS = [
   { id: "sample-1", preview: "Thanks! That fixed my login issue.", updatedAt: new Date(Date.now() - 3 * 60_000).toISOString() },
   { id: "sample-2", preview: "Do you ship to Canada?", updatedAt: new Date(Date.now() - 26 * 3_600_000).toISOString() },
 ];
-
-/** Round brand launcher — matches the live widget (bot avatar or uploaded icon, else chat icon). */
-function LauncherButton({ deploy, identity }) {
-  const src = deploy.useBotAvatar ? identity.avatarUrl : deploy.buttonImageUrl;
-  return (
-    <span
-      className="flex size-14 items-center justify-center overflow-hidden rounded-full shadow-[0_6px_20px_rgba(15,23,42,0.22)]"
-      style={{ backgroundColor: "var(--wc-primary)", color: "var(--wc-primary-fg)" }}
-      aria-hidden
-    >
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="size-full object-cover" />
-      ) : (
-        <MessageCircle className="size-7" fill="currentColor" />
-      )}
-    </span>
-  );
-}
 
 /** Real Messenger screens with sample content — what visitors see. */
 function MessengerPreviewPanel({ agent, customization, screen, onScreen, className }) {
@@ -162,7 +143,7 @@ export function CustomizationPreview({ agent, customization }) {
   const [screen, setScreen] = useState("home");
   const styleVars = widgetStyleVars(customization);
 
-  const launcher = <LauncherButton deploy={deploy} identity={identity} />;
+  const launcher = <WidgetLauncher customization={customization} preview aria-label="Launcher preview" />;
 
   const closedStack = (
     <div

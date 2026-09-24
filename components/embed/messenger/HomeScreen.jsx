@@ -48,6 +48,9 @@ export function HomeScreen({ customization, intro, onSendMessage, onClose }) {
             name={intro.name}
             size="lg"
             onDark
+            showAideLogo={!customization?.branding?.hideAideBranding}
+            logoVariant={customization?.appearance?.theme === "dark" ? "light" : "dark"}
+            monogramFallback={false}
           />
           <CloseButton onClose={onClose} onDark />
         </div>

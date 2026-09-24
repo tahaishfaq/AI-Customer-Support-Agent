@@ -59,6 +59,12 @@ export function ShinyButton({
   type = "button",
   disabled = false,
   "data-open": dataOpen,
+  /** Launcher geometry (px); defaults keep the original 68×40 rounded rectangle. */
+  launcherWidth,
+  launcherHeight,
+  launcherRadius,
+  /** Launcher ring: animated "gradient" (default), static "solid", or "none". */
+  ring = "gradient",
 }) {
   const reducedMotion = usePrefersReducedMotion();
   const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -69,8 +75,17 @@ export function ShinyButton({
     `color-mix(in srgb, ${accentColor} 55%, white)`;
   // Launcher: rounded rectangle (not a circle / not a squircle blob).
   const radius = isLauncher
-    ? Math.min(16, Math.max(8, Number(cornerRadius) || 16))
+    ? Number.isFinite(launcherRadius)
+      ? launcherRadius
+      : Math.min(16, Math.max(8, Number(cornerRadius) || 16))
     : cornerRadius;
+  const ringMode = isLauncher ? ring : "gradient";
+  const borderLayer =
+    ringMode === "solid"
+      ? "linear-gradient(var(--gleam-accent), var(--gleam-accent)) border-box"
+      : ringMode === "none"
+        ? "linear-gradient(transparent, transparent) border-box"
+        : null;
   const accessibleLabel = ariaLabel || label;
   const launcherPad = 2.5;
   const [tabHidden, setTabHidden] = useState(false);
@@ -87,7 +102,8 @@ export function ShinyButton({
 
   const pauseGleam =
     isLauncher &&
-    (dataOpen === true ||
+    (ringMode !== "gradient" ||
+      dataOpen === true ||
       dataOpen === "true" ||
       tabHidden ||
       reducedMotion);
@@ -160,9 +176,9 @@ export function ShinyButton({
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 4.25rem;
-      min-width: 4.25rem;
-      height: 2.5rem;
+      width: ${launcherWidth ? `${launcherWidth}px` : "4.25rem"};
+      min-width: ${launcherWidth ? `${launcherWidth}px` : "4.25rem"};
+      height: ${launcherHeight ? `${launcherHeight}px` : "2.5rem"};
       flex-shrink: 0;
       /* Ring stays on border-box only; face covers the interior */
       background-clip: padding-box, border-box;
@@ -248,6 +264,11 @@ export function ShinyButton({
       border-radius: inherit;
       background: var(--gleam-base);
     }
+
+    ${borderLayer ? `.${scope}.gleam-launcher {
+      background: linear-gradient(var(--gleam-base), var(--gleam-base)) padding-box, ${borderLayer};
+      ${ringMode === "none" ? "box-shadow: 0 4px 14px rgba(15,23,42,0.18);" : ""}
+    }` : ""}
 
     .${scope}.gleam-launcher > .gleam-face {
       z-index: 2;

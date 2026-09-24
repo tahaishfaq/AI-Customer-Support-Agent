@@ -37,6 +37,7 @@ import { useEmbedDesk } from "@/hooks/use-embed-desk";
 import { usePublicRealtime } from "@/hooks/use-public-realtime";
 import { useChatStream } from "@/hooks/use-chat-stream";
 import { useEmbedFrame } from "@/hooks/use-embed-frame";
+import { launcherFrame } from "@/lib/customization/launcher";
 import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 
 import { DESK_WAIT_TIMEOUT_MESSAGE } from "@/lib/desk/conversation-desk";
@@ -502,8 +503,9 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   const frameLayout = useEmbedFrame({
     enabled: isFloatingEmbed, open: widgetOpen, proactive: Boolean(proactive),
-    customLauncher: deploy.chatLauncher === "custom", position: widgetPosition, parentOrigin,
+    customLauncher: false, position: widgetPosition, parentOrigin,
     expanded: expanded && widgetOpen,
+    closedSize: launcherFrame(deploy),
   });
 
   const postFrame = useCallback(() => {
@@ -524,13 +526,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         type: "frame",
         open: widgetOpen,
         proactive: Boolean(proactive),
-        customLauncher: deploy.chatLauncher === "custom",
+        customLauncher: false,
         width,
         height,
       },
       parentOrigin || "*"
     );
-  }, [bubbleMode, isFloatingEmbed, widgetOpen, proactive, deploy.chatLauncher, parentOrigin]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, proactive, parentOrigin]);
 
   useLayoutEffect(() => {
     if (!bubbleMode || isFloatingEmbed) return undefined;
