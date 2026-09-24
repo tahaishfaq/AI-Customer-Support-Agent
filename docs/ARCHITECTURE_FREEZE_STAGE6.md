@@ -130,6 +130,8 @@ PENDING → APPROVED (API lifecyclePhase: CONFIRMED) → CONSUMED
 
 **Change log (allowed class):** 2026-09-24 — chat stream transport moved from SSE to NDJSON with status/replace/cards events ([`features/CHAT_STREAMING_NDJSON.md`](./features/CHAT_STREAMING_NDJSON.md)). Display/transport only; trust path, caps and PEP unchanged.
 
+**Change log (PEP, owner decision 2026-09-24 — F14):** on the public embed, HTTP tools explicitly stored as `PUBLIC_READ` + `GET` + `READ`, owner key / no identity, not owner-forced to confirm, and whose name does not suggest personal data, run without visitor Confirm. Everything else keeps F11-U Confirm; WRITE/DESTRUCTIVE, account and identity rules unchanged. Tests: `scripts/test-embed-public-read-policy.mjs`.
+
 **CRITICAL security regressions:** fix immediately; document in `.tmp/` and amend this freeze file.
 
 ---

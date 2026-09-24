@@ -180,6 +180,7 @@
     "test:mcp-demo-ds1": "node scripts/test-mcp-demo-ds1.mjs",
     "test:mcp-risk": "node --test scripts/test-mcp-risk-classification.mjs",
     "test:tool-shortlist": "node --test scripts/test-tool-shortlist.mjs",
+    "test:embed-public-read": "node --test scripts/test-embed-public-read-policy.mjs",
     "test:embed-customization": "node --import ./scripts/register-aliases.mjs --test scripts/test-embed-customization.mjs",
     "test:mcp-catalog": "node scripts/test-mcp-catalog.mjs",
     "test:mcp-github-oauth": "node scripts/test-mcp-github-oauth.mjs",

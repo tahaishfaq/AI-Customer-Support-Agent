@@ -135,4 +135,17 @@ assert.equal(
   "web route must not be replaced by stored evidence"
 );
 
+// A stray amount or a "pricing not specified" summary is not plan evidence (crawled FAQ case).
+for (const content of [
+  "## FAQ - **Pricing**: Not specified, but mentions a payout of $12,450.00.",
+  "Our plans are flexible. Creators earned $12,450.00 last month on campaigns.",
+]) {
+  const doc = { id: "weak", type: "WEB", sourceUrl: `${origin}/`, content };
+  assert.equal(
+    decidePublicEvidence({ query: "What plans do you offer?", route: "STORE", selectedUsed: [doc], knowledgeDocs: [doc], siteKnowledgeOrigin: origin, crawlStatus: "DONE" }).sufficient,
+    false,
+    `weak evidence must not hide the plans tool: ${content}`
+  );
+}
+
 console.log("PASS public evidence routing: bounded suppression, personal/live safeguards, and action filtering");
