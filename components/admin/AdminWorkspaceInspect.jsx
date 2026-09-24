@@ -8,6 +8,7 @@ import { WorkspaceAnalytics } from "@/components/analytics/WorkspaceAnalytics";
 import { AdminConversationQuota } from "@/components/admin/AdminConversationQuota";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 import { cn } from "@/lib/utils";
 
 function formatWhen(value) {
@@ -58,10 +59,12 @@ export function AdminWorkspaceInspect() {
 
   if (loading) {
     return (
-      <main className="aide-page">
-        <Skeleton className="h-10 w-64 bg-muted" />
-        <Skeleton className="mt-6 h-40 w-full bg-muted" />
-      </main>
+      <LoadingSurface label="Loading workspace…">
+        <main className="aide-page">
+          <Skeleton className="h-10 w-64 bg-muted" />
+          <Skeleton className="mt-6 h-40 w-full bg-muted" />
+        </main>
+      </LoadingSurface>
     );
   }
 

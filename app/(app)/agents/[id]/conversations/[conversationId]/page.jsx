@@ -9,6 +9,7 @@ import { ConversationThread } from "@/components/conversations/ConversationThrea
 import { getConversation } from "@/lib/api/conversations";
 import { useAgentStudio } from "@/hooks/use-agent-studio";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 
 export default function AgentConversationDetailPage() {
   const studio = useAgentStudio();
@@ -56,15 +57,17 @@ export default function AgentConversationDetailPage() {
         return (
           <ConversationsShell agentId={agent.id} selectedId={conversationId}>
             {loading ? (
-              <div className="flex h-full flex-col">
-                <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
-                  <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+              <LoadingSurface label="Loading conversation…" className="h-full min-h-[16rem]">
+                <div className="flex h-full flex-col">
+                  <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
+                    <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+                  </div>
+                  <div className="flex-1 space-y-3 p-6">
+                    <Skeleton className="h-16 w-2/3 rounded-2xl bg-[var(--color-border)]" />
+                    <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
+                  </div>
                 </div>
-                <div className="flex-1 space-y-3 p-6">
-                  <Skeleton className="h-16 w-2/3 rounded-2xl bg-[var(--color-border)]" />
-                  <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
-                </div>
-              </div>
+              </LoadingSurface>
             ) : error || !conversation || !belongsHere ? (
               <div className="flex h-full flex-col items-center justify-center px-6">
                 <p className="text-sm text-[var(--color-danger)]">

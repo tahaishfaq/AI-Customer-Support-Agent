@@ -9,6 +9,7 @@ import { ConversationEmptyState } from "@/components/conversations/ConversationT
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getAdminAgent } from "@/lib/api/admin";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 
 export function AdminConversationsInbox({ selectedId, children }) {
   const params = useParams();
@@ -47,10 +48,12 @@ export function AdminConversationsInbox({ selectedId, children }) {
 
   if (loading) {
     return (
-      <main className="aide-page">
-        <Skeleton className="h-10 w-56 bg-muted" />
-        <Skeleton className="mt-6 h-96 w-full bg-muted" />
-      </main>
+      <LoadingSurface label="Loading admin inbox…">
+        <main className="aide-page">
+          <Skeleton className="h-10 w-56 bg-muted" />
+          <Skeleton className="mt-6 h-96 w-full bg-muted" />
+        </main>
+      </LoadingSurface>
     );
   }
 

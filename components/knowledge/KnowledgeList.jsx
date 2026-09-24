@@ -12,7 +12,8 @@ import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
 import { listKnowledge } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AidePreloader } from "@/components/ui/aide-preloader";
+import { LoadingSurface } from "@/components/ui/loading-surface";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CRAWL_PAGE_KNOWLEDGE_PREFIX } from "@/lib/services/crawl-knowledge";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
 import { queryKeys } from "@/lib/query/keys";
@@ -112,7 +113,16 @@ export function KnowledgeList({
   }
 
   if (loading) {
-    return <AidePreloader variant="panel" label="Loading knowledge…" />;
+    return (
+      <LoadingSurface label="Loading knowledge…">
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
+        </div>
+      </LoadingSurface>
+    );
   }
 
   const hasWeb = documents.some((d) => d.type === "WEB");

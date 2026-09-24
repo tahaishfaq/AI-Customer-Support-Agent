@@ -25,6 +25,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AidePreloader } from "@/components/ui/aide-preloader";
 import { OnboardingCrawlKick } from "@/components/billing/OnboardingCrawlKick";
 import { cn } from "@/lib/utils";
 import { queryKeys } from "@/lib/query/keys";
@@ -107,7 +108,13 @@ export default function DashboardPage() {
   const kpiHint = (value) => (metricsLoading ? undefined : zeroHint(value));
 
   return (
-    <main className="aide-page space-y-5 sm:space-y-6">
+    <main
+      className={cn(
+        "aide-page space-y-5 sm:space-y-6",
+        loading && "relative isolate min-h-[50vh]"
+      )}
+      aria-busy={loading || undefined}
+    >
       <OnboardingCrawlKick />
       <header className="flex flex-col gap-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -331,6 +338,13 @@ export default function DashboardPage() {
           </div>
         </aside>
       </div>
+      {loading ? (
+        <AidePreloader
+          variant="overlay"
+          label="Loading workspace…"
+          className="z-30"
+        />
+      ) : null}
     </main>
   );
 }

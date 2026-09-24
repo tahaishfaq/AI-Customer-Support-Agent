@@ -7,6 +7,7 @@ import { getConversation } from "@/lib/api/conversations";
 import { InboxShell } from "@/components/desk/InboxShell";
 import { DeskThread } from "@/components/desk/DeskThread";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 
 export default function InboxThreadPage() {
   const params = useParams();
@@ -42,15 +43,17 @@ export default function InboxThreadPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 md:p-6">
       <InboxShell selectedId={conversationId}>
         {loading ? (
-          <div className="flex h-full flex-col">
-            <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
-              <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+          <LoadingSurface label="Loading conversation…" className="h-full min-h-[16rem]">
+            <div className="flex h-full flex-col">
+              <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
+                <Skeleton className="h-8 w-48 bg-[var(--color-border)]" />
+              </div>
+              <div className="flex-1 space-y-3 p-6">
+                <Skeleton className="h-16 w-2/3 rounded-2xl bg-[var(--color-border)]" />
+                <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
+              </div>
             </div>
-            <div className="flex-1 space-y-3 p-6">
-              <Skeleton className="h-16 w-2/3 rounded-2xl bg-[var(--color-border)]" />
-              <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl bg-[var(--color-border)]" />
-            </div>
-          </div>
+          </LoadingSurface>
         ) : error || !conversation ? (
           <div className="flex h-full flex-col items-center justify-center px-6">
             <p className="text-sm text-[var(--color-danger)]">

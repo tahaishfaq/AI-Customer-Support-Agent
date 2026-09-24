@@ -24,6 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AidePreloader } from "@/components/ui/aide-preloader";
 import { useUrlTab } from "@/hooks/use-url-tab";
 
 export function AnalyticsBoard({ agentId }) {
@@ -35,7 +36,10 @@ export function AnalyticsBoard({ agentId }) {
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className={loading ? "relative isolate flex min-h-[24rem] flex-col gap-4" : "flex flex-col gap-4"}
+      aria-busy={loading || undefined}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -153,6 +157,9 @@ export function AnalyticsBoard({ agentId }) {
           )}
         </ChartCard>
       </div>
+      {loading ? (
+        <AidePreloader variant="overlay" label="Loading analytics…" className="z-30" />
+      ) : null}
     </div>
   );
 }

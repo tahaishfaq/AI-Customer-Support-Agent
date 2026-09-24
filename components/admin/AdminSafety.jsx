@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getAdminSettings, updateAdminSettings } from "@/lib/api/admin";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -99,10 +100,12 @@ export function AdminSafety() {
 
   if (loading) {
     return (
-      <main className="aide-page">
-        <Skeleton className="h-10 w-48 bg-muted" />
-        <Skeleton className="mt-6 h-48 w-full bg-muted" />
-      </main>
+      <LoadingSurface label="Loading safety…">
+        <main className="aide-page">
+          <Skeleton className="h-10 w-48 bg-muted" />
+          <Skeleton className="mt-6 h-48 w-full bg-muted" />
+        </main>
+      </LoadingSurface>
     );
   }
 

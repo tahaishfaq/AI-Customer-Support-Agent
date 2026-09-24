@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { DESK_INBOX_POLL_MS } from "@/lib/desk/desk-config";
@@ -318,17 +319,19 @@ export function InboxShell({ selectedId, children }) {
 
         <ScrollArea className="min-h-0 flex-1">
           {loading ? (
-            <div className="divide-y divide-border/60">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-3 px-4 py-3.5">
-                  <Skeleton className="size-10 rounded-full" />
-                  <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-3 w-2/3" />
-                    <Skeleton className="h-3 w-full" />
+            <LoadingSurface label="Loading inbox…" className="min-h-[14rem]">
+              <div className="divide-y divide-border/60">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex gap-3 px-4 py-3.5">
+                    <Skeleton className="size-10 rounded-full" />
+                    <div className="flex flex-1 flex-col gap-2">
+                      <Skeleton className="h-3 w-2/3" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </LoadingSurface>
           ) : filtered.length === 0 ? (
             <EmptyState
               className="m-3 rounded-xl border border-dashed border-border/70 bg-muted/20 py-12"

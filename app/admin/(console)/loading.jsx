@@ -1,5 +1,5 @@
-import { AidePreloader } from "@/components/ui/aide-preloader";
+import { AppRouteLoading } from "@/components/ui/loading-surface";
 
 export default function AdminLoading() {
-  return <AidePreloader variant="page" label="Loading admin…" />;
+  return <AppRouteLoading label="Loading admin…" />;
 }

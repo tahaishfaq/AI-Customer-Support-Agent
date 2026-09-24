@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
-import { AidePreloader } from "@/components/ui/aide-preloader";
+import {
+  AppRouteSkeleton,
+  LoadingSurface,
+} from "@/components/ui/loading-surface";
 import { useAgentCrumb } from "@/hooks/use-agent-crumb";
 
 export default function EditAgentPage() {
@@ -42,7 +45,9 @@ export default function EditAgentPage() {
   if (loading) {
     return (
       <main className="aide-page">
-        <AidePreloader variant="panel" label="Loading agent…" />
+        <LoadingSurface label="Loading agent…">
+          <AppRouteSkeleton />
+        </LoadingSurface>
       </main>
     );
   }

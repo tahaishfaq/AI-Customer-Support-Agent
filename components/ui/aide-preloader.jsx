@@ -31,7 +31,7 @@ export function AidePreloader({
     return (
       <div
         className={cn(
-          "absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-blur-[2px]",
+          "absolute inset-0 z-20 flex items-center justify-center bg-background/55 backdrop-blur-[1.5px]",
           className
         )}
       >

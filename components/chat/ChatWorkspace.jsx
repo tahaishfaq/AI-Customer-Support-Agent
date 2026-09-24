@@ -30,6 +30,7 @@ import {
 } from "@/components/chat/EmbedPreview";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "@/hooks/use-chat-stream";
 
@@ -365,15 +366,17 @@ export function ChatWorkspace() {
 
   if (loadingAgents) {
     return (
-      <div className="flex h-full flex-col bg-background">
-        <div className="border-b border-border px-4 py-3">
-          <Skeleton className="h-8 w-48" />
+      <LoadingSurface label="Loading chat…" className="h-full min-h-[20rem]">
+        <div className="flex h-full flex-col bg-background">
+          <div className="border-b border-border px-4 py-3">
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="flex flex-1 flex-col gap-3 p-5">
+            <Skeleton className="h-14 w-2/3 rounded-2xl" />
+            <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
+          </div>
         </div>
-        <div className="flex flex-1 flex-col gap-3 p-5">
-          <Skeleton className="h-14 w-2/3 rounded-2xl" />
-          <Skeleton className="ml-auto h-12 w-1/2 rounded-2xl" />
-        </div>
-      </div>
+      </LoadingSurface>
     );
   }
 

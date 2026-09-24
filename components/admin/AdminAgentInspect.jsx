@@ -13,6 +13,7 @@ import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeD
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSurface } from "@/components/ui/loading-surface";
 import { cn } from "@/lib/utils";
 
 export function AdminAgentInspect() {
@@ -79,10 +80,12 @@ export function AdminAgentInspect() {
 
   if (loading) {
     return (
-      <main className="aide-page">
-        <Skeleton className="h-10 w-64 bg-muted" />
-        <Skeleton className="mt-6 h-48 w-full bg-muted" />
-      </main>
+      <LoadingSurface label="Loading agent…">
+        <main className="aide-page">
+          <Skeleton className="h-10 w-64 bg-muted" />
+          <Skeleton className="mt-6 h-48 w-full bg-muted" />
+        </main>
+      </LoadingSurface>
     );
   }
 
