@@ -69,7 +69,15 @@ function MessengerPreviewPanel({ agent, customization, screen, onScreen, classNa
       }}
     >
       {screen === "home" ? (
-        <HomeScreen customization={customization} intro={intro} onSendMessage={() => onScreen("conversation")} onClose={noop} />
+        <HomeScreen
+          customization={customization}
+          intro={intro}
+          onSendMessage={() => onScreen("conversation")}
+          onClose={noop}
+          recentConversation={features.conversationHistory === false ? null : SAMPLE_CONVERSATIONS[0]}
+          onOpenConversation={() => onScreen("conversation")}
+          onSeeAll={() => onScreen("messages")}
+        />
       ) : screen === "messages" ? (
         <MessagesScreen
           conversations={features.conversationHistory === false ? [] : SAMPLE_CONVERSATIONS}

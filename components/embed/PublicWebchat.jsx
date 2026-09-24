@@ -847,7 +847,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     }
   }
 
-  async function openPastChat(id) {
+  async function openPastChat(id, fromTab = "messages") {
     clearActivities();
     const version = activityVersion();
     setSending(false);
@@ -866,7 +866,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       if (version !== activityVersion()) return;
       setConversationId(id);
       engagedRef.current = true;
-      setReturnTab("messages");
+      setReturnTab(fromTab);
       setScreen("conversation");
       applyDeskState(data);
       if (Array.isArray(data.messages)) {
@@ -1023,6 +1023,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         setWidgetOpen(false);
       };
   const showTabs = screen !== "conversation";
+  // Home "Recent message" card: latest past chat, only when the visitor has history.
+  const recentConversation = historyEnabled
+    ? [...pastChats].sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))[0] || null
+    : null;
 
   const conversationBody = (
     <>
@@ -1159,6 +1163,16 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           intro={intro}
           onSendMessage={() => startNewConversation("home")}
           onClose={closeWidget}
+          recentConversation={recentConversation}
+          onOpenConversation={(id) => {
+            if (id === conversationId && engagedRef.current) {
+              setReturnTab("home");
+              setScreen("conversation");
+              return;
+            }
+            openPastChat(id, "home");
+          }}
+          onSeeAll={() => setScreen("messages")}
         />
       ) : screen === "messages" ? (
         <MessagesScreen

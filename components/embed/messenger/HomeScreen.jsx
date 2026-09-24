@@ -1,6 +1,7 @@
 "use client";
 
-import { CircleAlert, CircleCheck, SendHorizontal, SquareArrowOutUpRight, Wrench } from "lucide-react";
+import { ChevronRight, CircleAlert, CircleCheck, SendHorizontal, SquareArrowOutUpRight, Wrench } from "lucide-react";
+import { formatRelative, monogram } from "@/components/conversations/format";
 import { CloseButton, MessengerBrand } from "@/components/embed/messenger/MessengerParts";
 
 const STATUS = {
@@ -21,7 +22,54 @@ function Card({ as: Tag = "div", className = "", children, ...props }) {
   );
 }
 
-export function HomeScreen({ customization, intro, onSendMessage, onClose }) {
+/** Latest conversation, newest first — only rendered when the visitor has history. */
+function RecentMessageCard({ conversation, intro, onOpen, onSeeAll }) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-3.5">
+        <span className="text-[13px] font-semibold">Recent message</span>
+        {onSeeAll ? (
+          <button
+            type="button"
+            onClick={onSeeAll}
+            className="text-[13px] font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+            style={{ color: "var(--wc-primary)" }}
+          >
+            See all
+          </button>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={() => onOpen(conversation.id)}
+        className="flex w-full items-center gap-3 px-5 pb-4 pt-2.5 text-left transition-colors hover:bg-black/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2"
+        aria-label={`Open recent conversation: ${conversation.preview || "Conversation"}`}
+      >
+        {intro.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={intro.avatarUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
+            style={{ backgroundColor: "var(--wc-primary)", color: "var(--wc-primary-fg)" }}
+            aria-hidden
+          >
+            {monogram(intro.name)}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px]">{conversation.preview || "Conversation"}</span>
+          <span className="block truncate text-[12px]" style={{ color: "var(--wc-muted)" }}>
+            {intro.name} · {formatRelative(conversation.updatedAt)}
+          </span>
+        </span>
+        <ChevronRight className="size-4 shrink-0" style={{ color: "var(--wc-muted)" }} aria-hidden />
+      </button>
+    </Card>
+  );
+}
+
+export function HomeScreen({ customization, intro, onSendMessage, onClose, recentConversation = null, onOpenConversation, onSeeAll }) {
   const identity = customization?.identity || {};
   const home = customization?.home || {};
   const status = home.status || {};
@@ -67,6 +115,15 @@ export function HomeScreen({ customization, intro, onSendMessage, onClose }) {
           <span className="text-[15px] font-semibold">Send us a message</span>
           <SendHorizontal className="size-5 shrink-0" style={{ color: "var(--wc-primary)" }} fill="currentColor" aria-hidden />
         </Card>
+
+        {recentConversation && typeof onOpenConversation === "function" ? (
+          <RecentMessageCard
+            conversation={recentConversation}
+            intro={intro}
+            onOpen={onOpenConversation}
+            onSeeAll={onSeeAll}
+          />
+        ) : null}
 
         {links.map((link) => (
           <Card
