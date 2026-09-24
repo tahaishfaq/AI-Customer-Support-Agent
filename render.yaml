@@ -43,6 +43,12 @@ services:
     healthCheckPath: /api/health
     envVars:
       - fromGroup: aide-shared
+      # Always-on process: keep warm DB connections (a new TLS connection costs a few round
+      # trips) and enough of them for one chat turn's parallel reads plus its write transaction.
+      - key: PG_POOL_MAX
+        value: "10"
+      - key: PG_POOL_IDLE_MS
+        value: "300000"
       # HTTPS origin of this service, e.g. https://aide-web.onrender.com or your domain.
       # NEXT_PUBLIC_* is baked in at build time: redeploy after changing it.
       - key: AUTH_URL
