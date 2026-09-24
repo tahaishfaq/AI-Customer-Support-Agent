@@ -117,7 +117,8 @@ export const useAuthStore = create((set, get) => ({
 
   hydrate: async () => {
     try {
-      const session = await getSession();
+      // A plain read: don't make every other open tab/iframe refetch too.
+      const session = await getSession({ broadcast: false });
       const user = toStoreUser(session?.user);
       set({ user, loading: false, sessionExpired: false });
       return user;
