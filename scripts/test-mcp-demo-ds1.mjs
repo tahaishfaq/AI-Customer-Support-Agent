@@ -61,8 +61,11 @@ assert.match(missing.content[0].text, /text/);
 const note = callDemoMcpTool("create_demo_note", { text: "  hello  " });
 assert.match(note.content[1].text, /"hello"/);
 
-assert.equal(inferMcpToolRisk("aide_demo_create_note").riskLevel, "WRITE");
-assert.equal(inferMcpToolRisk("aide_demo_get_time").riskLevel, "READ");
+const annotationsFor = (name) => listed.find((tool) => tool.name === name)?.annotations;
+assert.equal(inferMcpToolRisk("aide_demo_create_note", annotationsFor("aide_demo_create_note")).riskLevel, "WRITE");
+// Fail-closed: the non-verb name is READ only via the server's readOnlyHint.
+assert.equal(inferMcpToolRisk("aide_demo_get_time", annotationsFor("aide_demo_get_time")).riskLevel, "READ");
+assert.equal(inferMcpToolRisk("aide_demo_get_time").riskLevel, "WRITE");
 
 const route = read("app/api/demo/mcp/route.js");
 assert.match(route, /listDemoMcpTools/);

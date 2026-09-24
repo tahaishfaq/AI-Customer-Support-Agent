@@ -46,13 +46,20 @@ export async function GET(request) {
   const q = String(request.nextUrl.searchParams.get("q") || "")
     .trim()
     .toLowerCase();
+  // Any keyword matches ("escrow payouts" finds both articles); best matches first.
+  const terms = q
+    .split(/[^a-z0-9]+/)
+    .filter((term) => term.length >= 3)
+    .map((term) => (term.length > 4 && term.endsWith("s") ? term.slice(0, -1) : term));
   const hits = q
-    ? ARTICLES.filter(
-        (a) =>
-          a.title.toLowerCase().includes(q) ||
-          a.snippet.toLowerCase().includes(q) ||
-          a.id.includes(q)
-      )
+    ? ARTICLES.map((a) => {
+        const haystack = `${a.id} ${a.title} ${a.snippet}`.toLowerCase();
+        const score = haystack.includes(q) ? terms.length + 1 : terms.filter((term) => haystack.includes(term)).length;
+        return { a, score };
+      })
+        .filter((entry) => entry.score > 0)
+        .sort((x, y) => y.score - x.score)
+        .map((entry) => entry.a)
     : ARTICLES;
   return NextResponse.json(
     { query: q || null, results: hits.slice(0, 5) },
