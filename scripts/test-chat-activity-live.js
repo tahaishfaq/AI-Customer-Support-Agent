@@ -1,5 +1,5 @@
 // Opt-in: real local homepage embed, persisted test chats and paid provider requests.
-// No auth bypass, API mocks, config changes, automatic write approvals or raw SSE logs.
+// No auth bypass, API mocks, config changes, automatic write approvals or raw stream logs.
 const { chromium, expect } = require('@playwright/test');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -40,7 +40,7 @@ async function instrumentation() {
     window.__aideAudit.requests.push(entry);
     const response = await originalFetch(...args);
     entry.status = response.status;
-    entry.sse = response.headers.get('content-type')?.includes('text/event-stream');
+    entry.sse = response.headers.get('content-type')?.includes('application/x-ndjson');
     const clone = response.clone();
     void (async () => {
       const consume = (type, data) => {
@@ -66,11 +66,15 @@ async function instrumentation() {
           buffer += decoder.decode(value, { stream: true });
           if (buffer.length > 1_048_576) throw new Error('AUDIT_BUFFER_LIMIT');
           let end;
-          while ((end = buffer.indexOf('\n\n')) >= 0) {
-            const block = buffer.slice(0,end); buffer = buffer.slice(end+2);
-            const type = block.match(/^event: (.+)$/m)?.[1];
-            const raw = block.match(/^data: (.+)$/m)?.[1];
-            if (raw) consume(type, JSON.parse(raw));
+          while ((end = buffer.indexOf('\n')) >= 0) {
+            const line = buffer.slice(0,end).trim(); buffer = buffer.slice(end+1);
+            if (!line) continue;
+            const event = JSON.parse(line);
+            // Map the NDJSON wire events back to the audit's internal names.
+            if (event.type === 'activity') consume('tool', event.data);
+            else if (event.type === 'text') { if (event.delta) consume('delta', event); }
+            else if (event.type === 'done') consume('done', event.body?.data);
+            else if (event.type === 'error') consume('error', event);
           }
         }
       } finally { reader.releaseLock(); entry.finished = true; }

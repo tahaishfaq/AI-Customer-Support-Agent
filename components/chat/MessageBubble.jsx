@@ -12,6 +12,7 @@ import {
   sourceClarifyButtonsFromContent,
 } from "@/lib/services/ai/intent-clarify";
 import { parseChatAttachment } from "@/lib/utils/chat-attachments";
+import { closeStreamingMarkdown } from "@/lib/chat/stream-markdown";
 import { cn } from "@/lib/utils";
 
 function formatResponseTime(ms) {
@@ -143,6 +144,10 @@ export function MessageBubble({
   showSourceClarifyButtons = false,
   onSourceClarifyReply = null,
   onOpenKnowledge = null,
+  /** Live server status ("Thinking…", "Searching the web…") while the reply has no text yet. */
+  statusLabel = null,
+  /** Owner surfaces show reply latency; the public widget hides it. */
+  showResponseTime = true,
 }) {
   const isUser = role === "USER";
   const isHuman = role === "HUMAN";
@@ -314,7 +319,9 @@ export function MessageBubble({
           {(pending || (streaming && !bodyText)) && !(streaming && bodyText) ? (
             <span
               className="inline-flex flex-col gap-1 py-0.5"
-              aria-label="Assistant is typing"
+              role="status"
+              aria-live="polite"
+              aria-label={streaming ? statusLabel || "Thinking…" : "Assistant is typing"}
             >
               <span
                 className={cn(
@@ -322,7 +329,7 @@ export function MessageBubble({
                   themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
                 )}
               >
-                Typing…
+                {streaming ? statusLabel || "Thinking…" : "Typing…"}
               </span>
               <span className="inline-flex items-center gap-1" aria-hidden>
                 <span
@@ -363,10 +370,12 @@ export function MessageBubble({
                     ) : null}
                   </p>
                 ) : streaming ? (
-                  <p className="whitespace-pre-wrap">
-                    {bodyText}
-                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-middle opacity-70" />
-                  </p>
+                  // Same markdown renderer as the final message, so nothing re-lays out on done.
+                  <div className="markdown-body aide-streaming-caret">
+                    <ReactMarkdown components={markdownComponents}>
+                      {closeStreamingMarkdown(bodyText)}
+                    </ReactMarkdown>
+                  </div>
                 ) : (
                   <div className="markdown-body">
                     <ReactMarkdown components={markdownComponents}>
@@ -389,11 +398,11 @@ export function MessageBubble({
               )}
             >
               {formatClock(createdAt)}
-              {!isUser && responseTime != null
+              {!isUser && showResponseTime && responseTime != null
                 ? ` · ${formatResponseTime(responseTime)}`
                 : ""}
             </p>
-          ) : !isUser && !pending && responseTime != null ? (
+          ) : !isUser && !pending && showResponseTime && responseTime != null ? (
             <p
               className={cn(
                 "mt-1.5 text-[11px]",

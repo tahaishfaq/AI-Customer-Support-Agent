@@ -21,7 +21,7 @@ assert.match(loop, /sourceDecision\.route === "MIXED"/);
 assert.match(loop, /STORE PREFLIGHT ONLY/);
 assert.match(loop, /<store_data>/);
 assert.match(chatApi, /requestChatStream/);
-assert.match(fs.readFileSync(new URL("../lib/chat/read-chat-response.js", import.meta.url), "utf8"), /text\/event-stream/);
+assert.match(fs.readFileSync(new URL("../lib/chat/read-chat-response.js", import.meta.url), "utf8"), /NDJSON_CONTENT_TYPE/);
 assert.match(workspace, /sendChatMessageStream/);
 assert.match(workspace, /activeActivities/);
 assert.match(activity, /activityLabel\(item\)/);

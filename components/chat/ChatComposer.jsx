@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useCallback, useRef, useState } from "react";
-import { Paperclip, Plus, Send, Smile } from "lucide-react";
+import { Paperclip, Plus, Send, Smile, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ export function ChatComposer({
   themed = false,
   uploadUrl,
   busyHint: _busyHint,
+  /** While a reply streams: shows Stop in place of Send. */
+  onStop,
 }) {
   const [value, setValue] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -235,6 +237,20 @@ export function ChatComposer({
             <Smile className="size-[21px]" strokeWidth={1.8} />
           </button>
         ) : null}
+        {onStop ? (
+          <Button
+            type="button"
+            size="icon"
+            onClick={onStop}
+            aria-label="Stop response"
+            className={cn(
+              "size-9 shrink-0 rounded-full shadow-none",
+              themed && "bg-[#171313] text-white hover:bg-[#171313]/90"
+            )}
+          >
+            <Square className="size-3" fill="currentColor" />
+          </Button>
+        ) : (
         <Button
           type="button"
           size="icon"
@@ -249,6 +265,7 @@ export function ChatComposer({
         >
           <Send className="size-3.5" />
         </Button>
+        )}
       </div>
       {themed && emojiOpen ? (
         <div

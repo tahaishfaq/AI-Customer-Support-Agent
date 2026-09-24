@@ -20,12 +20,6 @@ function hasLiveActivity(activities) {
   );
 }
 
-function hasPreparationActivity(activities) {
-  return (Array.isArray(activities) ? activities : []).some(
-    (item) => item?.mode === "preparation"
-  );
-}
-
 export function MessageList({
   messages,
   loading,
@@ -45,6 +39,7 @@ export function MessageList({
   instantScrollKey = 0,
   onSourceClarifyReply = null,
   onOpenKnowledge = null,
+  showResponseTime = true,
 }) {
   const bottomRef = useRef(null);
   const lastScrollKey = useRef("");
@@ -66,16 +61,9 @@ export function MessageList({
     mountedRef.current = true;
   }, [instantInitialScroll, instantScrollKey, messages, loading, humanTyping]);
 
+  // One assistant bubble per turn: it shows the server status line until tokens arrive, then
+  // fills in place. Tool rows sit above it; they never replace it.
   const streamingMsg = messages.find((m) => m.streaming);
-  const streamingEmpty = Boolean(
-    streamingMsg && String(streamingMsg.content || "").length === 0
-  );
-  // Before any activity events: treat as Thinking. After prep finishes and
-  // nothing else is live: Typing (reply about to stream). Never both.
-  const liveWork = hasLiveActivity(activeActivities);
-  const prepSeen = hasPreparationActivity(activeActivities);
-  const thinkingPhase = streamingEmpty && (liveWork || !prepSeen);
-  const typingPhase = streamingEmpty && !thinkingPhase;
   const hideCompletedActivities = Boolean(
     streamingMsg && String(streamingMsg.content || "").length > 0
   );
@@ -125,24 +113,16 @@ export function MessageList({
         </div>
       ) : null}
       {messages.map((msg) => {
-        const isEmptyStream =
-          Boolean(msg.streaming) && String(msg.content || "").length === 0;
-        const showThinking = Boolean(msg.streaming) && thinkingPhase && isEmptyStream;
-        const showTyping = Boolean(msg.streaming) && typingPhase && isEmptyStream;
-        const showBubble = !isEmptyStream || showTyping;
-
         return (
         <div key={msg.id} className="flex w-full flex-col items-start gap-2">
-          {msg.streaming && !showTyping ? (
+          {msg.streaming ? (
             <AgentActivityBubble
               activities={activeActivities}
               compact={compact}
               themed={themed}
-              fallbackLabel={showThinking ? "Thinking…" : null}
               hideCompleted={hideCompletedActivities}
             />
           ) : null}
-          {showBubble ? (
           <MessageBubble
           role={msg.role}
           content={msg.content}
@@ -166,13 +146,14 @@ export function MessageList({
           onConfirmDecision={onConfirmDecision}
           confirmBusy={confirmBusy}
           streaming={Boolean(msg.streaming)}
+          statusLabel={msg.statusLabel}
+          showResponseTime={showResponseTime}
           showSourceClarifyButtons={
             Boolean(onSourceClarifyReply) && msg.id === lastMessageId
           }
           onSourceClarifyReply={onSourceClarifyReply}
           onOpenKnowledge={onOpenKnowledge}
           />
-          ) : null}
         </div>
         );
       })}

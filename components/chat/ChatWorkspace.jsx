@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { listAgents } from "@/lib/api/agents";
 import { sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
-import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
+import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
@@ -31,7 +31,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useChatActivity } from "@/hooks/use-chat-activity";
+import { useChatStream } from "@/hooks/use-chat-stream";
 
 function placementFromDeploy(deploy) {
   if (deploy?.chatInterface === "embedded") return "full-page";
@@ -73,7 +73,7 @@ export function ChatWorkspace() {
   const [knowledgePreview, setKnowledgePreview] = useState(null);
   const [knowledgePreviewOpen, setKnowledgePreviewOpen] = useState(false);
   const sendLockRef = useRef(false);
-  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
+  const { activeActivities, beginActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion, streamHandlers, stop } = useChatStream(setMessages);
 
   const selectedAgent = useMemo(
     () => agents.find((a) => a.id === agentId) || null,
@@ -195,36 +195,17 @@ export function ChatWorkspace() {
 
     try {
       const result = await sendChatMessageStream(agentId, {
-        signal: activityRequest.controller.signal,
         message: text,
         clientMessageId: optimisticId,
         conversationId: conversationId || undefined,
-        onDelta: (delta) => {
-          if (!isCurrentActivity(activityRequest)) return;
-          setMessages((prev) => {
-            const existing = prev.find((item) => item.id === streamingId);
-            if (existing) {
-              return prev.map((item) =>
-                item.id === streamingId
-                  ? { ...item, content: `${item.content}${delta}`, streaming: true }
-                  : item
-              );
+        ...streamHandlers(activityRequest, streamingId, {
+          onMeta: (data) => {
+            if (data?.conversationId) {
+              streamedConversationId = data.conversationId;
+              if (!conversationId) setConversationId(data.conversationId);
             }
-            return [
-              ...prev,
-              { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
-            ];
-          });
-        },
-        onMeta: (data) => {
-          if (data?.conversationId) {
-            streamedConversationId = data.conversationId;
-            if (!conversationId) setConversationId(data.conversationId);
-          }
-        },
-        onTool: (data) => {
-          receiveActivity(activityRequest, data);
-        },
+          },
+        }),
       });
 
       if (!isCurrentActivity(activityRequest)) return;
@@ -304,6 +285,12 @@ export function ChatWorkspace() {
     }
   }
 
+  function handleStop() {
+    stop();
+    setSending(false);
+    sendLockRef.current = false;
+  }
+
   async function handleConfirmDecision(confirmation, decision) {
     if (activityBusy()) throw new Error("Wait for the current response to finish.");
     const cid = confirmation.conversationId || conversationId;
@@ -343,11 +330,7 @@ export function ChatWorkspace() {
         const result = await resumeChatAfterConfirmation(agentId, {
           conversationId: cid,
           confirmationId: confirmation.id,
-          signal: activityRequest.controller.signal,
-          onTool: data => receiveActivity(activityRequest, data),
-          onDelta: delta => {
-            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
-          },
+          ...streamHandlers(activityRequest, streamingId),
         });
         if (!isCurrentActivity(activityRequest)) return;
         setConversationId(result.conversationId);
@@ -502,6 +485,7 @@ export function ChatWorkspace() {
       <ChatComposer
         disabled={sending || !agentId || loadingThread}
         onSend={send}
+        onStop={sending ? handleStop : undefined}
         compact={compact}
         themed
         placeholder={

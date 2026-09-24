@@ -128,6 +128,8 @@ PENDING → APPROVED (API lifecyclePhase: CONFIRMED) → CONSUMED
 - Removing result fencing on tool/web bodies
 - Raising `MAX_TOOL_STEPS` / removing outbound semaphore without abuse review
 
+**Change log (allowed class):** 2026-09-24 — chat stream transport moved from SSE to NDJSON with status/replace/cards events ([`features/CHAT_STREAMING_NDJSON.md`](./features/CHAT_STREAMING_NDJSON.md)). Display/transport only; trust path, caps and PEP unchanged.
+
 **CRITICAL security regressions:** fix immediately; document in `.tmp/` and amend this freeze file.
 
 ---

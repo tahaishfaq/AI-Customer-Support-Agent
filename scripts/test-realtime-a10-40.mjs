@@ -55,7 +55,7 @@ async function runCase(item) {
     check(stream.includes("maxBufferedBytes") || stream.includes("buffer"), item.id + " stream bounds buffering");
     check(reader.includes("AbortError") || reader.includes("signal"), item.id + " reader handles cancellation");
     check(reader.includes("done") && reader.includes("delta"), item.id + " reader handles terminal and delta events");
-    if (item.variant % 2 === 0) check(reader.includes("content-type") || stream.includes("text/event-stream"), item.id + " SSE contract");
+    if (item.variant % 2 === 0) check(reader.includes("content-type") && reader.includes("NDJSON_CONTENT_TYPE"), item.id + " NDJSON contract");
     else check(reader.includes("without a result") || reader.includes("timed out"), item.id + " missing/timeout contract");
   } else if (item.category === "handoff") {
     const embed = read("components/embed/PublicWebchat.jsx");

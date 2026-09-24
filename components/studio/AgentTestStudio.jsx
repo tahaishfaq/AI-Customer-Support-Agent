@@ -17,12 +17,12 @@ import {
 import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
 import { mintAgentIdentityToken } from "@/lib/api/agents";
-import { useChatActivity } from "@/hooks/use-chat-activity";
+import { useChatStream } from "@/hooks/use-chat-stream";
 import {
   isConversationLimitError,
 } from "@/components/billing/BillingPlansUsage";
 import { refreshConversationQuota } from "@/hooks/use-conversation-quota";
-import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
+import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
 import { getConversation } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
@@ -289,7 +289,7 @@ export function AgentTestStudio({ agent }) {
   const isWideLayout = useMinWidth(1280);
   const conversationIdRef = useRef(null);
   const sendingRef = useRef(false);
-  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
+  const { activeActivities, beginActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion, streamHandlers, stop } = useChatStream(setMessages);
   const runRef = useRef({ status: "idle", index: 0, queue: [] });
   const runActive = runStatus === "running" || runStatus === "paused";
   const sessionLogEntries = useMemo(
@@ -386,6 +386,12 @@ export function AgentTestStudio({ agent }) {
     setChatExtras([]);
   }, [agent, clearActivities]);
 
+  function handleStop() {
+    stop();
+    setSending(false);
+    sendingRef.current = false;
+  }
+
   async function send(text, meta = {}) {
     const prompt = text.trim();
     if (!agent?.id || sendingRef.current || !prompt) {
@@ -424,21 +430,11 @@ export function AgentTestStudio({ agent }) {
         }
       }
       const result = await sendChatMessageStream(agent.id, {
-        signal: activityRequest.controller.signal,
         message: prompt,
         clientMessageId: optimisticId,
         conversationId: conversationIdRef.current || undefined,
         ...(identityToken ? { identityToken } : {}),
-        onTool: data => receiveActivity(activityRequest, data),
-        onDelta: delta => {
-          if (!isCurrentActivity(activityRequest)) return;
-          setMessages(previous => {
-            if (previous.some(item => item.id === streamingId)) {
-              return previous.map(item => item.id === streamingId ? { ...item, content: `${item.content}${delta}`, streaming: true } : item);
-            }
-            return [...previous, { id: streamingId, role: "ASSISTANT", content: delta, streaming: true }];
-          });
-        },
+        ...streamHandlers(activityRequest, streamingId),
       });
       if (!isCurrentActivity(activityRequest)) return { ok: false, reason: "Conversation changed" };
       conversationIdRef.current = result.conversationId;
@@ -628,12 +624,8 @@ export function AgentTestStudio({ agent }) {
         const result = await resumeChatAfterConfirmation(agent.id, {
           conversationId: cid,
           confirmationId: confirmation.id,
-          signal: activityRequest.controller.signal,
           ...(identityToken ? { identityToken } : {}),
-          onTool: data => receiveActivity(activityRequest, data),
-          onDelta: delta => {
-            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
-          },
+          ...streamHandlers(activityRequest, streamingId),
         });
         if (!isCurrentActivity(activityRequest)) return;
         conversationIdRef.current = result.conversationId;
@@ -1011,6 +1003,7 @@ export function AgentTestStudio({ agent }) {
       <ChatComposer
         disabled={sending || runActive || agent.enabled === false}
         onSend={send}
+        onStop={sending && !runActive ? handleStop : undefined}
         compact={false}
         themed
         placeholder={

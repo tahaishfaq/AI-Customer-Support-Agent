@@ -1414,3 +1414,35 @@ html:has([data-hapy-embed]) nextjs-portal {
     transform: none;
   }
 }
+
+/* Live reply caret: sits at the end of the last streamed block (MessageBubble). */
+.aide-streaming-caret > :last-child::after,
+.aide-streaming-caret > :last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  opacity: 0.7;
+  animation: aide-caret-blink 1s steps(2, start) infinite;
+}
+
+.aide-streaming-caret > ul:last-child::after,
+.aide-streaming-caret > ol:last-child::after {
+  content: none;
+}
+
+@keyframes aide-caret-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aide-streaming-caret > :last-child::after,
+  .aide-streaming-caret > :last-child > li:last-child::after {
+    animation: none;
+  }
+}

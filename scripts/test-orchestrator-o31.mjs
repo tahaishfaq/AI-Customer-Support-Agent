@@ -43,10 +43,10 @@ function testChannelWiring() {
 }
 
 function testClient() {
-  const client = read("lib/api/chat-stream.js");
-  assert(/onTool/.test(client), "client handles tool SSE events");
+  const client = read("lib/chat/read-chat-response.js");
+  assert(/onActivity/.test(client), "client handles tool activity events");
   assert(/O3\.1/.test(client), "client docs O3.1");
-  console.log("ok  O3.1 client SSE");
+  console.log("ok  O3.1 client NDJSON");
 }
 
 function testDocs() {

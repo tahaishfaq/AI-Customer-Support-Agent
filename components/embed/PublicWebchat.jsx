@@ -30,11 +30,11 @@ import { cn } from "@/lib/utils";
 import { formatRelative } from "@/components/conversations/format";
 import { resolvePublicConfirmation } from "@/lib/api/confirmations";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
-import { mergeAssistantReply, appendStreamingDelta } from "@/lib/chat/merge-assistant-reply";
+import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resumePublicChatAfterConfirmation, sendPublicChatMessageStream } from "@/lib/api/chat";
 import { useEmbedDesk } from "@/hooks/use-embed-desk";
 import { usePublicRealtime } from "@/hooks/use-public-realtime";
-import { useChatActivity } from "@/hooks/use-chat-activity";
+import { useChatStream } from "@/hooks/use-chat-stream";
 import { useEmbedFrame } from "@/hooks/use-embed-frame";
 import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 
@@ -104,7 +104,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const [csatBusy, setCsatBusy] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedText, setLastFailedText] = useState("");
-  const { activeActivities, beginActivity, receiveActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion } = useChatActivity();
+  const { activeActivities, beginActivity, clearActivities, isCurrentActivity, activityBusy, activityVersion, streamHandlers, stop } = useChatStream(setMessages);
   const setDeskMessages = useCallback((next) => {
     if (!activityBusy()) setMessages(next);
   }, [activityBusy]);
@@ -562,6 +562,11 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     [agent.publicKey, resetMode]
   );
 
+  function handleStop() {
+    stop();
+    setSending(false);
+  }
+
   async function send(text) {
     if (sending || activityBusy()) return;
     unlockNotificationAudio();
@@ -593,40 +598,21 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
             }
           : undefined;
       const data = await sendPublicChatMessageStream(agent.publicKey, {
-        signal: activityRequest.controller.signal,
         message: text,
         clientMessageId: optimisticId,
         conversationId: conversationId || undefined,
         userSession,
         realtimeAccessToken: realtimeAccessTokenRef.current,
-        onDelta: (delta) => {
-          if (!isCurrentActivity(activityRequest)) return;
-          setMessages((prev) => {
-            const existing = prev.find((item) => item.id === streamingId);
-            if (existing) {
-              return prev.map((item) =>
-                item.id === streamingId
-                  ? { ...item, content: `${item.content}${delta}`, streaming: true }
-                  : item
-              );
+        ...streamHandlers(activityRequest, streamingId, {
+          onMeta: (meta) => {
+            if (!meta?.conversationId) return;
+            setConversationId(meta.conversationId);
+            conversationIdRef.current = meta.conversationId;
+            if (meta.realtimeAccessToken) {
+              rememberRealtimeAccess(meta.conversationId, meta.realtimeAccessToken);
             }
-            return [
-              ...prev,
-              { id: streamingId, role: "ASSISTANT", content: delta, streaming: true },
-            ];
-          });
-        },
-        onMeta: (meta) => {
-          if (!meta?.conversationId) return;
-          setConversationId(meta.conversationId);
-          conversationIdRef.current = meta.conversationId;
-          if (meta.realtimeAccessToken) {
-            rememberRealtimeAccess(meta.conversationId, meta.realtimeAccessToken);
-          }
-        },
-        onTool: (activity) => {
-          receiveActivity(activityRequest, activity);
-        },
+          },
+        }),
       });
       if (!isCurrentActivity(activityRequest)) return;
       setConversationId(data.conversationId);
@@ -807,11 +793,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         const data = await resumePublicChatAfterConfirmation(agent.publicKey, {
           conversationId: cid,
           confirmationId: confirmation.id,
-          signal: activityRequest.controller.signal,
-          onTool: data => receiveActivity(activityRequest, data),
-          onDelta: delta => {
-            if (isCurrentActivity(activityRequest)) setMessages(previous => appendStreamingDelta(previous, streamingId, delta));
-          },
+          ...streamHandlers(activityRequest, streamingId),
           userSession,
           realtimeAccessToken: realtimeAccessTokenRef.current,
         });
@@ -1109,6 +1091,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         compact
         themed
         showKnowledgeDetails={false}
+        showResponseTime={false}
         instantScrollKey={historyScrollKey}
         showFeedback={features.messageFeedback && !waitingForHuman}
         intro={intro}
@@ -1173,6 +1156,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         compact
         themed
         disabled={sending}
+        onStop={sending ? handleStop : undefined}
         placeholder={placeholder}
         allowFileUpload={features.fileUpload}
         uploadUrl={`/api/public/agents/${agent.publicKey}/files`}

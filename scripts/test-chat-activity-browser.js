@@ -51,12 +51,12 @@ async function main() {
           if (url.endsWith('/chat') && window.__jsonReply) return new Response(JSON.stringify(window.__jsonReply), { headers: { 'content-type': 'application/json' } });
           if (url.endsWith('/chat')) {
             const index = window.__streams.length;
-            return new Response(new ReadableStream({ start(controller) { window.__streams.push(controller); }, cancel() { window.__cancelled[index] = true; } }), { headers: { 'content-type': 'text/event-stream' } });
+            return new Response(new ReadableStream({ start(controller) { window.__streams.push(controller); }, cancel() { window.__cancelled[index] = true; } }), { headers: { 'content-type': 'application/x-ndjson' } });
           }
           const data = url === '/api/agents' ? { agents: [window.__agent] } : {};
           return new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } });
         };
-        window.__event = (type, data, index = 0) => { if (!window.__cancelled[index]) window.__streams[index].enqueue(new TextEncoder().encode(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)); };
+        window.__event = (type, data, index = 0) => { const line = type === 'tool' ? { type: 'activity', data } : type === 'delta' ? { type: 'text', delta: data.text } : type === 'done' ? { type: 'done', body: { success: true, data } } : type === 'error' ? { type: 'error', ...data } : { type, ...data }; if (!window.__cancelled[index]) window.__streams[index].enqueue(new TextEncoder().encode(`${JSON.stringify(line)}\n`)); };
         window.__close = index => { if (!window.__cancelled[index]) window.__streams[index].close(); };
       }, theme);
       const page = await context.newPage();

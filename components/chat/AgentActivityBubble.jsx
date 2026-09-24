@@ -15,14 +15,7 @@ function isRunningPhase(item) {
 }
 
 function pillText(item) {
-  if (item.phase === "needs_confirmation") {
-    return "CONFIRM → ACTION";
-  }
-  const raw = String(activityLabel(item) || "WORKING")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .toUpperCase();
-  return raw.slice(0, 28) || "WORKING";
+  return activityLabel(item) || "Working…";
 }
 
 export function AgentActivityBubble({
@@ -36,7 +29,8 @@ export function AgentActivityBubble({
   const byMode = new Map();
   for (const item of activities) {
     if (!normalizeActivityEvent(item)) continue;
-    if (item.mode === "preparation") continue;
+    // Prep and knowledge are covered by the bubble's status line; pills are for tools only.
+    if (item.mode === "preparation" || item.mode === "knowledge") continue;
     if (hideCompleted && ["completed", "failed", "cancelled"].includes(item.phase)) {
       continue;
     }
@@ -84,7 +78,7 @@ export function AgentActivityBubble({
           <span
             key={item.activityId}
             className={cn(
-              "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold tracking-wide",
+              "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium",
               themed
                 ? "border-[var(--wc-border)] bg-[var(--wc-shell)] text-[var(--wc-shell-fg)]"
                 : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"

@@ -10,7 +10,11 @@ import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { durationHeaders, durationMsSince } from "@/lib/observability/duration";
 import { safeLogError } from "@/lib/observability/safe-log";
-import { streamingChatEnabled } from "@/lib/chat/sse";
+import {
+  acceptsNdjson,
+  NDJSON_CONTENT_TYPE,
+  streamingChatEnabled,
+} from "@/lib/chat/ndjson";
 import { createChatServerStream } from "@/lib/chat/server-stream";
 
 /** Keep above OPENAI_TIMEOUT_MS (default 45s). */
@@ -58,7 +62,7 @@ export async function POST(request, { params }) {
     const wantsStream =
       Boolean(parsed.data.stream) &&
       streamingChatEnabled() &&
-      (request.headers.get("accept") || "").includes("text/event-stream");
+      acceptsNdjson(request);
 
     if (wantsStream) {
       const stream = createChatServerStream(async ({ emit, signal }) => {
@@ -78,15 +82,15 @@ export async function POST(request, { params }) {
             });
       }, {
         signal: request.signal,
+        turnId: parsed.data.clientMessageId || null,
         onError: () => safeLogError("chat stream failed", { requestId, agentId, route: "studio-chat", status: 500 }),
       });
 
       return new Response(stream, {
         status: 200,
         headers: {
-          "Content-Type": "text/event-stream; charset=utf-8",
+          "Content-Type": `${NDJSON_CONTENT_TYPE}; charset=utf-8`,
           "Cache-Control": "no-cache, no-transform",
-          Connection: "keep-alive",
           "X-Accel-Buffering": "no",
           "x-request-id": requestId,
           ...durationHeaders(started),

@@ -27,21 +27,21 @@ assert.match(turnContext, /activityId: "knowledge-selection"/);
 assert.match(turnContext, /mode: "knowledge"/);
 assert.match(api, /requestChatStream/);
 const transport = fs.readFileSync(new URL("../lib/chat/read-chat-response.js", import.meta.url), "utf8");
-assert.match(transport, /onTool/);
-assert.match(transport, /type === ['"]tool['"]/);
+assert.match(transport, /onActivity/);
+assert.match(transport, /case 'activity'/);
 assert.match(api, /sendPublicChatMessageStream/);
-assert.match(publicRoute, /text\/event-stream/);
+assert.match(publicRoute, /NDJSON_CONTENT_TYPE/);
 assert.match(publicRoute, /publicAccess: true/);
 assert.match(publicChat, /sendPublicChatMessageStream/);
 assert.match(publicChat, /streamingId/);
 assert.match(list, /AgentActivityBubble/);
-assert.match(list, /fallbackLabel=\{showThinking \? "Thinking…" : null\}/);
-assert.match(list, /typingPhase/);
-assert.match(list, /thinkingPhase/);
+// One bubble per turn: status line until tokens, no separate typing/thinking components.
+assert.match(list, /statusLabel=\{msg\.statusLabel\}/);
+assert.doesNotMatch(list, /typingPhase|thinkingPhase/);
 assert.match(list, /loading && !messages.some\(\(m\) => m.streaming\)/);
 assert.match(bubble, /fallbackLabel/);
 assert.match(workspace, /activeActivities/);
-assert.match(workspace, /onTool:/);
+assert.match(workspace, /streamHandlers\(activityRequest, streamingId/);
 assert.match(bubble, /role="status"/);
 assert.match(bubble, /normalizeActivityEvent/);
 
