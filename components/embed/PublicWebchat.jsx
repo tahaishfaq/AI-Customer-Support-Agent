@@ -100,6 +100,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   /** Tab the conversation's back button returns to. */
   const [returnTab, setReturnTab] = useState("home");
   const [expanded, setExpanded] = useState(false);
+  const [openChatError, setOpenChatError] = useState("");
   /** True once the visitor chatted in this page session — reopening resumes the chat. */
   const engagedRef = useRef(false);
   const [conversationId, setConversationId] = useState(null);
@@ -852,18 +853,29 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     const version = activityVersion();
     setSending(false);
     setError("");
+    setOpenChatError("");
+    // Each conversation has its own access capability (saved when it was created). The one in
+    // memory belongs to the current chat, or is empty after "new conversation" / a reload.
+    let accessToken = null;
+    try {
+      accessToken = localStorage.getItem(realtimeAccessKey(id));
+    } catch {
+      // Storage disabled: fall back to the in-memory capability.
+    }
+    accessToken = accessToken || (id === conversationIdRef.current ? realtimeAccessTokenRef.current : null);
     try {
       const res = await fetch(
         `/api/public/agents/${agent.publicKey}/conversations/${id}`,
         {
           headers: {
-            "x-aide-conversation-access-token": realtimeAccessTokenRef.current || "",
+            "x-aide-conversation-access-token": accessToken || "",
           },
         }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
       if (version !== activityVersion()) return;
+      if (accessToken) rememberRealtimeAccess(id, accessToken);
       setConversationId(id);
       engagedRef.current = true;
       setReturnTab(fromTab);
@@ -874,9 +886,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
       }
       persist(id, data.messages || []);
-    } catch (err) {
+    } catch {
       if (version !== activityVersion()) return;
-      setError(err.message || "Unable to open chat");
+      // Shown on the list the visitor tapped from (Home / Messages), not a hidden chat screen.
+      setOpenChatError("This conversation can't be opened on this device anymore.");
     }
   }
 
@@ -1180,6 +1193,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           intro={intro}
           identity={identity}
           activeId={conversationId}
+          error={openChatError}
           onOpen={(id) => {
             if (id === conversationId && engagedRef.current) {
               setReturnTab("messages");
