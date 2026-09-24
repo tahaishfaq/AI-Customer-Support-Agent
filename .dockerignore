@@ -1,0 +1,24 @@
+# Secrets and local state never enter the image.
+.env
+.env.*
+!.env.example
+prisma/admins.local.json
+*.pem
+
+# Rebuilt inside the image.
+node_modules
+.next
+generated/prisma
+app/generated/prisma
+
+# Local tooling, tests output, VCS.
+.git
+.tmp
+tmp
+test-results
+playwright-report
+coverage
+bruno
+docs
+*.log
+.DS_Store

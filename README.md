@@ -39,6 +39,8 @@ Copy variable names from `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL`,
 4. Set the realtime Redis/secret variables from `.env.example` and run `npx prisma migrate deploy` against production Neon.
 5. Seed admins once: copy `prisma/admins.local.example.json` → `prisma/admins.local.json`, fill 1–3 operators, `npm run seed:admins` against prod Neon. Delete the local file after.
 
+**Render:** one-click Blueprint in [`render.yaml`](render.yaml) (web + realtime publisher + Redis, all in Singapore next to Neon) — see [`docs/deploy/RENDER.md`](docs/deploy/RENDER.md).
+
 Vercel remains suitable for an HTTP-only deployment, but it is not the target
 runtime for this one-port Socket.IO architecture because it does not provide a
 long-lived Node process for WebSocket connections.

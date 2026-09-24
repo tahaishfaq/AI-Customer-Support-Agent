@@ -304,6 +304,7 @@
     "next-themes": "^0.4.6",
     "openai": "^7.4.0",
     "pg": "^8.23.0",
+    "playwright": "1.63.0",
     "prisma": "^7.9.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
