@@ -82,7 +82,8 @@ export function GET(request) {
       typeof data.width === "number" && Number.isFinite(data.width) && data.width > 0 && data.width <= 4096 &&
       typeof data.height === "number" && Number.isFinite(data.height) && data.height > 0 && data.height <= 4096 &&
       (data.proactive === undefined || typeof data.proactive === "boolean") &&
-      (data.customLauncher === undefined || typeof data.customLauncher === "boolean");
+      (data.customLauncher === undefined || typeof data.customLauncher === "boolean") &&
+      (data.expanded === undefined || typeof data.expanded === "boolean");
   }
 
   function viewportBounds(iframe) {
@@ -136,8 +137,10 @@ export function GET(request) {
       height = Math.max(height, 120);
     }
     if (data && data.open) {
-      width = clampFrame(data.width, 280, Math.min(400, maxW));
-      height = clampFrame(data.height, 160, Math.min(640, maxH));
+      // "Expand window" asks for a larger panel; never beyond the host viewport.
+      var expanded = data.expanded === true;
+      width = clampFrame(data.width, 280, Math.min(expanded ? 760 : 400, maxW));
+      height = clampFrame(data.height, 160, Math.min(expanded ? 920 : 640, maxH));
     }
     setStyle(iframe, "width", clampFrame(width, 56, maxW) + "px");
     setStyle(iframe, "height", clampFrame(height, 56, maxH) + "px");
@@ -343,7 +346,8 @@ export function GET(request) {
         version: data.version, generation: data.generation,
         open: event.data.open, width: event.data.width, height: event.data.height,
         proactive: event.data.proactive === true,
-        customLauncher: event.data.customLauncher === true
+        customLauncher: event.data.customLauncher === true,
+        expanded: event.data.expanded === true
       };
       frameSeen = true;
       sizeFloatingFrame(iframe, lastFrame);

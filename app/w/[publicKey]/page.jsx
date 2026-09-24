@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getPublicAgentByKey, toPublicAgentView } from "@/lib/services/embed.service";
+import { resolveWhiteLabelAccess } from "@/lib/billing/entitlements.service";
 import { PublicWebchat } from "@/components/embed/PublicWebchat";
 import { originFromHeaderValues } from "@/lib/utils/request-origin";
 
@@ -40,10 +41,11 @@ export default async function PublicWidgetPage({ params, searchParams }) {
     origin: trustedOrigin,
   });
   if (!agent) notFound();
+  const whiteLabel = await resolveWhiteLabelAccess(agent.userId);
 
   return (
     <PublicWebchat
-      agent={toPublicAgentView(agent)}
+      agent={toPublicAgentView(agent, { whiteLabel })}
       parentOrigin={parentOrigin}
       embedMode={embedMode}
     />

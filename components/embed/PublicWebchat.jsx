@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Plus } from "lucide-react";
 import { resolveCustomization } from "@/lib/customization/defaults";
 import {
   normalizeWidgetPosition,
@@ -22,12 +21,14 @@ import {
 } from "@/lib/embed-history";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { ChatWidget } from "@/components/chat/ChatWidget";
-import { EmbedWelcomeScreen } from "@/components/chat/EmbedWelcomeScreen";
+import { HomeScreen } from "@/components/embed/messenger/HomeScreen";
+import { MessagesScreen } from "@/components/embed/messenger/MessagesScreen";
+import { ConversationHeader } from "@/components/embed/messenger/ConversationHeader";
+import { MessengerTabBar } from "@/components/embed/messenger/MessengerParts";
 import { CsatPrompt } from "@/components/chat/CsatPrompt";
 import { MessageList } from "@/components/chat/MessageList";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatRelative } from "@/components/conversations/format";
 import { resolvePublicConfirmation } from "@/lib/api/confirmations";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
@@ -93,10 +94,15 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const realtimeAccessTokenRef = useRef(null);
 
   const [widgetOpen, setWidgetOpen] = useState(fullPage);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  /** Messenger screen: "home" | "messages" | "conversation". Home is the default on open. */
+  const [screen, setScreen] = useState("home");
+  /** Tab the conversation's back button returns to. */
+  const [returnTab, setReturnTab] = useState("home");
+  const [expanded, setExpanded] = useState(false);
+  /** True once the visitor chatted in this page session — reopening resumes the chat. */
+  const engagedRef = useRef(false);
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState(() => welcomeBubble(agent));
-  const [conversationStarted, setConversationStarted] = useState(false);
   const [historyScrollKey, setHistoryScrollKey] = useState(0);
   const [pastChats, setPastChats] = useState([]);
   const [sending, setSending] = useState(false);
@@ -296,13 +302,12 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       if (!stored.activeId) {
         if (preserveInMemory && conversationIdRef.current) return;
         setConversationId(null);
-        setConversationStarted(false);
         setMessages(welcomeBubble(agent));
         return;
       }
 
+      // Pre-load the last conversation for Messages; Home stays the landing screen.
       setConversationId(stored.activeId);
-      setConversationStarted(true);
       try {
         let accessToken = realtimeAccessTokenRef.current;
         try {
@@ -326,6 +331,11 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         if (activityBusy() || version !== activityVersion()) return;
         applyDeskState(data);
         if (data.handoffAt) setHandoffAt(data.handoffAt);
+        // Waiting for (or talking to) a human: land in the conversation, not Home.
+        if (data.waitingForHuman || data.aiPaused) {
+          engagedRef.current = true;
+          setScreen("conversation");
+        }
         if (Array.isArray(data.messages) && data.messages.length) {
           setHistoryScrollKey((value) => value + 1);
           setMessages(data.messages);
@@ -493,6 +503,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const frameLayout = useEmbedFrame({
     enabled: isFloatingEmbed, open: widgetOpen, proactive: Boolean(proactive),
     customLauncher: deploy.chatLauncher === "custom", position: widgetPosition, parentOrigin,
+    expanded: expanded && widgetOpen,
   });
 
   const postFrame = useCallback(() => {
@@ -526,7 +537,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     postFrame();
     const id = requestAnimationFrame(() => postFrame());
     return () => cancelAnimationFrame(id);
-  }, [bubbleMode, isFloatingEmbed, widgetOpen, historyOpen, proactive, postFrame]);
+  }, [bubbleMode, isFloatingEmbed, widgetOpen, screen, expanded, proactive, postFrame]);
 
   useEffect(() => {
     if (isFloatingEmbed) return undefined;
@@ -571,11 +582,11 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     if (sending || activityBusy()) return;
     unlockNotificationAudio();
     setSending(true);
-    setConversationStarted(true);
+    engagedRef.current = true;
+    setScreen("conversation");
     setError("");
     setLastFailedText("");
     const activityRequest = beginActivity();
-    setHistoryOpen(false);
     const optimisticId = `local-${Date.now()}`;
     const streamingId = `streaming-assistant-${Date.now()}`;
     const nextUser = [
@@ -852,13 +863,14 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
       if (!res.ok) throw new Error(data?.error?.message || "Unable to open chat");
       if (version !== activityVersion()) return;
       setConversationId(id);
-      setConversationStarted(true);
+      engagedRef.current = true;
+      setReturnTab("messages");
+      setScreen("conversation");
       applyDeskState(data);
       if (Array.isArray(data.messages)) {
         setHistoryScrollKey((value) => value + 1);
         setMessages(data.messages.length ? data.messages : welcomeBubble(agent));
       }
-      setHistoryOpen(false);
       persist(id, data.messages || []);
     } catch (err) {
       if (version !== activityVersion()) return;
@@ -979,17 +991,19 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     }
   }
 
-  function resetChat() {
+  /** Fresh thread, straight into the conversation screen (Home / Messages / ⋯ menu). */
+  function startNewConversation(fromTab = screen === "conversation" ? returnTab : screen) {
     clearActivities();
     setSending(false);
     setConversationId(null);
-    setConversationStarted(false);
+    engagedRef.current = true;
+    setReturnTab(fromTab === "messages" ? "messages" : "home");
+    setScreen("conversation");
     realtimeAccessTokenRef.current = null;
     setRealtimeAccessToken(null);
     setMessages(welcomeBubble(agent));
     resetDeskState();
     setError("");
-    setHistoryOpen(false);
     saveEmbedHistory(
       agent.publicKey,
       { conversations: pastChats, activeId: null },
@@ -1000,68 +1014,31 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
 
   const placeholder = identity.messagePlaceholder || "Type your message...";
   const intro = widgetIntro(agent, customization);
-  const showWelcomeScreen =
-    !historyOpen && !conversationId && !conversationStarted && Boolean(agent?.welcomeMessage);
+  const closeWidget = fullPage
+    ? undefined
+    : () => {
+        unlockNotificationAudio();
+        setWidgetOpen(false);
+      };
+  const showTabs = screen !== "conversation";
 
-  const chatBody = historyOpen ? (
-    <div className="flex min-h-0 flex-1 flex-col bg-[var(--wc-chat-bg)]">
-      <div className="flex items-center justify-between border-b border-[var(--wc-border)] px-3 py-2">
-        <p className="text-[13px] font-semibold" style={{ color: "var(--wc-shell-fg)" }}>
-          Past chats
-        </p>
-        <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2" onClick={resetChat}>
-          <Plus className="size-3.5" />
-          New
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {pastChats.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <MessageSquare className="mx-auto size-5 text-[var(--wc-muted)]" />
-            <p className="mt-2 text-[12px] text-[var(--wc-muted)]">No past chats yet.</p>
-          </div>
-        ) : (
-          <ul>
-            {pastChats.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => openPastChat(item.id)}
-                  className={cn(
-                    "flex w-full flex-col gap-0.5 px-3 py-2.5 text-left hover:bg-black/[0.03]",
-                    item.id === conversationId && "bg-[var(--wc-primary)]/8"
-                  )}
-                >
-                  <span className="truncate text-[13px]" style={{ color: "var(--wc-shell-fg)" }}>
-                    {item.preview || "Conversation"}
-                  </span>
-                  <span className="text-[11px] text-[var(--wc-muted)]">
-                    {formatRelative(item.updatedAt)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  ) : (
+  const conversationBody = (
     <>
-      {showWelcomeScreen ? (
-        <EmbedWelcomeScreen
-          name={intro.name}
-          description={intro.description}
-          avatarUrl={intro.avatarUrl}
-          onStart={() => {
-            // The delayed session-restore guard must not overwrite an
-            // intentional first-time start with the welcome screen again.
-            sessionRestoredRef.current = true;
-            setConversationStarted(true);
-          }}
-        />
+      <ConversationHeader
+        intro={intro}
+        identity={identity}
+        onBack={() => setScreen(returnTab)}
+        onClose={closeWidget}
+        onNewConversation={() => startNewConversation(returnTab)}
+        allowExpand={deploy.allowExpand !== false && !fullPage}
+        expanded={expanded}
+        onToggleExpand={() => setExpanded((value) => !value)}
+      />
+      {identity.conversationIntro ? (
+        <p className="shrink-0 px-6 pt-3 text-center text-[13px]" style={{ color: "var(--wc-muted)" }}>
+          {identity.conversationIntro}
+        </p>
       ) : null}
-      {!showWelcomeScreen ? (
-        <>
       {showWaitingBanner ? (
         <DeskWaitingBanner
           humanTyping={humanTyping}
@@ -1160,13 +1137,49 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         placeholder={placeholder}
         allowFileUpload={features.fileUpload}
         uploadUrl={`/api/public/agents/${agent.publicKey}/files`}
-        footer={identity.footer}
+        footer={
+          customization.branding?.hideAideBranding && identity.footer === "by AIDE"
+            ? null
+            : identity.footer
+        }
         onSend={send}
         onValueChange={handlePublicComposerChange}
+        variant="messenger"
       />
-        </>
-      ) : null}
     </>
+  );
+
+  const chatBody = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {screen === "home" ? (
+        <HomeScreen
+          customization={customization}
+          intro={intro}
+          onSendMessage={() => startNewConversation("home")}
+          onClose={closeWidget}
+        />
+      ) : screen === "messages" ? (
+        <MessagesScreen
+          conversations={historyEnabled ? pastChats : []}
+          intro={intro}
+          identity={identity}
+          activeId={conversationId}
+          onOpen={(id) => {
+            if (id === conversationId && engagedRef.current) {
+              setReturnTab("messages");
+              setScreen("conversation");
+              return;
+            }
+            openPastChat(id);
+          }}
+          onSendMessage={() => startNewConversation("messages")}
+          onClose={closeWidget}
+        />
+      ) : (
+        conversationBody
+      )}
+      {showTabs ? <MessengerTabBar active={screen} onChange={setScreen} /> : null}
+    </div>
   );
 
   return (
@@ -1194,24 +1207,20 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         open={fullPage ? true : widgetOpen}
         onToggle={() => {
           unlockNotificationAudio();
-          setWidgetOpen((v) => !v);
+          setWidgetOpen((v) => {
+            // Opening lands on Home unless the visitor is mid-chat in this session.
+            if (!v && !engagedRef.current) setScreen("home");
+            if (v) setExpanded(false);
+            return !v;
+          });
         }}
         fullPage={fullPage}
         fillHost={bubbleMode}
         coordinatedFrame={isFloatingEmbed}
         panelReady={frameLayout.panelReady}
         align={positionToChatAlign(isFloatingEmbed ? frameLayout.position : widgetPosition)}
-        historyOpen={historyOpen}
-        onHistoryToggle={
-          historyEnabled
-            ? () => {
-                unlockNotificationAudio();
-                setHistoryOpen((open) => !open);
-                setWidgetOpen(true);
-              }
-            : undefined
-        }
-        onReset={resetChat}
+        messenger
+        expanded={expanded && !fullPage}
       >
         {chatBody}
       </ChatWidget>

@@ -5,6 +5,7 @@ import {
   getAgentForUser,
   updateAgentForUser,
 } from "@/lib/services/agent.service";
+import { resolveWhiteLabelAccess } from "@/lib/billing/entitlements.service";
 import {
   updateAgentSchema,
   zodErrorDetails,
@@ -17,7 +18,8 @@ export async function GET(_request, { params }) {
 
     const { id } = await params;
     const agent = await getAgentForUser(id, authResult.user.id);
-    return NextResponse.json(agent, { status: 200 });
+    const whiteLabelAllowed = await resolveWhiteLabelAccess(agent.userId);
+    return NextResponse.json({ ...agent, whiteLabelAllowed }, { status: 200 });
   } catch (error) {
     if (error.status === 403 || error.status === 404) {
       return NextResponse.json(
@@ -75,6 +77,12 @@ export async function PUT(request, { params }) {
     );
     return NextResponse.json(agent, { status: 200 });
   } catch (error) {
+    if (error.status === 402 && error.code === "plan_feature_required") {
+      return NextResponse.json(
+        { error: { message: error.message, details: error.details } },
+        { status: 402 }
+      );
+    }
     if (error.status === 403 || error.status === 404) {
       return NextResponse.json(
         { error: { message: error.message, details: {} } },

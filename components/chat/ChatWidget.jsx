@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  ChevronDown,
   Globe2,
+  MessageCircle,
   X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -51,6 +53,10 @@ export function ChatWidget({
   panelReady = true,
   historyOpen = false,
   onHistoryToggle,
+  /** Messenger layout: screens render their own headers; round brand launcher. */
+  messenger = false,
+  /** "Expand window": larger panel (host frame grows via useEmbedFrame). */
+  expanded = false,
   children,
 }) {
   const identity = customization?.identity || {};
@@ -96,9 +102,13 @@ export function ChatWidget({
         "flex min-h-0 flex-col overflow-hidden border-0 shadow-none outline-none ring-0",
         fullPage
           ? "h-full w-full rounded-none"
-          : fillHost
-            ? "h-[520px] w-[380px] max-h-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)]"
-            : "h-[min(520px,calc(100svh-6rem))] w-[min(380px,calc(100vw-1.5rem))]"
+          : expanded
+            ? "h-[min(812px,calc(100svh-6rem))] w-[min(720px,calc(100vw-1.5rem))]"
+            : fillHost && messenger
+              ? "h-[min(560px,calc(100svh-7rem))] w-[min(380px,calc(100vw-1.5rem))]"
+              : fillHost
+              ? "h-[520px] w-[380px] max-h-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)]"
+              : "h-[min(520px,calc(100svh-6rem))] w-[min(380px,calc(100vw-1.5rem))]"
       )}
       style={{
         ...vars,
@@ -117,6 +127,7 @@ export function ChatWidget({
         clipPath: fullPage ? undefined : "inset(0 round var(--wc-radius-panel))",
       }}
     >
+      {messenger ? null : (
       <header
         className="flex shrink-0 items-center gap-2.5 border-b px-3.5 py-3 shadow-none"
         style={{
@@ -189,6 +200,7 @@ export function ChatWidget({
           </span>
         </div>
       </header>
+      )}
       <div
         id="aide-chat-panel"
         className="flex min-h-0 flex-1 flex-col"
@@ -206,6 +218,8 @@ export function ChatWidget({
       className={cn(
         "flex w-fit flex-col gap-3",
         fillHost ? "ml-auto mt-auto" : "",
+        // Standalone messenger (no host frame): keep the round launcher and panel off the edges.
+        messenger && !coordinatedFrame ? "p-3" : "",
         align === "start" ? "items-start" : "items-end"
       )}
       style={coordinatedFrame ? { ...vars, position: "absolute", inset: 0, width: "100%", height: "100%", margin: 0 } : vars}
@@ -215,7 +229,7 @@ export function ChatWidget({
           data-testid="embed-panel-surface"
           className="transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
           aria-hidden={!open || !panelReady}
-          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: "min(380px, 100%)", height: "min(520px, calc(100% - 68px))", opacity: open && panelReady ? 1 : 0, visibility: open && panelReady ? "visible" : "hidden", pointerEvents: open && panelReady ? "auto" : "none", transform: open && panelReady ? "translateY(0) scale(1)" : "translateY(8px) scale(0.985)", transformOrigin: align === "start" ? "bottom left" : "bottom right" }}
+          style={{ position: "absolute", bottom: 68, [align === "start" ? "left" : "right"]: 0, width: expanded ? "100%" : "min(380px, 100%)", height: expanded ? "calc(100% - 68px)" : "min(520px, calc(100% - 68px))", opacity: open && panelReady ? 1 : 0, visibility: open && panelReady ? "visible" : "hidden", pointerEvents: open && panelReady ? "auto" : "none", transform: open && panelReady ? "translateY(0) scale(1)" : "translateY(8px) scale(0.985)", transformOrigin: align === "start" ? "bottom left" : "bottom right" }}
         >
           {panel}
         </div>
@@ -251,7 +265,31 @@ export function ChatWidget({
         </div>
       ) : null}
 
-      {customLauncher ? (
+      {messenger ? (
+        <button
+          type="button"
+          ref={launcherRef}
+          className="flex size-14 items-center justify-center overflow-hidden rounded-full shadow-[0_6px_20px_rgba(15,23,42,0.22)] outline-none transition-transform hover:scale-[1.04] focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
+          style={{
+            ...(coordinatedFrame ? { position: "absolute", bottom: 0, [align === "start" ? "left" : "right"]: 0 } : {}),
+            backgroundColor: "var(--wc-primary)",
+            color: "var(--wc-primary-fg)",
+          }}
+          aria-label={open ? "Close chat widget" : "Open chat widget"}
+          aria-expanded={open}
+          aria-controls="aide-chat-panel"
+          onClick={onToggle}
+        >
+          {open ? (
+            <ChevronDown className="size-7" aria-hidden />
+          ) : launcherSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={launcherSrc} alt="" className="size-full object-cover" />
+          ) : (
+            <MessageCircle className="size-7" fill="currentColor" aria-hidden />
+          )}
+        </button>
+      ) : customLauncher ? (
         <button
           type="button"
           ref={launcherRef}

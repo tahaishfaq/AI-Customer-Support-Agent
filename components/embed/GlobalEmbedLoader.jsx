@@ -17,7 +17,7 @@ export function GlobalEmbedLoader() {
 
     const script = document.createElement("script");
     script.id = EMBED_SCRIPT_ID;
-    script.src = "/embed.js?v=12";
+    script.src = "/embed.js?v=13";
     script.defer = true;
     script.dataset.aideKey = EMBED_PUBLIC_KEY;
     document.head.appendChild(script);

@@ -52,6 +52,7 @@ import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { EmbedReadinessChecklist } from "@/components/customization/EmbedReadinessChecklist";
 import { EmbedIdentityGuide } from "@/components/customization/EmbedIdentityGuide";
 import { cn } from "@/lib/utils";
+import { PlanLock } from "@/components/customization/WhiteLabelFields";
 
 const PLATFORMS = [
   {
@@ -225,6 +226,7 @@ export function DeployForm({
   siteKnowledgeOrigin = null,
   hasWebKnowledge = false,
   onCrawlScheduleChange,
+  whiteLabelAllowed = false,
 }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -476,15 +478,16 @@ export function DeployForm({
         {deploy.chatInterface === "toggle" &&
         deploy.chatLauncher === "bubble" ? (
           <FieldBlock
-            label="Button image"
-            hint="Upload an image for the launcher button."
+            label={<span className="inline-flex items-center gap-2">Button image <PlanLock allowed={whiteLabelAllowed} /></span>}
+            hint="Use the bot avatar, or upload your own launcher icon (paid plans)."
           >
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted"
+                disabled={uploading || !whiteLabelAllowed}
+                aria-label="Upload launcher image"
+                className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted disabled:cursor-not-allowed"
               >
                 {buttonPreviewSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -524,8 +527,8 @@ export function DeployForm({
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="text-sm text-muted-foreground hover:text-foreground"
+                    disabled={uploading || !whiteLabelAllowed}
+                    className="text-sm text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Upload image
                   </button>
@@ -549,6 +552,19 @@ export function DeployForm({
                 accept="image/png,image/jpeg,image/webp,image/gif"
                 className="hidden"
                 onChange={(e) => handleButtonImage(e.target.files?.[0])}
+              />
+            </div>
+          </FieldBlock>
+        ) : null}
+
+        {deploy.chatInterface === "toggle" ? (
+          <FieldBlock label="Expand window" hint={'Visitors can enlarge the chat from the ⋯ menu ("Expand window").'}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-foreground/80">Allow expand</span>
+              <Switch
+                checked={deploy.allowExpand !== false}
+                onCheckedChange={(allowExpand) => patch({ allowExpand })}
+                aria-label="Allow expand window"
               />
             </div>
           </FieldBlock>

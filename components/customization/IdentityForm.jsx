@@ -17,10 +17,11 @@ import {
   fieldClass,
 } from "@/components/customization/CustomizationFields";
 import { monogram } from "@/components/conversations/format";
+import { ImageUploadField, PlanLock } from "@/components/customization/WhiteLabelFields";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
-export function IdentityForm({ agentId, identity, onChange }) {
+export function IdentityForm({ agentId, identity, onChange, whiteLabelAllowed = false }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -138,6 +139,77 @@ export function IdentityForm({ agentId, identity, onChange }) {
         </FieldBlock>
       </FormSection>
 
+      <FormSection title="Messenger">
+        <FieldBlock
+          label={<span className="inline-flex items-center gap-2">Company logo <PlanLock allowed={whiteLabelAllowed} /></span>}
+          hint="Shown at the top of Home and in the chat header, beside the avatars."
+        >
+          <ImageUploadField
+            agentId={agentId}
+            label="company logo"
+            value={identity.logoUrl}
+            onChange={(logoUrl) => patch({ logoUrl })}
+            locked={!whiteLabelAllowed}
+          />
+        </FieldBlock>
+        <FieldBlock label="Team avatars" hint="Up to 3 faces stacked next to the agent avatar, like a real support team.">
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2].map((index) => (
+              <ImageUploadField
+                key={index}
+                agentId={agentId}
+                label={`team avatar ${index + 1}`}
+                shape="circle"
+                value={(identity.teamAvatars || [])[index] || null}
+                onChange={(url) => {
+                  const next = [...(identity.teamAvatars || [])];
+                  if (url) next[index] = url;
+                  else next.splice(index, 1);
+                  patch({ teamAvatars: next.filter(Boolean).slice(0, 3) });
+                }}
+              />
+            )).slice(0, Math.min(3, (identity.teamAvatars || []).length + 1))}
+          </div>
+        </FieldBlock>
+        <FieldBlock label="Home greeting" hint="Two lines at the top of the Home screen.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <MiniLabel htmlFor="identity-greeting-title">First line</MiniLabel>
+              <Input
+                id="identity-greeting-title"
+                value={identity.greetingTitle}
+                maxLength={60}
+                onChange={(e) => patch({ greetingTitle: e.target.value })}
+                placeholder="Hi there 👋"
+                className={fieldClass}
+              />
+            </div>
+            <div>
+              <MiniLabel htmlFor="identity-greeting-subtitle">Second line</MiniLabel>
+              <Input
+                id="identity-greeting-subtitle"
+                value={identity.greetingSubtitle}
+                maxLength={80}
+                onChange={(e) => patch({ greetingSubtitle: e.target.value })}
+                placeholder="How can we help?"
+                className={fieldClass}
+              />
+            </div>
+          </div>
+          <div className="mt-3">
+            <MiniLabel htmlFor="identity-conversation-intro">Conversation intro</MiniLabel>
+            <Input
+              id="identity-conversation-intro"
+              value={identity.conversationIntro}
+              maxLength={160}
+              onChange={(e) => patch({ conversationIntro: e.target.value })}
+              placeholder="Ask us anything, or share your feedback."
+              className={fieldClass}
+            />
+          </div>
+        </FieldBlock>
+      </FormSection>
+
       <FormSection title="Composer">
         <FieldBlock
           label="Input copy"
@@ -157,12 +229,15 @@ export function IdentityForm({ agentId, identity, onChange }) {
               />
             </div>
             <div>
-              <MiniLabel htmlFor="identity-footer">Footer</MiniLabel>
+              <MiniLabel htmlFor="identity-footer">
+                <span className="inline-flex items-center gap-2">Footer <PlanLock allowed={whiteLabelAllowed} /></span>
+              </MiniLabel>
               <Input
                 id="identity-footer"
                 value={identity.footer}
                 onChange={(e) => patch({ footer: e.target.value })}
                 placeholder="by AIDE"
+                disabled={!whiteLabelAllowed}
                 className={fieldClass}
               />
             </div>

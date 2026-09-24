@@ -11,6 +11,7 @@ import {
   Palette,
   Rocket,
   SlidersHorizontal,
+  House,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ import { CustomizationPreview } from "@/components/customization/CustomizationPr
 import { DeployForm } from "@/components/customization/DeployForm";
 import { FeaturesForm } from "@/components/customization/FeaturesForm";
 import { IdentityForm } from "@/components/customization/IdentityForm";
+import { HomeForm } from "@/components/customization/HomeForm";
 import { UniversalBusinessWizard } from "@/components/customization/UniversalBusinessWizard";
 
 const SECTIONS = [
@@ -42,8 +44,15 @@ const SECTIONS = [
     id: "identity",
     label: "Identity",
     title: "Bot Identity",
-    description: "Name, avatar, footer, and contact details.",
+    description: "Name, avatar, logo, greeting, footer, and contact details.",
     icon: UserRound,
+  },
+  {
+    id: "home",
+    label: "Home",
+    title: "Home screen",
+    description: "Link cards and service status on the widget's Home tab.",
+    icon: House,
   },
   {
     id: "appearance",
@@ -110,10 +119,17 @@ export function CustomizationStudio({ agent, onAgentChange }) {
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
+  const whiteLabelAllowed = Boolean(agent.whiteLabelAllowed);
+
   async function handleSave() {
     setSaving(true);
     try {
-      const updated = await updateAgent(agent.id, { customization: draft });
+      // Half-filled link rows are editor state only; the API requires label + https URL.
+      const links = (draft.home?.links || []).filter((link) => link.label?.trim() && link.url?.trim());
+      const status = { ...draft.home?.status, url: draft.home?.status?.url?.trim() || null };
+      const updated = await updateAgent(agent.id, {
+        customization: { ...draft, home: { ...draft.home, links, status } },
+      });
       const next = resolveCustomization(updated);
       setDraft(next);
       setSaved(JSON.stringify(next));
@@ -225,7 +241,14 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                 <IdentityForm
                   agentId={agent.id}
                   identity={draft.identity}
+                  whiteLabelAllowed={whiteLabelAllowed}
                   onChange={(identity) => patchSection("identity", identity)}
+                />
+              ) : null}
+              {sectionId === "home" ? (
+                <HomeForm
+                  home={draft.home}
+                  onChange={(home) => patchSection("home", home)}
                 />
               ) : null}
               {sectionId === "appearance" ? (
@@ -236,6 +259,9 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                     patchSection("appearance", appearance)
                   }
                   onDeployChange={(deploy) => patchSection("deploy", deploy)}
+                  branding={draft.branding}
+                  onBrandingChange={(branding) => patchSection("branding", branding)}
+                  whiteLabelAllowed={whiteLabelAllowed}
                 />
               ) : null}
               {sectionId === "deploy" ? (
@@ -252,6 +278,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                     onAgentChange?.({ ...agent, crawlRecrawlHours: hours });
                   }}
                   onChange={(deploy) => patchSection("deploy", deploy)}
+                  whiteLabelAllowed={whiteLabelAllowed}
                   onPublicKeyChange={(nextKey) => {
                     setPublicKey(nextKey);
                     onAgentChange?.({ ...agent, publicKey: nextKey });

@@ -3,6 +3,8 @@
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { PlanLock } from "@/components/customization/WhiteLabelFields";
 import {
   Select,
   SelectContent,
@@ -24,7 +26,15 @@ import { applyWidgetLayout } from "@/lib/customization/position";
 
 const FONTS = [{ id: "dm-sans", label: "DM Sans" }];
 
-export function AppearanceForm({ appearance, deploy, onChange, onDeployChange }) {
+export function AppearanceForm({
+  appearance,
+  deploy,
+  onChange,
+  onDeployChange,
+  branding = {},
+  onBrandingChange,
+  whiteLabelAllowed = false,
+}) {
   function patch(partial) {
     onChange({ ...appearance, ...partial });
   }
@@ -213,6 +223,23 @@ export function AppearanceForm({ appearance, deploy, onChange, onDeployChange })
           <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
             <span>Sharp</span>
             <span>Round</span>
+          </div>
+        </FieldBlock>
+      </FormSection>
+
+      <FormSection title="Branding">
+        <FieldBlock
+          label={<span className="inline-flex items-center gap-2">White label <PlanLock allowed={whiteLabelAllowed} /></span>}
+          hint={'Hide the "by AIDE" footer. Your own footer text (Identity → Composer) still shows.'}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-foreground/80">Remove “by AIDE”</span>
+            <Switch
+              checked={Boolean(branding.hideAideBranding)}
+              disabled={!whiteLabelAllowed}
+              onCheckedChange={(hideAideBranding) => onBrandingChange?.({ ...branding, hideAideBranding })}
+              aria-label="Remove by AIDE branding"
+            />
           </div>
         </FieldBlock>
       </FormSection>

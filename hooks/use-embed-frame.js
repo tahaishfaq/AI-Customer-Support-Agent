@@ -7,10 +7,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 const CLOSED_LAUNCHER_W = 80;
 const CLOSED_LAUNCHER_H = 56;
 
-export function useEmbedFrame({ enabled, open, proactive, customLauncher, position, parentOrigin }) {
+export function useEmbedFrame({ enabled, open, proactive, customLauncher, position, parentOrigin, expanded = false }) {
   const sequence = useRef(0);
   const [applied, setApplied] = useState(null);
-  const key = `${open}:${Boolean(proactive)}:${customLauncher}:${position}:${parentOrigin}`;
+  const key = `${open}:${Boolean(proactive)}:${customLauncher}:${position}:${parentOrigin}:${expanded}`;
 
   useLayoutEffect(() => {
     if (!enabled || window.parent === window || !parentOrigin) return;
@@ -30,14 +30,14 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
     let acknowledged = false;
     let tick = 0;
     const width = open
-      ? 384
+      ? expanded ? 724 : 384
       : proactive
         ? 264
         : customLauncher
           ? 148
           : CLOSED_LAUNCHER_W;
     const height = open
-      ? 592
+      ? expanded ? 880 : 592
       : proactive
         ? 184
         : customLauncher
@@ -73,6 +73,7 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
     window.parent.postMessage({
       source: 'hapy-widget', type: 'frame', version: 2, generation,
       open, proactive: Boolean(proactive), customLauncher, position, width, height,
+      ...(open && expanded ? { expanded: true } : {}),
     }, origin);
     return () => {
       disposed = true;
@@ -81,7 +82,7 @@ export function useEmbedFrame({ enabled, open, proactive, customLauncher, positi
       window.removeEventListener('message', onMessage);
       window.removeEventListener('resize', onResize);
     };
-  }, [enabled, open, proactive, customLauncher, position, parentOrigin, key]);
+  }, [enabled, open, proactive, customLauncher, position, parentOrigin, expanded, key]);
 
   return {
     panelReady: !enabled || (open && applied?.key === key),
