@@ -30,6 +30,10 @@
 
 Phases: `thinking` (turn prep) → `understanding` (knowledge) → `searching` (HTTP/MCP/web/handoff tool) → `answering` (first non-empty text). A `replace` with `""` (draft cleared before tools) lets `searching` fire again.
 
+## `list` (large tool results)
+
+`{"type":"list","data":{"listId","title","items":[{title,description,url,language,stars,state,visibility,updated}],"total","done"}}` — chunks of a large READ list (e.g. GitHub repositories), appended client-side by `listId` into a list card under the reply. When the visitor asks for "all", the gateway pages sequentially (100 per page, max 5 pages / 500 items / 18 s); the model receives a compact summary text (≤3,600 chars) and is told to summarize, not re-type rows. Items are untrusted data: plain text, https links only. After `done` the card renders from `toolSteps[].list`. Code: `lib/mcp/list-result.js`.
+
 ## `replace`
 
 Streamed text is overwritten, not appended, when:

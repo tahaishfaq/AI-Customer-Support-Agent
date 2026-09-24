@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { AgentActivityBubble } from "@/components/chat/AgentActivityBubble";
+import { ListCard } from "@/components/chat/ListCard";
 import { cn } from "@/lib/utils";
 
 const LIVE_PHASES = new Set([
@@ -154,6 +155,15 @@ export function MessageList({
           onSourceClarifyReply={onSourceClarifyReply}
           onOpenKnowledge={onOpenKnowledge}
           />
+          {/* Large tool lists: live chunks while streaming, full list from the tool step after. */}
+          {(msg.lists?.length
+            ? msg.lists
+            : (msg.toolSteps || []).map((step) => step?.list).filter(Boolean)
+          ).map((list, index) => (
+            <div key={list.listId || index} className={compact ? "w-full pl-0" : "w-full pl-10"}>
+              <ListCard list={list} themed={themed} compact={compact} />
+            </div>
+          ))}
         </div>
         );
       })}

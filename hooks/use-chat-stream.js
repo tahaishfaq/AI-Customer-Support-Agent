@@ -29,6 +29,18 @@ export function useChatStream(setMessages) {
         phaseIndex = index;
         setMessages(prev => prev.map(item => item.id === streamingId ? { ...item, statusLabel: message } : item));
       },
+      onList: (chunk) => {
+        if (!current() || !chunk?.listId) return;
+        setMessages(prev => prev.map(item => {
+          if (item.id !== streamingId) return item;
+          const lists = item.lists || [];
+          const existing = lists.find(list => list.listId === chunk.listId);
+          const next = existing
+            ? { ...existing, items: [...existing.items, ...(chunk.items || [])].slice(0, 500), total: chunk.total ?? existing.total, done: chunk.done }
+            : { listId: chunk.listId, title: chunk.title, items: (chunk.items || []).slice(0, 500), total: chunk.total, done: chunk.done };
+          return { ...item, lists: existing ? lists.map(list => (list.listId === chunk.listId ? next : list)) : [...lists, next] };
+        }));
+      },
       onText: ({ delta, replace }) => {
         if (!current()) return;
         // A cleared draft means tools run next; let the "searching" status through again.

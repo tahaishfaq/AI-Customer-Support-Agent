@@ -132,6 +132,8 @@ PENDING → APPROVED (API lifecyclePhase: CONFIRMED) → CONSUMED
 
 **Change log (PEP, owner decision 2026-09-24 — F14):** on the public embed, HTTP tools explicitly stored as `PUBLIC_READ` + `GET` + `READ`, owner key / no identity, not owner-forced to confirm, and whose name does not suggest personal data, run without visitor Confirm. Everything else keeps F11-U Confirm; WRITE/DESTRUCTIVE, account and identity rules unchanged. Tests: `scripts/test-embed-public-read-policy.mjs`.
 
+**Change log (gateway, 2026-09-24):** READ MCP list tools that expose page/size args may page **inside one tool step** when the visitor asks for "all": sequential, per-page rate-limited, capped at 5 pages / 500 items / 18 s, stops on any error or abort. `MAX_TOOL_STEPS`, the loop deadline and the 2-outbound semaphore are unchanged; list results are compacted and stay fenced as untrusted data. Tests: `scripts/test-mcp-list-result.mjs`.
+
 **CRITICAL security regressions:** fix immediately; document in `.tmp/` and amend this freeze file.
 
 ---

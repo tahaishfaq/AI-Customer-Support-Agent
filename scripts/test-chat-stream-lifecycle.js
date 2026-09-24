@@ -202,3 +202,23 @@ test('partial markdown is closed for live rendering', () => {
   assert.equal(closeStreamingMarkdown('**done** text'), '**done** text');
   assert.equal(closeStreamingMarkdown('```\n**x\n```\nok'), '```\n**x\n```\nok');
 });
+
+test('list chunks stream as their own events between activity and the final answer', async () => {
+  const events = await lines(createChatServerStream(async ({ emit }) => {
+    emit({ type: 'tool', data: { kind: 'agent_activity', mode: 'mcp' } });
+    emit({ type: 'list', data: { listId: 'c1', title: 'Repositories', items: [{ title: 'a/b' }], total: 2, done: false } });
+    emit({ type: 'list', data: { listId: 'c1', items: [{ title: 'a/c' }], total: 2, done: true } });
+    emit({ type: 'delta', data: { text: 'You have 2 repositories.' } });
+    emit({ type: 'done', data: { message: { content: 'You have 2 repositories.' } } });
+  }, { flushPadBytes: 0 }));
+  const lists = events.filter(event => event.type === 'list');
+  assert.equal(lists.length, 2);
+  assert.equal(lists[0].data.title, 'Repositories');
+  assert.ok(events.indexOf(lists[1]) < events.findIndex(event => event.type === 'text'));
+  const received = [];
+  await readChatResponse(response(createChatServerStream(async ({ emit }) => {
+    emit({ type: 'list', data: { listId: 'x', items: [{ title: 'one' }], done: true } });
+    emit({ type: 'done', data: { ok: true } });
+  })), { onList: chunk => received.push(chunk.items[0].title) });
+  assert.deepEqual(received, ['one']);
+});
