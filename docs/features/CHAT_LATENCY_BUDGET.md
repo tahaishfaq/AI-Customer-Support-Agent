@@ -34,6 +34,8 @@ Setup rules (`lib/services/chat.service.js`):
   prior-access lookup.
 - Quota: only a visitor's 2nd message can make a conversation billable, so other messages skip the
   owner-wide count (`assertConversationQuota`).
+- Handoff: after a successful `request_handoff` the loop replies with the saved ack instead of
+  another model call (`lib/orchestrator/loop.js`).
 - After the reply: `done` is sent before turn-run bookkeeping; labels are written only when this
   request produced them (a deferred classify no longer resets them to GENERAL/NEUTRAL).
 

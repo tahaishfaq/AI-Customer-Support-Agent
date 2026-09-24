@@ -132,6 +132,8 @@ PENDING → APPROVED (API lifecyclePhase: CONFIRMED) → CONSUMED
 
 **Change log (PEP, owner decision 2026-09-24 — F14):** on the public embed, HTTP tools explicitly stored as `PUBLIC_READ` + `GET` + `READ`, owner key / no identity, not owner-forced to confirm, and whose name does not suggest personal data, run without visitor Confirm. Everything else keeps F11-U Confirm; WRITE/DESTRUCTIVE, account and identity rules unchanged. Tests: `scripts/test-embed-public-read-policy.mjs`.
 
+**Change log (loop, 2026-09-24):** when a turn stops with `escalate` after `request_handoff` succeeded, the final text is the ack message `handoff.service` already saved, not a second model call. Same text the desk shows, ~1 s sooner, and no second differently worded ack row. Steps, caps and policy are unchanged.
+
 **Change log (chat setup latency, 2026-09-24):** independent setup reads in `sendChatMessage` run in parallel and repeated reads are removed (see `docs/features/CHAT_LATENCY_BUDGET.md`). Every auth, ownership, public-access, quota and confirmation check still runs and is applied in the same order; the stale-confirmation expiry is awaited before a resumed turn reads its approval. `lastUsedAt` on public access rows is written without blocking. No cap, policy or routing change.
 
 **Change log (gateway, 2026-09-24):** READ MCP list tools that expose page/size args may page **inside one tool step** when the visitor asks for "all": sequential, per-page rate-limited, capped at 5 pages / 500 items / 18 s, stops on any error or abort. `MAX_TOOL_STEPS`, the loop deadline and the 2-outbound semaphore are unchanged; list results are compacted and stay fenced as untrusted data. Tests: `scripts/test-mcp-list-result.mjs`.
