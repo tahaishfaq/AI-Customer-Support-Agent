@@ -136,6 +136,8 @@ export function ShinyButton({
       --gleam-label: ${labelColor};
       --gleam-accent: ${accentColor};
       --gleam-accent-soft: ${soft};
+      /* Launcher: faint full ring under the moving arc; CTA buttons keep a clean edge */
+      --gleam-track: ${isLauncher ? "color-mix(in srgb, var(--gleam-accent) 28%, transparent)" : "transparent"};
       --animation: gradient-angle-${instanceId} linear infinite;
       --duration: ${sweepDuration}s;
       --shadow-size: 2px;
@@ -157,12 +159,12 @@ export function ShinyButton({
         linear-gradient(var(--gleam-base), var(--gleam-base)) padding-box,
         conic-gradient(
           from calc(var(--gradient-angle-${instanceId}) - var(--gradient-angle-offset-${instanceId})),
-          transparent 0%,
-          transparent 55%,
+          var(--gleam-track) 0%,
+          var(--gleam-track) 55%,
           var(--gleam-accent) 72%,
           var(--gradient-shine-${instanceId}) 82%,
           var(--gleam-accent) 90%,
-          transparent 100%
+          var(--gleam-track) 100%
         ) border-box;
       box-shadow: ${isLauncher ? "none" : "inset 0 0 0 1px var(--gleam-inset)"};
       transition: var(--transition);
@@ -173,6 +175,8 @@ export function ShinyButton({
     }
 
     .${scope}.gleam-launcher {
+      /* Visible on any host background, including one the same color as the face */
+      filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.2));
       display: flex;
       align-items: center;
       justify-content: center;

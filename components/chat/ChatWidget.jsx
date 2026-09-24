@@ -117,7 +117,9 @@ export function ChatWidget({
       style={{
         ...vars,
         ...(coordinatedFrame ? { width: "100%", height: "100%", maxWidth: "none", maxHeight: "none" } : {}),
-        border: "none",
+        // The outer shadow is clipped (clipPath + a 4px frame gutter), so a theme-aware edge line
+        // keeps the panel visible on a host page of the same color (white on white, dark on dark).
+        border: fullPage ? "none" : "1px solid color-mix(in srgb, var(--wc-shell-fg) 16%, transparent)",
         outline: "none",
         overflow: "hidden",
         isolation: "isolate",
