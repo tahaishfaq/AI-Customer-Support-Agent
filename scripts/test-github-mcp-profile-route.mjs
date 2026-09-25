@@ -103,7 +103,7 @@ assert.match(loop, /userAskedForRepoList/, "repo-list utterance detection");
 assert.match(loop, /userAskedForGithubWrite/, "create asks excluded from list gate");
 assert.match(
   loop,
-  /did not complete the repository write/,
+  /name already exists|alternate names/,
   "write-failure copy distinct from list refuse"
 );
 assert.match(
@@ -132,5 +132,10 @@ assert.match(
   "system addon forbids releases/collaborators for repo lists"
 );
 assert.match(policy, /not list_releases/, "explicit anti-pattern in addon");
+assert.match(
+  policy,
+  /name already exists/,
+  "create_repository conflict → suggest alternate names"
+);
 
 console.log("PASS  github mcp profile route + capability ask");

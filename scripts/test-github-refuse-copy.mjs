@@ -33,13 +33,29 @@ const writeFail = githubWriteRefuseMessage(
       name: "mcp_github_mcp_create_repository",
       errorCode: "MCP_TOOL_ERROR",
       bodyText: "[MCP error] name already exists on this account",
+      _argsRaw: JSON.stringify({ name: "Harness_Agent", private: true }),
     },
   ],
   { publicAccess: false }
 );
-assert.match(writeFail, /couldn'?t complete that GitHub repository change/i);
 assert.match(writeFail, /already exists/i);
+assert.match(writeFail, /Harness_Agent_2|Harness_Agent-v2/);
+assert.match(writeFail, /Confirm/i);
 assert.doesNotMatch(writeFail, /search_repositories|inventory/i);
+assert.doesNotMatch(writeFail, /successfully created/i);
+
+const writeFailNoName = githubWriteRefuseMessage(
+  [
+    {
+      name: "mcp_github_mcp_create_repository",
+      errorCode: "MCP_TOOL_ERROR",
+      bodyText: "[MCP error] name already exists on this account",
+    },
+  ],
+  { publicAccess: false }
+);
+assert.match(writeFailNoName, /already exists/i);
+assert.match(writeFailNoName, /different repository name|new name/i);
 
 const writeAuth = githubWriteRefuseMessage(
   [{ name: "mcp_github_mcp_create_repository", errorCode: "MCP_AUTH" }],

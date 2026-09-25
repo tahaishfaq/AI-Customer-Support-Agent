@@ -19,6 +19,7 @@ const {
   completeWriteIdempotency,
   failWriteIdempotency,
   writeIdempotencyTtlMs,
+  mcpWriteSkipsIdempotencyReplay,
 } = await import("../lib/actions/write-idempotency.js");
 
 const results = [];
@@ -64,6 +65,32 @@ function read(rel) {
       destOk,
       readNo,
       nonIdem,
+    });
+  }
+}
+
+// create_repository must not replay a prior OK (false second "created")
+{
+  const skipCreate = mcpWriteSkipsIdempotencyReplay({
+    name: "mcp_github_mcp_create_repository",
+    _mcp: { remoteName: "create_repository" },
+  });
+  const skipPush = mcpWriteSkipsIdempotencyReplay({
+    name: "mcp_github_mcp_push_files",
+    _mcp: { remoteName: "push_files" },
+  });
+  const invokeSrc = read("lib/actions/invoke-tool.js");
+  const wired = /mcpWriteSkipsIdempotencyReplay\(action\)/.test(invokeSrc);
+  if (skipCreate && !skipPush && wired) {
+    pass(
+      "S5.6-MCP-CREATE-NO-REPLAY",
+      "create_repository skips write-idempotency; push_files does not; invoke-tool wired"
+    );
+  } else {
+    fail("S5.6-MCP-CREATE-NO-REPLAY", "create_repository skip/wiring wrong", {
+      skipCreate,
+      skipPush,
+      wired,
     });
   }
 }
