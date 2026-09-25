@@ -100,6 +100,12 @@ assert.match(loop, /name\.includes\("github"\)/, "any github MCP success counts"
 assert.match(loop, /get_me/, "get_me in inventory pattern");
 assert.match(loop, /GITHUB_REPO_LIST_NAME/, "repo-list tools gated separately");
 assert.match(loop, /userAskedForRepoList/, "repo-list utterance detection");
+assert.match(loop, /userAskedForGithubWrite/, "create asks excluded from list gate");
+assert.match(
+  loop,
+  /did not complete the repository write/,
+  "write-failure copy distinct from list refuse"
+);
 assert.match(
   loop,
   /Previous tools did not return a repository list/,
