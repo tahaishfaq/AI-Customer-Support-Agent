@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   capabilityAskSystemAddon,
+  filterCapabilitiesForSourceRoute,
   isGithubMcpAction,
   routeSource,
 } from "../lib/services/ai/source-policy.js";
@@ -52,6 +53,23 @@ for (const q of [
 const inventory = routeSource("list my github repos");
 assert.equal(inventory.signals.capabilityAsk, false);
 assert.equal(inventory.signals.wantsGithub, true, "inventory still GitHub");
+
+const createAsk = routeSource(
+  "create a private repository on my github named agents"
+);
+assert.equal(createAsk.signals.wantsGithub, true);
+const createFiltered = filterCapabilitiesForSourceRoute(
+  [
+    { name: "mcp_github_mcp_get_me", riskLevel: "READ" },
+    { name: "mcp_github_mcp_create_repository", riskLevel: "WRITE" },
+    { name: "request_handoff", riskLevel: "READ" },
+  ],
+  createAsk
+);
+assert.ok(
+  createFiltered.some((a) => /create_repositor/i.test(a.name)),
+  "wantsGithub keeps GitHub WRITE create_repository"
+);
 
 const canList = routeSource("can you list my github repositories");
 assert.equal(canList.signals.capabilityAsk, false, "inventory verbs win");

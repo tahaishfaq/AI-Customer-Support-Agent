@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   detectCapabilityAsk,
+  detectGithubWriteFollowUp,
   detectSourceAmbiguity,
   detectSourceAskSignals,
   filterActionsKnowledgeFirst,
@@ -159,6 +160,17 @@ assert.ok(
     stickyPreference: null,
   }),
   "cold list repos still clarifies"
+);
+
+assert.equal(
+  detectGithubWriteFollowUp("name: agents\nvisibility: private"),
+  true,
+  "param follow-up is github write follow-up"
+);
+assert.equal(
+  detectGithubWriteFollowUp("hello there"),
+  false,
+  "greeting is not write follow-up"
 );
 
 const stripped = filterActionsKnowledgeFirst(
