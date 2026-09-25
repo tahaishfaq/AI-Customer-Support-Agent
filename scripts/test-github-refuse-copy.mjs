@@ -3,7 +3,10 @@
  * Run: node --import ./scripts/register-aliases.mjs scripts/test-github-refuse-copy.mjs
  */
 import assert from "node:assert/strict";
-import { githubInventoryRefuseMessage } from "../lib/orchestrator/github-refuse.js";
+import {
+  githubInventoryRefuseMessage,
+  githubWriteRefuseMessage,
+} from "../lib/orchestrator/github-refuse.js";
 
 const authStep = [{ errorCode: "MCP_AUTH" }];
 const otherStep = [{ errorCode: "MCP_HTTP" }];
@@ -23,5 +26,25 @@ assert.match(studioInv, /search_repositories|MCP tools/i);
 const embedInv = githubInventoryRefuseMessage([], { publicAccess: true });
 assert.match(embedInv, /site owner|clearer request/i);
 assert.doesNotMatch(embedInv, /search_repositories/);
+
+const writeFail = githubWriteRefuseMessage(
+  [
+    {
+      name: "mcp_github_mcp_create_repository",
+      errorCode: "MCP_TOOL_ERROR",
+      bodyText: "[MCP error] name already exists on this account",
+    },
+  ],
+  { publicAccess: false }
+);
+assert.match(writeFail, /couldn'?t complete that GitHub repository change/i);
+assert.match(writeFail, /already exists/i);
+assert.doesNotMatch(writeFail, /search_repositories|inventory/i);
+
+const writeAuth = githubWriteRefuseMessage(
+  [{ name: "mcp_github_mcp_create_repository", errorCode: "MCP_AUTH" }],
+  { publicAccess: false }
+);
+assert.match(writeAuth, /authentication error|OAuth/i);
 
 console.log("PASS  github refuse copy embed vs studio");
