@@ -134,8 +134,8 @@ assert.match(
 assert.match(policy, /not list_releases/, "explicit anti-pattern in addon");
 assert.match(
   policy,
-  /name already exists/,
-  "create_repository conflict → suggest alternate names"
+  /Never auto-rename and jump straight to Confirm/,
+  "create_repository conflict → ask user before Confirm"
 );
 
 console.log("PASS  github mcp profile route + capability ask");

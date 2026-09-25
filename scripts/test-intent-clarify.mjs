@@ -172,6 +172,26 @@ assert.equal(
   false,
   "greeting is not write follow-up"
 );
+assert.equal(
+  detectGithubWriteFollowUp("1"),
+  true,
+  "option 1 after name conflict is write follow-up"
+);
+assert.equal(
+  detectGithubWriteFollowUp("Harness_Agent_2"),
+  true,
+  "bare alternate repo name is write follow-up"
+);
+assert.equal(
+  detectGithubWriteFollowUp("use Harness_Agent-v2"),
+  true,
+  "use <name> is write follow-up"
+);
+assert.equal(
+  detectGithubWriteFollowUp("thanks"),
+  false,
+  "thanks is not write follow-up"
+);
 
 const stripped = filterActionsKnowledgeFirst(
   [

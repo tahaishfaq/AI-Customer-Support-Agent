@@ -40,7 +40,8 @@ const writeFail = githubWriteRefuseMessage(
 );
 assert.match(writeFail, /already exists/i);
 assert.match(writeFail, /Harness_Agent_2|Harness_Agent-v2/);
-assert.match(writeFail, /Confirm/i);
+assert.match(writeFail, /Reply with 1, 2|after you choose/i);
+assert.doesNotMatch(writeFail, /if you Confirm one of those/i);
 assert.doesNotMatch(writeFail, /search_repositories|inventory/i);
 assert.doesNotMatch(writeFail, /successfully created/i);
 
