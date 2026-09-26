@@ -47,7 +47,6 @@ import {
 } from "@/components/studio/StudioActionLogs";
 import { StudioAgentTraces } from "@/components/studio/StudioAgentTraces";
 import { StudioLogDetail } from "@/components/studio/StudioLogDetail";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -935,48 +934,65 @@ export function AgentTestStudio({ agent }) {
       )}
       <div className="shrink-0 border-t border-[var(--wc-border)] bg-[var(--wc-chat-bg)]">
         {githubAuthIssues.length > 0 ? (
-          <Alert className="mx-3 mt-3 mb-0 border-amber-500/40 bg-amber-500/5 py-3">
-            <AlertTitle className="text-sm">GitHub connection needs reconnect</AlertTitle>
-            <AlertDescription className="mt-1.5 flex flex-wrap items-center justify-between gap-3 text-[13px] leading-snug">
-              <span>
+          <div
+            role="alert"
+            className="mx-3 mt-3 mb-0 rounded-xl border-2 border-amber-600 bg-amber-100 px-4 py-3.5 text-amber-950 shadow-sm"
+          >
+            <p className="text-sm font-semibold text-amber-950">
+              GitHub connection needs reconnect
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <p className="min-w-0 flex-1 text-[13px] leading-snug text-amber-950/90">
                 {githubAuthIssues[0].name} reported an auth error
                 {githubAuthIssues[0].lastError
                   ? ` (${githubAuthIssues[0].lastError.slice(0, 80)})`
                   : ""}
                 . Live GitHub asks will fail until you reconnect.
-              </span>
-              <Button type="button" variant="outline" size="sm" className="h-9 px-3" asChild>
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 shrink-0 bg-amber-950 px-3 font-medium text-amber-50 hover:bg-amber-900 hover:text-amber-50"
+                asChild
+              >
                 <Link href={`/agents/${agent.id}/customization?tab=actions`}>
                   Open Tools
                 </Link>
               </Button>
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         ) : null}
         {agent.enabled === false ? (
-          <Alert variant="destructive" className="mx-3 mt-3 mb-0 py-3">
-            <AlertDescription className="text-[13px]">
+          <div
+            role="alert"
+            className="mx-3 mt-3 mb-0 rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3.5 text-red-950"
+          >
+            <p className="text-[13px] font-medium leading-snug text-red-950">
               This agent is disabled by AIDE admin. Studio chat is off.
-            </AlertDescription>
-          </Alert>
+            </p>
+          </div>
         ) : error ? (
-          <Alert variant="destructive" className="mx-3 mt-3 mb-0 py-3">
-            <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-[13px]">
-              <span>{error}</span>
+          <div
+            role="alert"
+            className="mx-3 mt-3 mb-0 rounded-xl border-2 border-red-700 bg-red-100 px-4 py-3.5 text-red-950"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="min-w-0 flex-1 text-[13px] leading-snug text-red-950">
+                {error}
+              </p>
               {lastPrompt ? (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  className="h-9 px-3"
+                  className="h-9 shrink-0 bg-red-950 px-3 font-medium text-red-50 hover:bg-red-900 hover:text-red-50"
                   disabled={sending || runActive || agent.enabled === false}
                   onClick={() => send(lastPrompt)}
                 >
                   Try again
                 </Button>
               ) : null}
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         ) : null}
         <div className="mx-3 mt-3 mb-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--wc-border)] bg-[var(--wc-shell)] px-4 py-3.5">
           <div className="min-w-0">
