@@ -886,7 +886,7 @@ export function AgentTestStudio({ agent }) {
       onNewChat={resetThread}
     />
   ) : (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       {sending && messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
           <Skeleton className="h-14 w-2/3 rounded-2xl" />
@@ -896,7 +896,7 @@ export function AgentTestStudio({ agent }) {
           messages={messages}
           loading={sending}
           activeActivities={activeActivities}
-          compact={false}
+          compact
           themed
           showKnowledgeDetails
           showFeedback={customization.features.messageFeedback}
@@ -933,96 +933,100 @@ export function AgentTestStudio({ agent }) {
           }}
         />
       )}
-      {githubAuthIssues.length > 0 ? (
-        <Alert className="mx-3 mb-2 border-amber-500/40 bg-amber-500/5">
-          <AlertTitle>GitHub connection needs reconnect</AlertTitle>
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              {githubAuthIssues[0].name} reported an auth error
-              {githubAuthIssues[0].lastError
-                ? ` (${githubAuthIssues[0].lastError.slice(0, 80)})`
-                : ""}
-              . Live GitHub asks will fail until you reconnect.
-            </span>
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href={`/agents/${agent.id}/customization?tab=actions`}>
-                Open Tools
-              </Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {agent.enabled === false ? (
-        <Alert variant="destructive" className="mx-3 mb-2">
-          <AlertDescription>
-            This agent is disabled by AIDE admin. Studio chat is off.
-          </AlertDescription>
-        </Alert>
-      ) : error ? (
-        <Alert variant="destructive" className="mx-3 mb-2">
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>{error}</span>
-            {lastPrompt ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={sending || runActive || agent.enabled === false}
-                onClick={() => send(lastPrompt)}
-              >
-                Try again
+      <div className="shrink-0 border-t border-[var(--wc-border)] bg-[var(--wc-chat-bg)]">
+        {githubAuthIssues.length > 0 ? (
+          <Alert className="mx-3 mt-3 mb-0 border-amber-500/40 bg-amber-500/5 py-3">
+            <AlertTitle className="text-sm">GitHub connection needs reconnect</AlertTitle>
+            <AlertDescription className="mt-1.5 flex flex-wrap items-center justify-between gap-3 text-[13px] leading-snug">
+              <span>
+                {githubAuthIssues[0].name} reported an auth error
+                {githubAuthIssues[0].lastError
+                  ? ` (${githubAuthIssues[0].lastError.slice(0, 80)})`
+                  : ""}
+                . Live GitHub asks will fail until you reconnect.
+              </span>
+              <Button type="button" variant="outline" size="sm" className="h-9 px-3" asChild>
+                <Link href={`/agents/${agent.id}/customization?tab=actions`}>
+                  Open Tools
+                </Link>
               </Button>
-            ) : null}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      <div className="mx-3 mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
-        <div className="min-w-0">
-          <Label
-            htmlFor="studio-as-signed-in"
-            className="text-xs font-medium text-foreground"
-          >
-            Logged-in customer
-          </Label>
-          <p className="text-[11px] text-muted-foreground">
-            {asSignedIn && authUser?.id
-              ? `Auto setUser as ${authUser.email || authUser.id}`
-              : asSignedIn
-                ? "Sign in to Aide to auto-bind identity"
-                : "Guest visitor (no setUser)"}
-          </p>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {agent.enabled === false ? (
+          <Alert variant="destructive" className="mx-3 mt-3 mb-0 py-3">
+            <AlertDescription className="text-[13px]">
+              This agent is disabled by AIDE admin. Studio chat is off.
+            </AlertDescription>
+          </Alert>
+        ) : error ? (
+          <Alert variant="destructive" className="mx-3 mt-3 mb-0 py-3">
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-[13px]">
+              <span>{error}</span>
+              {lastPrompt ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3"
+                  disabled={sending || runActive || agent.enabled === false}
+                  onClick={() => send(lastPrompt)}
+                >
+                  Try again
+                </Button>
+              ) : null}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        <div className="mx-3 mt-3 mb-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--wc-border)] bg-[var(--wc-shell)] px-4 py-3.5">
+          <div className="min-w-0">
+            <Label
+              htmlFor="studio-as-signed-in"
+              className="text-sm font-semibold text-[var(--wc-shell-fg)]"
+            >
+              Logged-in customer
+            </Label>
+            <p className="mt-0.5 text-xs leading-snug text-[var(--wc-shell-fg)]/75">
+              {asSignedIn && authUser?.id
+                ? `Auto setUser as ${authUser.email || authUser.id}`
+                : asSignedIn
+                  ? "Sign in to Aide to auto-bind identity"
+                  : "Guest visitor (no setUser)"}
+            </p>
+          </div>
+          <Switch
+            id="studio-as-signed-in"
+            checked={asSignedIn}
+            onCheckedChange={setAsSignedIn}
+            disabled={!authUser?.id || sending || runActive}
+            aria-label="Test as logged-in customer"
+          />
         </div>
-        <Switch
-          id="studio-as-signed-in"
-          checked={asSignedIn}
-          onCheckedChange={setAsSignedIn}
-          disabled={!authUser?.id || sending || runActive}
-          aria-label="Test as logged-in customer"
+        <ChatComposer
+          disabled={sending || runActive || agent.enabled === false}
+          onSend={send}
+          onStop={sending && !runActive ? handleStop : undefined}
+          compact
+          themed
+          variant="messenger"
+          placeholder={
+            runActive
+              ? "Auto-test running — pause or stop to type"
+              : asSignedIn
+              ? "Type a test as the logged-in customer…"
+              : mode === "self"
+              ? "Type your own test as a visitor…"
+              : customization.identity.messagePlaceholder || "Type a test message…"
+          }
+          footer={customization.identity.footer || undefined}
+          allowFileUpload={customization.features.fileUpload}
+          uploadUrl={`/api/agents/${agent.id}/files`}
         />
       </div>
-      <ChatComposer
-        disabled={sending || runActive || agent.enabled === false}
-        onSend={send}
-        onStop={sending && !runActive ? handleStop : undefined}
-        compact={false}
-        themed
-        placeholder={
-          runActive
-            ? "Auto-test running — pause or stop to type"
-            : asSignedIn
-            ? "Type a test as the logged-in customer…"
-            : mode === "self"
-            ? "Type your own test as a visitor…"
-            : customization.identity.messagePlaceholder || "Type a test message…"
-        }
-        footer={customization.identity.footer || undefined}
-        allowFileUpload={customization.features.fileUpload}
-        uploadUrl={`/api/agents/${agent.id}/files`}
-      />
-    </>
+    </div>
   );
 
-  const panelHeight = "h-[min(560px,68vh)] min-h-[440px]";
+  const panelHeight = "h-[min(760px,84vh)] min-h-[580px]";
 
   const suggestedPills = useMemo(() => {
     let source = [];
