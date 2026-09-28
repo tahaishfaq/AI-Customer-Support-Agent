@@ -41,17 +41,10 @@ const CAMPAIGNS = {
 export async function GET(_request, { params }) {
   const { id } = await params;
   const key = String(id || "").trim();
-  const campaign =
-    CAMPAIGNS[key] ||
-    ({
-      id: key || "unknown",
-      name: null,
-      status: "UNKNOWN",
-      niche: null,
-      budgetUsd: null,
-      matchedCreators: 0,
-      pendingRequests: 0,
-      brand: null,
-    });
+  const campaign = CAMPAIGNS[key];
+  // Unknown id is "not found", not a campaign whose status is UNKNOWN.
+  if (!campaign) {
+    return NextResponse.json({ error: "Campaign not found", id: key || null }, { status: 404 });
+  }
   return NextResponse.json(campaign, { status: 200 });
 }
