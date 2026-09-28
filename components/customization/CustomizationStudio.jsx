@@ -290,6 +290,8 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                 <FeaturesForm
                   features={draft.features}
                   onChange={(features) => patchSection("features", features)}
+                  support={draft.support}
+                  onSupportChange={(support) => patchSection("support", support)}
                 />
               ) : null}
               {sectionId === "packs" ? (

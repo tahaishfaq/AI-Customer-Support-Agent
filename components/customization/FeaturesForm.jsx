@@ -7,6 +7,7 @@ import {
   fieldClass,
 } from "@/components/customization/CustomizationFields";
 import { Switch } from "@/components/ui/switch";
+import { SupportHoursForm } from "@/components/customization/SupportHoursForm";
 import {
   Select,
   SelectContent,
@@ -39,7 +40,7 @@ function MiniBox({ children }) {
   );
 }
 
-export function FeaturesForm({ features, onChange }) {
+export function FeaturesForm({ features, onChange, support, onSupportChange }) {
   function patch(partial) {
     onChange({ ...features, ...partial });
   }
@@ -199,6 +200,10 @@ export function FeaturesForm({ features, onChange }) {
           </FieldBlock>
         ) : null}
       </FormSection>
+
+      {typeof onSupportChange === "function" ? (
+        <SupportHoursForm support={support} onChange={onSupportChange} />
+      ) : null}
     </div>
   );
 }
