@@ -58,3 +58,10 @@ test("setup advice never changes readiness, the fail alert, or the 3-part layout
   assert.ok(!withSetup.parts.some((part) => part.id === "setup" && part.state === "fail"));
   assert.deepEqual(withSetup.checks.map((c) => c.id), without.checks.map((c) => c.id), "checks list unchanged");
 });
+
+test("MCP sign-in failure is flagged (the chat hides that server's tools)", () => {
+  const part = evaluateAgentSetup({ knowledgeDocs: 2, promptChars: 100, embedEnabled: true, mcpServers: [{ name: "GitHub MCP", enabledTools: 5, writeToolNames: [], authFailed: true }] });
+  assert.deepEqual(ids(part), ["setup_mcp_auth_0"]);
+  assert.match(part.items.find((i) => i.id === "setup_mcp_auth_0").title, /GitHub MCP: sign-in failed/);
+  assert.deepEqual(ids(evaluateAgentSetup({ knowledgeDocs: 2, mcpServers: [{ name: "GitHub MCP", enabledTools: 5, authFailed: false }] })), []);
+});
