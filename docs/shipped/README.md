@@ -26,6 +26,7 @@
 | `ORCHESTRATOR_CONTRACT.md` | Capability contract |
 | `ARCHITECTURE_ACTIONS_AND_DESK.md` | Actions + desk architecture |
 | `P01_WEEK3_PLAN.md` | Week 3 optional (absorbed) |
+| `CUSTOMER_DOCS_MVP.md` | Public `/docs` + crawl allow + Learn more |
 | `F00_PROGRESS.md` | F00 progress log |
 
 Thin redirects remain under `docs/features/<same-name>.md` so old links don’t 404.

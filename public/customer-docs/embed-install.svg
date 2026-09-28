@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Your website · embed snippet">
+  <defs>
+    <filter id="s" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c1b1f" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="920" height="520" fill="#f7f6f5"/>
+  <rect x="28" y="28" width="864" height="464" rx="14" fill="#ffffff" stroke="#e4e3e7" filter="url(#s)"/>
+  <rect x="28" y="28" width="864" height="44" rx="14" fill="#ffffff"/>
+  <rect x="28" y="58" width="864" height="14" fill="#ffffff"/>
+  <circle cx="52" cy="50" r="5" fill="#ff5f57"/>
+  <circle cx="70" cy="50" r="5" fill="#febc2e"/>
+  <circle cx="88" cy="50" r="5" fill="#28c840"/>
+  <text x="460" y="54" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#6b6a70">Your website · embed snippet</text>
+  <line x1="28" y1="72" x2="892" y2="72" stroke="#e4e3e7"/>
+  
+  <rect x="48" y="88" width="520" height="360" rx="12" fill="#0f172a"/>
+  <text x="72" y="124" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#94a3b8">&lt;!-- Aide webchat --&gt;</text>
+  <text x="72" y="156" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#e2e8f0">&lt;script</text>
+  <text x="72" y="180" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#e2e8f0">  src="https://…/embed.js"</text>
+  <text x="72" y="204" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#fdba74">  data-aide-key="pk_…"</text>
+  <text x="72" y="228" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#e2e8f0">&gt;&lt;/script&gt;</text>
+  <text x="72" y="280" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#94a3b8">Paste before &lt;/body&gt;</text>
+  <rect x="600" y="120" width="240" height="300" rx="16" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="620" y="156" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600" fill="#1c1b1f">Your site</text>
+  <rect x="620" y="176" width="200" height="12" rx="4" fill="#f7f6f5"/>
+  <rect x="620" y="200" width="160" height="12" rx="4" fill="#f7f6f5"/>
+  <rect x="620" y="224" width="180" height="12" rx="4" fill="#f7f6f5"/>
+  <circle cx="780" cy="360" r="26" fill="#e86a2b"/>
+  <text x="780" y="366" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#ffffff">💬</text>
+  <text x="620" y="400" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#6b6a70">Launcher appears live</text>
+  
+</svg>

@@ -24,7 +24,7 @@ import {
 import { refreshConversationQuota } from "@/hooks/use-conversation-quota";
 import { mergeAssistantReply } from "@/lib/chat/merge-assistant-reply";
 import { resolveConversationConfirmation } from "@/lib/api/confirmations";
-import { getConversation } from "@/lib/api/conversations";
+import { getConversation, listConversations } from "@/lib/api/conversations";
 import { resolveCustomization } from "@/lib/customization/defaults";
 import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
@@ -38,9 +38,12 @@ import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ChatComposer } from "@/components/chat/ChatComposer";
-import { ChatHistoryPanel } from "@/components/chat/ChatHistoryPanel";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { MessageList } from "@/components/chat/MessageList";
+import { HomeScreen } from "@/components/embed/messenger/HomeScreen";
+import { MessagesScreen } from "@/components/embed/messenger/MessagesScreen";
+import { ConversationHeader } from "@/components/embed/messenger/ConversationHeader";
+import { MessengerTabBar } from "@/components/embed/messenger/MessengerParts";
 import {
   StudioActionLogs,
   buildSessionLogEntries,
@@ -263,8 +266,12 @@ export function AgentTestStudio({ agent }) {
   const [messages, setMessages] = useState(() => welcomeBubble(agent));
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  /** Live-embed messenger screens: home | messages | conversation */
+  const [screen, setScreen] = useState("conversation");
+  const [returnTab, setReturnTab] = useState("home");
+  const [pastChats, setPastChats] = useState([]);
+  const [openChatError, setOpenChatError] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [selfQuestions, setSelfQuestions] = useState(() => [
     emptySelfQuestion(),
@@ -354,6 +361,33 @@ export function AgentTestStudio({ agent }) {
     return () => {
       cancelled = true;
     };
+  }, [agent?.id]);
+
+  useEffect(() => {
+    if (!agent?.id) {
+      setPastChats([]);
+      return undefined;
+    }
+    let cancelled = false;
+    listConversations({ agentId: agent.id, limit: 40, offset: 0 })
+      .then((data) => {
+        if (cancelled) return;
+        const items = (data.conversations || []).map((c) => ({
+          id: c.id,
+          preview:
+            c.lastMessage?.content?.trim() ||
+            c.category ||
+            "Conversation",
+          updatedAt: c.updatedAt || c.lastMessage?.createdAt || null,
+        }));
+        setPastChats(items);
+      })
+      .catch(() => {
+        if (!cancelled) setPastChats([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [agent?.id, historyKey]);
 
   const logsWideLayout = mode === "logs" && isWideLayout;
@@ -379,11 +413,56 @@ export function AgentTestStudio({ agent }) {
     setConversationId(null);
     setMessages(welcomeBubble(agent));
     setError("");
-    setHistoryOpen(false);
+    setOpenChatError("");
+    setScreen("conversation");
     setLastPrompt("");
     setPauseReason("");
     setChatExtras([]);
+    setHistoryKey((k) => k + 1);
   }, [agent, clearActivities]);
+
+  const openPastChat = useCallback(
+    async (id, fromTab = "messages") => {
+      if (!id) return;
+      clearActivities();
+      const version = activityVersion();
+      sendingRef.current = false;
+      setSending(false);
+      setOpenChatError("");
+      setError("");
+      setReturnTab(fromTab === "home" ? "home" : "messages");
+      setConversationId(id);
+      conversationIdRef.current = id;
+      setScreen("conversation");
+      try {
+        const data = await getConversation(id);
+        if (version !== activityVersion()) return;
+        setMessages(
+          (data.messages || []).map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            responseTime: m.responseTime,
+            createdAt: m.createdAt,
+          }))
+        );
+      } catch (err) {
+        if (version !== activityVersion()) return;
+        setOpenChatError(err.message || "Unable to open conversation");
+        setError(err.message || "Unable to open conversation");
+        setScreen(fromTab === "home" ? "home" : "messages");
+      }
+    },
+    [activityVersion, clearActivities]
+  );
+
+  const startNewConversation = useCallback(
+    (fromTab = "home") => {
+      setReturnTab(fromTab === "messages" ? "messages" : "home");
+      resetThread();
+    },
+    [resetThread]
+  );
 
   function handleStop() {
     stop();
@@ -851,41 +930,35 @@ export function AgentTestStudio({ agent }) {
     return runResults.find((row) => row.id === questionId)?.status;
   }
 
-  const chatBody = historyOpen ? (
-    <ChatHistoryPanel
-      agentId={agent.id}
-      activeId={conversationId}
-      refreshKey={historyKey}
-      onSelect={async (id) => {
-        clearActivities();
-        const version = activityVersion();
-        sendingRef.current = false;
-        setSending(false);
-        setHistoryOpen(false);
-        setConversationId(id);
-        conversationIdRef.current = id;
-        setError("");
-        try {
-          const data = await getConversation(id);
-          if (version !== activityVersion()) return;
-          setMessages(
-            (data.messages || []).map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-              responseTime: m.responseTime,
-              createdAt: m.createdAt,
-            }))
-          );
-        } catch (err) {
-          if (version !== activityVersion()) return;
-          setError(err.message || "Unable to open conversation");
-        }
-      }}
-      onNewChat={resetThread}
-    />
-  ) : (
-    <div className="flex min-h-0 flex-1 flex-col">
+  const intro = widgetIntro(agent, customization);
+  const identity = customization.identity || {};
+  const historyEnabled = customization.features?.conversationHistory !== false;
+  const hideFooter =
+    customization.branding?.hideAideBranding && identity.footer === "by AIDE";
+  const recentConversation = historyEnabled
+    ? [...pastChats].sort((a, b) =>
+        String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
+      )[0] || null
+    : null;
+  const showTabs = screen !== "conversation";
+
+  const conversationBody = (
+    <>
+      <ConversationHeader
+        intro={intro}
+        identity={identity}
+        onBack={() => setScreen(returnTab)}
+        onNewConversation={() => startNewConversation(returnTab)}
+        allowExpand={false}
+      />
+      {identity.conversationIntro ? (
+        <p
+          className="shrink-0 px-6 pt-3 text-center text-[13px]"
+          style={{ color: "var(--wc-muted)" }}
+        >
+          {identity.conversationIntro}
+        </p>
+      ) : null}
       {sending && messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
           <Skeleton className="h-14 w-2/3 rounded-2xl" />
@@ -898,12 +971,15 @@ export function AgentTestStudio({ agent }) {
           compact
           themed
           showKnowledgeDetails
+          showIntro={false}
+          showResponseTime={false}
           showFeedback={customization.features.messageFeedback}
-          intro={widgetIntro(agent, customization)}
+          intro={intro}
           onConfirmDecision={handleConfirmDecision}
           confirmBusy={sending}
           onSourceClarifyReply={(label) => {
             if (!label || sending) return;
+            setScreen("conversation");
             send(label);
           }}
           onOpenKnowledge={async (meta) => {
@@ -1020,7 +1096,10 @@ export function AgentTestStudio({ agent }) {
         </div>
         <ChatComposer
           disabled={sending || runActive || agent.enabled === false}
-          onSend={send}
+          onSend={(text) => {
+            setScreen("conversation");
+            return send(text);
+          }}
           onStop={sending && !runActive ? handleStop : undefined}
           compact
           themed
@@ -1029,16 +1108,63 @@ export function AgentTestStudio({ agent }) {
             runActive
               ? "Auto-test running — pause or stop to type"
               : asSignedIn
-              ? "Type a test as the logged-in customer…"
-              : mode === "self"
-              ? "Type your own test as a visitor…"
-              : customization.identity.messagePlaceholder || "Type a test message…"
+                ? "Type a test as the logged-in customer…"
+                : mode === "self"
+                  ? "Type your own test as a visitor…"
+                  : identity.messagePlaceholder || "Type a test message…"
           }
-          footer={customization.identity.footer || undefined}
+          footer={hideFooter ? null : identity.footer || undefined}
           allowFileUpload={customization.features.fileUpload}
           uploadUrl={`/api/agents/${agent.id}/files`}
         />
       </div>
+    </>
+  );
+
+  const chatBody = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {screen === "home" ? (
+        <HomeScreen
+          customization={customization}
+          intro={intro}
+          onSendMessage={() => startNewConversation("home")}
+          recentConversation={recentConversation}
+          onOpenConversation={(id) => {
+            if (id === conversationId) {
+              setReturnTab("home");
+              setScreen("conversation");
+              return;
+            }
+            openPastChat(id, "home");
+          }}
+          onSeeAll={() => setScreen("messages")}
+        />
+      ) : screen === "messages" ? (
+        <MessagesScreen
+          conversations={historyEnabled ? pastChats : []}
+          intro={intro}
+          identity={identity}
+          activeId={conversationId}
+          error={openChatError}
+          onOpen={(id) => {
+            if (id === conversationId) {
+              setReturnTab("messages");
+              setScreen("conversation");
+              return;
+            }
+            openPastChat(id, "messages");
+          }}
+          onSendMessage={() => startNewConversation("messages")}
+        />
+      ) : (
+        conversationBody
+      )}
+      {showTabs ? (
+        <MessengerTabBar
+          active={screen}
+          onChange={(next) => setScreen(next)}
+        />
+      ) : null}
     </div>
   );
 
@@ -1512,29 +1638,25 @@ export function AgentTestStudio({ agent }) {
               size="sm"
               className="max-w-full rounded-full"
               disabled={sending || runActive || agent.enabled === false}
-              onClick={() =>
+              onClick={() => {
+                setScreen("conversation");
                 send(item.prompt, {
                   questionId: item.id,
                   expectIncludes: item.expectIncludes,
-                })
-              }
+                });
+              }}
             >
               <span className="truncate">{item.title || item.prompt}</span>
             </Button>
           ))}
         </div>
-        <Card className="min-h-0 flex-1 gap-0 overflow-hidden p-0 py-0 shadow-none ring-1 ring-border [--card-spacing:0px]">
+        <Card className="min-h-0 flex-1 gap-0 overflow-hidden rounded-[var(--wc-radius-panel,1.25rem)] p-0 py-0 shadow-[0_12px_40px_rgba(15,23,42,0.12)] ring-1 ring-border/60 [--card-spacing:0px]">
           <ChatWidget
             agent={agent}
             customization={customization}
             open
             fullPage
-            historyOpen={historyOpen}
-            onHistoryToggle={() => {
-              setHistoryOpen((open) => !open);
-              setHistoryKey((k) => k + 1);
-            }}
-            onReset={resetThread}
+            messenger
           >
             {chatBody}
           </ChatWidget>

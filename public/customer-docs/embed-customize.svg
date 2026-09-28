@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Aide · Customize webchat">
+  <defs>
+    <filter id="s" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c1b1f" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="920" height="520" fill="#f7f6f5"/>
+  <rect x="28" y="28" width="864" height="464" rx="14" fill="#ffffff" stroke="#e4e3e7" filter="url(#s)"/>
+  <rect x="28" y="28" width="864" height="44" rx="14" fill="#ffffff"/>
+  <rect x="28" y="58" width="864" height="14" fill="#ffffff"/>
+  <circle cx="52" cy="50" r="5" fill="#ff5f57"/>
+  <circle cx="70" cy="50" r="5" fill="#febc2e"/>
+  <circle cx="88" cy="50" r="5" fill="#28c840"/>
+  <text x="460" y="54" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#6b6a70">Aide · Customize webchat</text>
+  <line x1="28" y1="72" x2="892" y2="72" stroke="#e4e3e7"/>
+  
+  <rect x="48" y="88" width="340" height="360" rx="12" fill="#f7f6f5" stroke="#e4e3e7"/>
+  <text x="68" y="120" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#1c1b1f">Appearance</text>
+  <text x="68" y="156" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Display name</text>
+  <rect x="68" y="164" width="280" height="36" rx="8" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="84" y="187" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#1c1b1f">Aide Support</text>
+  <text x="68" y="230" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Primary color</text>
+  <rect x="68" y="240" width="36" height="36" rx="8" fill="#e86a2b"/>
+  <rect x="116" y="240" width="232" height="36" rx="8" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="132" y="263" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#1c1b1f">#E86A2B</text>
+  <text x="68" y="312" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Welcome message</text>
+  <rect x="68" y="322" width="280" height="70" rx="8" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="84" y="350" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Need help? Ask me anything</text>
+  <text x="84" y="372" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">about our product.</text>
+  <rect x="420" y="100" width="420" height="340" rx="18" fill="#ffffff" stroke="#e4e3e7"/>
+  <rect x="420" y="100" width="420" height="56" rx="18" fill="#e86a2b"/>
+  <rect x="420" y="140" width="420" height="16" fill="#e86a2b"/>
+  <text x="448" y="134" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#ffffff">Aide Support</text>
+  <rect x="448" y="188" width="280" height="48" rx="12" fill="#f7f6f5"/>
+  <text x="464" y="217" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#1c1b1f">Hi! How can I help today?</text>
+  <circle cx="780" cy="390" r="28" fill="#e86a2b"/>
+  <text x="780" y="396" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" fill="#ffffff">💬</text>
+  
+</svg>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, PanelLeft } from "lucide-react";
+import { BookOpen, Menu, PanelLeft } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,6 +17,11 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 import { getBreadcrumbs } from "@/components/layout/nav";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function NavMenuTrigger() {
   const { toggleSidebar, isMobile, openMobile } = useSidebar();
@@ -74,6 +79,23 @@ export function AppTopbar() {
         </BreadcrumbList>
       </Breadcrumb>
 
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              render={<Link href="/docs" />}
+              aria-label="Open Aide Docs"
+            />
+          }
+        >
+          <BookOpen />
+        </TooltipTrigger>
+        <TooltipContent>Docs</TooltipContent>
+      </Tooltip>
       <ThemeToggle className="text-muted-foreground" />
     </header>
   );

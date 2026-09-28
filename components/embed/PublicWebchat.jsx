@@ -673,6 +673,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
               responseTime: data.message.responseTime,
               citations: data.citations || [],
               sources: data.sources || [],
+              usedKnowledge: data.usedKnowledge || [],
+              searchUsed: Boolean(data.searchUsed),
             });
           }
           setMessages(next);
@@ -701,6 +703,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           citations: data.citations || [],
           sources: data.sources || [],
           pendingConfirmations: data.pendingConfirmations || [],
+          usedKnowledge: data.usedKnowledge || [],
+          searchUsed: Boolean(data.searchUsed),
         });
       }
       setMessages(next);
@@ -1087,6 +1091,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         compact
         themed
         showKnowledgeDetails={false}
+        showKnowledgeSourceLinks
         showResponseTime={false}
         instantScrollKey={historyScrollKey}
         showFeedback={features.messageFeedback && !waitingForHuman}

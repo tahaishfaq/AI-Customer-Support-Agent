@@ -29,6 +29,8 @@ export function MessageList({
   compact = false,
   themed = false,
   showKnowledgeDetails = false,
+  /** Public embed: knowledge sourceUrl chips only (no studio Used knowledge panel). */
+  showKnowledgeSourceLinks = false,
   showFeedback = false,
   intro = null,
   showIntro = true,
@@ -138,6 +140,7 @@ export function MessageList({
           onFeedback={onFeedback}
           usedKnowledge={msg.usedKnowledge}
           showKnowledgeDetails={showKnowledgeDetails}
+          showKnowledgeSourceLinks={showKnowledgeSourceLinks}
           showCopy={showKnowledgeDetails}
           toolSteps={msg.toolSteps}
           searchUsed={Boolean(msg.searchUsed)}

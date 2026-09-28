@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Aide · Agents">
+  <defs>
+    <filter id="s" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c1b1f" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="920" height="520" fill="#f7f6f5"/>
+  <rect x="28" y="28" width="864" height="464" rx="14" fill="#ffffff" stroke="#e4e3e7" filter="url(#s)"/>
+  <rect x="28" y="28" width="864" height="44" rx="14" fill="#ffffff"/>
+  <rect x="28" y="58" width="864" height="14" fill="#ffffff"/>
+  <circle cx="52" cy="50" r="5" fill="#ff5f57"/>
+  <circle cx="70" cy="50" r="5" fill="#febc2e"/>
+  <circle cx="88" cy="50" r="5" fill="#28c840"/>
+  <text x="460" y="54" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#6b6a70">Aide · Agents</text>
+  <line x1="28" y1="72" x2="892" y2="72" stroke="#e4e3e7"/>
+  
+  <text x="56" y="112" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="700" fill="#1c1b1f">Agents</text>
+  <rect x="720" y="90" width="140" height="36" rx="10" fill="#e86a2b"/>
+  <text x="790" y="113" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">+ New agent</text>
+  <rect x="56" y="150" width="808" height="88" rx="12" fill="#f7f6f5" stroke="#e4e3e7"/>
+  <circle cx="96" cy="194" r="22" fill="#e86a2b"/>
+  <text x="96" y="199" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff">AS</text>
+  <text x="136" y="186" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="600" fill="#1c1b1f">Aide Support</text>
+  <text x="136" y="210" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Answers from Docs · Tools · Inbox ready</text>
+  <rect x="700" y="178" width="72" height="28" rx="14" fill="#ecfdf3"/>
+  <text x="736" y="197" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" font-weight="600" fill="#16a34a">Enabled</text>
+  <rect x="56" y="254" width="808" height="88" rx="12" fill="#ffffff" stroke="#e4e3e7"/>
+  <circle cx="96" cy="298" r="22" fill="#cbd5e1"/>
+  <text x="96" y="303" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" fill="#1c1b1f">HC</text>
+  <text x="136" y="290" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="600" fill="#1c1b1f">Help Center</text>
+  <text x="136" y="314" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Store FAQ + pricing crawl</text>
+  <rect x="56" y="358" width="808" height="88" rx="12" fill="#ffffff" stroke="#e4e3e7"/>
+  <circle cx="96" cy="402" r="22" fill="#94a3b8"/>
+  <text x="96" y="407" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" fill="#ffffff">SA</text>
+  <text x="136" y="394" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="600" fill="#1c1b1f">Sales Assistant</text>
+  <text x="136" y="418" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Draft · add knowledge next</text>
+  
+</svg>

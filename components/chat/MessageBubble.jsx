@@ -133,6 +133,8 @@ export function MessageBubble({
   onFeedback,
   usedKnowledge = null,
   showKnowledgeDetails = false,
+  /** Public embed: show clickable knowledge sourceUrl chips without studio Used knowledge chrome. */
+  showKnowledgeSourceLinks = false,
   showCopy = false,
   toolSteps = null,
   searchUsed = false,
@@ -449,7 +451,10 @@ export function MessageBubble({
         </div>
       ) : null}
 
-      {!isUser && !pending && showKnowledgeDetails && knowledgeTitles.length > 0 ? (
+      {!isUser &&
+      !pending &&
+      showKnowledgeDetails &&
+      knowledgeTitles.length > 0 ? (
         <div
           className={cn(
             "flex max-w-[85%] flex-col gap-1 sm:max-w-[75%]",
@@ -524,7 +529,10 @@ export function MessageBubble({
         </p>
       ) : null}
 
-      {!isUser && !pending && showKnowledgeDetails && knowledgeSources.length > 0 ? (
+      {!isUser &&
+      !pending &&
+      (showKnowledgeDetails || showKnowledgeSourceLinks) &&
+      knowledgeSources.length > 0 ? (
         <div
           className={cn(
             "flex max-w-[85%] flex-wrap gap-1.5 sm:max-w-[75%]",
@@ -541,12 +549,14 @@ export function MessageBubble({
               className={cn(
                 "max-w-full truncate rounded-full border px-2 py-1 text-[11px] underline underline-offset-2",
                 themed
-                  ? "border-[var(--wc-border)] text-[var(--wc-muted)]"
-                  : "border-[var(--color-border)] text-[var(--color-muted)]"
+                  ? "border-[var(--wc-border)] text-[var(--wc-primary)]"
+                  : "border-[var(--color-border)] text-[var(--color-primary)]"
               )}
               title={source.url}
             >
-              {source.name}
+              {showKnowledgeSourceLinks && !showKnowledgeDetails
+                ? `Learn more: ${source.name}`
+                : source.name}
             </a>
           ))}
         </div>

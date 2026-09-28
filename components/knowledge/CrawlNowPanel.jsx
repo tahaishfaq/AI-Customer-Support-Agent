@@ -139,6 +139,8 @@ export function CrawlNowPanel({
             Paste one or more public https page URLs from the same site (one per
             line). Aide indexes public HTML first; JavaScript SPA shells need
             browser crawl (`CRAWL_BROWSER_ENABLED`). Login/admin URLs are skipped.
+            To index Aide help, crawl <span className="font-mono">/docs</span>{" "}
+            on this host — not the app home URL.
           </p>
         </div>
         {status ? (
@@ -169,7 +171,7 @@ export function CrawlNowPanel({
         rows={4}
         className="mt-3 font-mono text-[12px]"
         placeholder={
-          "https://yoursite.com\nhttps://yoursite.com/pricing\nhttps://yoursite.com/help"
+          "https://yoursite.com\nhttps://yoursite.com/pricing\nhttps://yoursite.com/help\n# or Aide docs: https://YOUR-AIDE-HOST/docs"
         }
         aria-label="Website page URLs to crawl"
         aria-invalid={fieldError ? true : undefined}

@@ -141,6 +141,7 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 | [`docs/OPEN_SEQUENCE.md`](docs/OPEN_SEQUENCE.md) | Ordered remaining work |
 | [`docs/ROADMAP_NEXT.md`](docs/ROADMAP_NEXT.md) | Roadmap index + OOS |
 | [`docs/features/F00_DOD_DEMO_BUFFER.md`](docs/features/F00_DOD_DEMO_BUFFER.md) | DoD / demo buffer |
+| [`docs/shipped/CUSTOMER_DOCS_MVP.md`](docs/shipped/CUSTOMER_DOCS_MVP.md) | Public `/docs` + crawl dogfood |
 | [`docs/shipped/F00_PROGRESS.md`](docs/shipped/F00_PROGRESS.md) | Buffer checklist ticks |
 | [`docs/SHIPPED_FEATURES.md`](docs/SHIPPED_FEATURES.md) | What shipped (F01–F12 + F11 UX) |
 | [`docs/shipped/F11_AGENT_ACTIONS.md`](docs/shipped/F11_AGENT_ACTIONS.md) | Agent actions + UX-1–4 ✅ |

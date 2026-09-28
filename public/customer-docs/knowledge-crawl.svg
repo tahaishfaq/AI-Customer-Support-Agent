@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Aide · Knowledge">
+  <defs>
+    <filter id="s" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c1b1f" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="920" height="520" fill="#f7f6f5"/>
+  <rect x="28" y="28" width="864" height="464" rx="14" fill="#ffffff" stroke="#e4e3e7" filter="url(#s)"/>
+  <rect x="28" y="28" width="864" height="44" rx="14" fill="#ffffff"/>
+  <rect x="28" y="58" width="864" height="14" fill="#ffffff"/>
+  <circle cx="52" cy="50" r="5" fill="#ff5f57"/>
+  <circle cx="70" cy="50" r="5" fill="#febc2e"/>
+  <circle cx="88" cy="50" r="5" fill="#28c840"/>
+  <text x="460" y="54" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#6b6a70">Aide · Knowledge</text>
+  <line x1="28" y1="72" x2="892" y2="72" stroke="#e4e3e7"/>
+  
+  <text x="56" y="112" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="700" fill="#1c1b1f">Knowledge</text>
+  <rect x="56" y="132" width="520" height="200" rx="12" fill="#f7f6f5" stroke="#e4e3e7"/>
+  <text x="76" y="164" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#1c1b1f">Website crawl</text>
+  <text x="76" y="188" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">Paste https URLs (same site)</text>
+  <rect x="76" y="204" width="460" height="70" rx="8" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="90" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#1c1b1f">https://…/docs</text>
+  <text x="90" y="250" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#1c1b1f">https://…/docs/mcp-github</text>
+  <rect x="76" y="288" width="140" height="34" rx="8" fill="#e86a2b"/>
+  <text x="146" y="310" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600" fill="#ffffff">Re-crawl now</text>
+  <rect x="600" y="132" width="264" height="200" rx="12" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="620" y="164" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#1c1b1f">Last crawl</text>
+  <circle cx="636" cy="198" r="7" fill="#16a34a"/>
+  <text x="656" y="203" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" fill="#1c1b1f">DONE</text>
+  <text x="620" y="236" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">18 pages indexed</text>
+  <text x="620" y="260" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">sourceUrl → /docs/…</text>
+  <text x="620" y="300" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" fill="#e86a2b">Learn more links ready</text>
+  <rect x="56" y="360" width="808" height="84" rx="12" fill="#ffffff" stroke="#e4e3e7"/>
+  <text x="76" y="396" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600" fill="#1c1b1f">Connect GitHub (MCP).md</text>
+  <text x="76" y="420" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" fill="#6b6a70">WEB · https://…/docs/mcp-github</text>
+  
+</svg>

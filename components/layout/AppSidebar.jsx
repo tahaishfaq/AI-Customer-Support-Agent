@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookOpen,
   Bot,
   ChevronUp,
   CreditCard,
@@ -254,6 +255,16 @@ export function AppSidebar() {
               >
                 <Settings data-icon="inline-start" />
                 Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  closeMobile();
+                  router.push("/docs");
+                }}
+              >
+                <BookOpen data-icon="inline-start" />
+                Docs
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
