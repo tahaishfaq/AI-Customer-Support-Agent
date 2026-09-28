@@ -184,6 +184,7 @@
     "test:not-found-body": "node --import ./scripts/register-aliases.mjs --test scripts/test-not-found-body.mjs",
     "test:source-freshness": "node --import ./scripts/register-aliases.mjs --test scripts/test-source-freshness.mjs",
     "test:handoff-deferral": "node --test scripts/test-handoff-deferral.mjs",
+    "test:handoff-deferral-loop": "./node_modules/.bin/tsx --import ./scripts/register-aliases.mjs --test scripts/test-handoff-deferral-loop.mjs",
     "test:reply-language": "node --import ./scripts/register-aliases.mjs --test scripts/test-reply-language.mjs",
     "test:support-hours": "node --import ./scripts/register-aliases.mjs --test scripts/test-support-hours.mjs",
     "test:agent-setup-checks": "node --test scripts/test-agent-setup-checks.mjs",
