@@ -184,6 +184,7 @@
     "test:not-found-body": "node --import ./scripts/register-aliases.mjs --test scripts/test-not-found-body.mjs",
     "test:source-freshness": "node --import ./scripts/register-aliases.mjs --test scripts/test-source-freshness.mjs",
     "test:handoff-deferral": "node --test scripts/test-handoff-deferral.mjs",
+    "test:reply-language": "node --import ./scripts/register-aliases.mjs --test scripts/test-reply-language.mjs",
     "bench:chat-latency": "node scripts/bench-chat-latency.mjs",
     "test:mcp-list": "node --test scripts/test-mcp-list-result.mjs",
     "test:embed-public-read": "node --test scripts/test-embed-public-read-policy.mjs",
