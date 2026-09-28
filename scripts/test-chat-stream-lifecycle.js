@@ -222,3 +222,18 @@ test('list chunks stream as their own events between activity and the final answ
   })), { onList: chunk => received.push(chunk.items[0].title) });
   assert.deepEqual(received, ['one']);
 });
+
+test('B8: access / ownership errors get their own code and a clear message; unknown codes stay generic', () => {
+  const access = Object.assign(new Error('Public conversation access denied'), { status: 401, details: { code: 'PUBLIC_CONVERSATION_ACCESS_REQUIRED' } });
+  const mappedAccess = safeChatStreamError(access);
+  assert.equal(mappedAccess.code, 'PUBLIC_CONVERSATION_ACCESS_REQUIRED');
+  assert.equal(mappedAccess.status, 401);
+  assert.match(mappedAccess.message, /new one/i);
+  assert.doesNotMatch(mappedAccess.message, /denied/i, 'internal wording is not shown');
+  const ownership = Object.assign(new Error('Conversation ownership changed'), { code: 'CONVERSATION_OWNERSHIP_CHANGED', status: 409 });
+  assert.equal(safeChatStreamError(ownership).code, 'CONVERSATION_OWNERSHIP_CHANGED');
+  assert.equal(safeChatStreamError(ownership).status, 409);
+  const unknown = Object.assign(new Error('boom SECRET'), { status: 500, details: { code: 'SOMETHING_NEW' } });
+  assert.equal(safeChatStreamError(unknown).code, 'CHAT_FAILED');
+  assert.doesNotMatch(safeChatStreamError(unknown).message, /SECRET/);
+});

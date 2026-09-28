@@ -744,6 +744,20 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         }
       }
       const code = err?.details?.code;
+      // This browser can no longer continue that thread (access token lost or revoked): forget
+      // its stored token, open a fresh chat, and keep the text so "Try again" sends it there.
+      if (code === "PUBLIC_CONVERSATION_ACCESS_REQUIRED") {
+        const lostId = conversationIdRef.current;
+        try {
+          if (lostId) localStorage.removeItem(realtimeAccessKey(lostId));
+        } catch {
+          // Storage may be disabled; the fresh chat below still works.
+        }
+        startNewConversation();
+        setError(err.message || "This chat can't be continued here. We started a new one.");
+        setLastFailedText(text);
+        return;
+      }
       if (
         err?.status === 401 &&
         (code === "IDENTITY_EXPIRED" || code === "IDENTITY_INVALID" || /expired|identity/i.test(err.message || ""))
@@ -1182,6 +1196,7 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
           onSendMessage={() => startNewConversation("home")}
           onClose={closeWidget}
           recentConversation={recentConversation}
+          error={openChatError}
           onOpenConversation={(id) => {
             if (id === conversationId && engagedRef.current) {
               setReturnTab("home");

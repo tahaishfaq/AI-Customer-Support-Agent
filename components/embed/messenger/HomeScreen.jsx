@@ -69,7 +69,7 @@ function RecentMessageCard({ conversation, intro, onOpen, onSeeAll }) {
   );
 }
 
-export function HomeScreen({ customization, intro, onSendMessage, onClose, recentConversation = null, onOpenConversation, onSeeAll }) {
+export function HomeScreen({ customization, intro, onSendMessage, onClose, recentConversation = null, onOpenConversation, onSeeAll, error = "" }) {
   const identity = customization?.identity || {};
   const home = customization?.home || {};
   const status = home.status || {};
@@ -115,6 +115,16 @@ export function HomeScreen({ customization, intro, onSendMessage, onClose, recen
           <span className="text-[15px] font-semibold">Send us a message</span>
           <SendHorizontal className="size-5 shrink-0" style={{ color: "var(--wc-primary)" }} fill="currentColor" aria-hidden />
         </Card>
+
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-[var(--wc-radius)] border px-4 py-2.5 text-[13px]"
+            style={{ borderColor: "color-mix(in srgb, #dc2626 30%, transparent)", color: "#dc2626", backgroundColor: "color-mix(in srgb, #dc2626 8%, var(--wc-shell))" }}
+          >
+            {error}
+          </p>
+        ) : null}
 
         {recentConversation && typeof onOpenConversation === "function" ? (
           <RecentMessageCard
