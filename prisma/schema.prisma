@@ -368,10 +368,28 @@ model Agent {
   taskRuns            TaskRun[]
   turnRuns            TurnRun[]
   knowledgeDocShares  KnowledgeDocumentShare[]
+  revisions           AgentRevision[]
 
   @@index([userId])
   @@index([workspaceId])
   @@index([siteKnowledgeOrigin])
+}
+
+/// Level 2 · P5 — saved versions of an agent's behaviour and appearance (restore = new version).
+model AgentRevision {
+  id              String   @id @default(cuid())
+  agentId         String
+  version         Int
+  /// { name, description, systemPrompt, answerStyle, welcomeMessage, guidance, webSearchEnabled, customization }
+  snapshot        Json
+  snapshotHash    String
+  note            String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, version])
+  @@index([agentId, createdAt])
 }
 
 /// Live document share within a workspace: consumer sees the same KnowledgeDocument row.

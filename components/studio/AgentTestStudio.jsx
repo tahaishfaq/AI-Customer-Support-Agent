@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateTestQuestions, sendChatMessageStream, resumeChatAfterConfirmation } from "@/lib/api/chat";
-import { mintAgentIdentityToken } from "@/lib/api/agents";
+import { mintAgentIdentityToken, updateAgent } from "@/lib/api/agents";
 import { useChatStream } from "@/hooks/use-chat-stream";
 import {
   isConversationLimitError,
@@ -290,6 +290,15 @@ export function AgentTestStudio({ agent }) {
   const [knowledgePreview, setKnowledgePreview] = useState(null);
   const [knowledgePreviewOpen, setKnowledgePreviewOpen] = useState(false);
   const [githubAuthIssues, setGithubAuthIssues] = useState([]);
+  // Level 2 · P5 — try an unsaved prompt in Studio only (the embed keeps the saved prompt).
+  const [draftOn, setDraftOn] = useState(false);
+  const [savedPrompt, setSavedPrompt] = useState(agent.systemPrompt || "");
+  const [draftPrompt, setDraftPrompt] = useState(agent.systemPrompt || "");
+  const [savingDraft, setSavingDraft] = useState(false);
+  const draftPayload =
+    draftOn && draftPrompt.trim() && draftPrompt.trim() !== savedPrompt.trim()
+      ? { draft: { systemPrompt: draftPrompt.trim() } }
+      : {};
   const identityTokenRef = useRef(null);
   const identityExpiresRef = useRef(0);
   const isWideLayout = useMinWidth(1280);
@@ -512,6 +521,7 @@ export function AgentTestStudio({ agent }) {
         clientMessageId: optimisticId,
         conversationId: conversationIdRef.current || undefined,
         ...(identityToken ? { identityToken } : {}),
+        ...draftPayload,
         ...streamHandlers(activityRequest, streamingId),
       });
       if (!isCurrentActivity(activityRequest)) return { ok: false, reason: "Conversation changed" };
@@ -703,6 +713,7 @@ export function AgentTestStudio({ agent }) {
           conversationId: cid,
           confirmationId: confirmation.id,
           ...(identityToken ? { identityToken } : {}),
+          ...draftPayload,
           ...streamHandlers(activityRequest, streamingId),
         });
         if (!isCurrentActivity(activityRequest)) return;
@@ -1093,6 +1104,69 @@ export function AgentTestStudio({ agent }) {
             disabled={!authUser?.id || sending || runActive}
             aria-label="Test as logged-in customer"
           />
+        </div>
+        <div className="mx-3 mb-1 rounded-xl border border-[var(--wc-border)] bg-[var(--wc-shell)] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label htmlFor="studio-draft-prompt" className="text-sm font-semibold text-[var(--wc-shell-fg)]">
+                Try an unsaved prompt
+              </Label>
+              <p className="mt-0.5 text-xs leading-snug text-[var(--wc-shell-fg)]/75">
+                {draftPayload.draft
+                  ? "Draft active — only this Studio chat uses it; your live widget is unchanged."
+                  : "Edit the prompt below and test it here before saving."}
+              </p>
+            </div>
+            <Switch
+              id="studio-draft-prompt"
+              checked={draftOn}
+              onCheckedChange={setDraftOn}
+              disabled={sending || runActive}
+              aria-label="Use an unsaved prompt in Studio"
+            />
+          </div>
+          {draftOn ? (
+            <div className="mt-3 flex flex-col gap-2">
+              <Textarea
+                value={draftPrompt}
+                maxLength={20000}
+                onChange={(event) => setDraftPrompt(event.target.value)}
+                className="min-h-[120px] resize-y text-xs"
+                aria-label="Draft system prompt"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!draftPayload.draft || savingDraft || sending}
+                  onClick={async () => {
+                    setSavingDraft(true);
+                    try {
+                      await updateAgent(agent.id, { systemPrompt: draftPrompt.trim() });
+                      setSavedPrompt(draftPrompt.trim());
+                      toast.success("Prompt saved — the live widget now uses it (a version was kept).");
+                      setDraftOn(false);
+                    } catch (err) {
+                      toast.error(err.message || "Could not save the prompt");
+                    } finally {
+                      setSavingDraft(false);
+                    }
+                  }}
+                >
+                  {savingDraft ? "Saving…" : "Save as live prompt"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={sending}
+                  onClick={() => setDraftPrompt(savedPrompt)}
+                >
+                  Reset to saved
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
         <ChatComposer
           disabled={sending || runActive || agent.enabled === false}

@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
 import { GuidanceEditor } from "@/components/agents/GuidanceEditor";
+import { VersionHistory } from "@/components/agents/VersionHistory";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/keys";
 import {
   AppRouteSkeleton,
   LoadingSurface,
@@ -18,6 +21,9 @@ export default function EditAgentPage() {
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  /** Bumped after a restore so the forms reload with the restored values. */
+  const [formsKey, setFormsKey] = useState(0);
+  const queryClient = useQueryClient();
   useAgentCrumb(agent?.name);
 
   useEffect(() => {
@@ -86,10 +92,26 @@ export default function EditAgentPage() {
         </p>
       </header>
       <div className="mt-6 max-w-3xl">
-        <AgentForm mode="edit" initialAgent={agent} />
+        <AgentForm key={`form-${formsKey}`} mode="edit" initialAgent={agent} />
       </div>
       <div className="mt-6 max-w-3xl">
-        <GuidanceEditor agent={agent} onSaved={(updated) => setAgent((current) => ({ ...current, ...updated }))} />
+        <GuidanceEditor
+          key={`guidance-${formsKey}`}
+          agent={agent}
+          onSaved={(updated) => {
+            setAgent((current) => ({ ...current, ...updated }));
+            void queryClient.invalidateQueries({ queryKey: queryKeys.agents.revisions(agent.id) });
+          }}
+        />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <VersionHistory
+          agent={agent}
+          onRestored={(restored) => {
+            setAgent((current) => ({ ...current, ...restored }));
+            setFormsKey((value) => value + 1);
+          }}
+        />
       </div>
     </main>
   );

@@ -67,6 +67,7 @@ export async function POST(request, { params }) {
               conversationId: parsed.data.conversationId,
               clientMessageId: parsed.data.clientMessageId,
               resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
+              draft: parsed.data.draft,
               identityToken:
                 parsed.data.identityToken ||
                 request.headers.get("x-customer-identity") ||
@@ -99,6 +100,7 @@ export async function POST(request, { params }) {
       conversationId: parsed.data.conversationId,
       clientMessageId: parsed.data.clientMessageId,
       resumeAfterConfirmationId: parsed.data.resumeAfterConfirmationId,
+      draft: parsed.data.draft,
       identityToken:
         parsed.data.identityToken ||
         request.headers.get("x-customer-identity") ||
