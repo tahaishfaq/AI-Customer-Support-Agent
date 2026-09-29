@@ -29,7 +29,10 @@ function main() {
 
   const handoff = read("lib/services/handoff.service.js");
   assert(
-    handoff.includes("HANDOFF_SUMMARY_FAIL") && handoff.includes("write: true"),
+    // Level 2 · M3: desk writes go through assertDeskConversation (role-gated, 403 on write).
+    handoff.includes("HANDOFF_SUMMARY_FAIL") &&
+      handoff.includes('const write = need !== "read"') &&
+      handoff.includes('write ? 403 : 404'),
     "summary fail-safe + write 403"
   );
   assert(

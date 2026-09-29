@@ -276,6 +276,8 @@ model Workspace {
   deskInboxSeenAt   DateTime?
   inboxVersion      Int                     @default(0)
   deskCannedReplies Json?
+  /// Team routing + SLA (Level 2 · M3): { assignment, pool, slaFirstReplyMinutes }; null = assign to owner.
+  deskSettings      Json?
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -878,6 +880,8 @@ model Conversation {
   csatAt                 DateTime?
   /// HUMAN when resolved from the desk; AI resolution is computed from settled conversations.
   resolvedBy             String?
+  /// First human reply after the latest handoff (SLA first response); reset on each handoff.
+  firstHumanReplyAt      DateTime?
   startedAt              DateTime                   @default(now())
   endedAt                DateTime?
   createdAt              DateTime                   @default(now())
@@ -898,6 +902,7 @@ model Conversation {
   @@index([sentiment])
   @@index([startedAt])
   @@index([assignedUserId])
+  @@index([assignedUserId, status])
   @@index([customerSubject])
   @@index([endUserId])
   @@index([handoffPriority])

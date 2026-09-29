@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Inbox, MessageSquareText, Send, StickyNote } from "lucide-react";
+import { Eye, Inbox, MessageSquareText, Send, StickyNote, UserRound } from "lucide-react";
 import { getConversation } from "@/lib/api/conversations";
 import {
+  assignConversation,
   claimConversation,
+  getDeskSettings,
   listCannedReplies,
   resolveConversation,
   sendHumanMessage,
@@ -85,6 +87,80 @@ function applyDeskPatch(prev, patch) {
     ...patch,
     agent: prev.agent,
   };
+}
+
+/**
+ * Level 2 · M3 — assign the chat. The server decides (admins: anyone; members: take an unassigned
+ * chat or hand on their own); the menu only hides choices that would be refused.
+ */
+function DeskAssignMenu({ conversation, disabled, onAssigned, onError }) {
+  const [busy, setBusy] = useState(false);
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.desk.settings,
+    queryFn: getDeskSettings,
+    staleTime: 60_000,
+  });
+  const teammates = settingsQuery.data?.teammates || [];
+  const me = settingsQuery.data?.viewerUserId || null;
+  const canManage = Boolean(settingsQuery.data?.desk?.canManage);
+  const current = conversation.assignedUserId || null;
+  const mine = Boolean(me && current === me);
+  const choices = canManage || mine ? teammates : teammates.filter((t) => !current && t.userId === me);
+  const canUnassign = Boolean(current) && (canManage || mine);
+  if (!settingsQuery.data || (!choices.length && !canUnassign)) return null;
+
+  async function assign(assigneeId) {
+    if (assigneeId === current || busy) return;
+    setBusy(true);
+    try {
+      onAssigned(await assignConversation(conversation.id, assigneeId));
+    } catch (err) {
+      onError(err.message || "Unable to assign");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            disabled={disabled || busy}
+          />
+        }
+      >
+        {busy ? <Spinner data-icon="inline-start" /> : <UserRound data-icon="inline-start" />}
+        {current ? `Assigned: ${conversation.assignedUserName || "teammate"}` : "Assign"}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel>Assign to</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {choices.map((teammate) => (
+          <DropdownMenuItem
+            key={teammate.userId}
+            disabled={teammate.userId === current}
+            onClick={() => assign(teammate.userId)}
+          >
+            <span className="min-w-0 flex-1 truncate">
+              {teammate.userId === me ? "Me" : teammate.name || "Teammate"}
+            </span>
+            <span className="text-[10px] text-muted-foreground">{teammate.role}</span>
+          </DropdownMenuItem>
+        ))}
+        {canUnassign ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => assign(null)}>Unassign</DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function DeskReplyComposer({
@@ -249,6 +325,8 @@ export function DeskThread({ conversation: initial, onResolved }) {
 
   const waiting =
     conversation.waitingForHuman || conversation.status === "WAITING_HUMAN";
+  // Viewers read only; older payloads without `desk` are the owner's (full access).
+  const canReply = conversation.desk?.canReply !== false;
   const groups = groupMessages(messages);
   const priority = conversation.handoffPriority || "NORMAL";
   const claimedLabel = conversation.claimedByMe
@@ -577,8 +655,25 @@ export function DeskThread({ conversation: initial, onResolved }) {
               </p>
             </div>
           </div>
-          {waiting ? (
+          {waiting && !canReply ? (
+            <Badge variant="outline" className="gap-1 rounded-full">
+              <Eye className="size-3" aria-hidden />
+              View only
+            </Badge>
+          ) : waiting ? (
             <div className="flex flex-wrap items-center gap-2">
+              <DeskAssignMenu
+                conversation={conversation}
+                disabled={resolving}
+                onAssigned={(result) => {
+                  setConversation((prev) => applyDeskPatch(prev, result));
+                  queryClient.setQueryData(queryKeys.desk.thread(conversation.id), (prev) =>
+                    applyDeskPatch(prev || conversation, result)
+                  );
+                  void invalidateDeskQueries(queryClient, conversation.id);
+                }}
+                onError={setError}
+              />
               <div
                 className="flex flex-wrap gap-1"
                 role="group"
@@ -727,6 +822,11 @@ export function DeskThread({ conversation: initial, onResolved }) {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
+        {!canReply ? (
+          <p className="border-t border-border px-5 py-3 text-center text-xs text-muted-foreground">
+            You have view-only access to the desk. Ask a workspace admin for the Member role to reply.
+          </p>
+        ) : (
         <DeskReplyComposer
           disabled={
             sending ||
@@ -739,7 +839,8 @@ export function DeskThread({ conversation: initial, onResolved }) {
           onValueChange={handleComposerChange}
           cannedReplies={cannedReplies}
         />
-        {!waiting ? (
+        )}
+        {!waiting && canReply ? (
           <p className="border-t border-border px-5 py-2 text-center text-[11px] text-muted-foreground">
             Not waiting for human — you can still add internal notes.
             {conversation.agentId ? (

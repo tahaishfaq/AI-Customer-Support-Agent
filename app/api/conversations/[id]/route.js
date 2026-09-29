@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
-import { getConversationForUser } from "@/lib/services/conversation.service";
+import { getConversationForDesk } from "@/lib/services/conversation.service";
 
 export async function GET(_request, { params }) {
   try {
@@ -8,7 +8,8 @@ export async function GET(_request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
-    const conversation = await getConversationForUser(id, authResult.user.id);
+    // Owner, or a workspace teammate for desk chats; confirmations keep the owner-only check.
+    const conversation = await getConversationForDesk(id, authResult.user.id);
     return NextResponse.json(conversation, { status: 200 });
   } catch (error) {
     if (error.status === 403 || error.status === 404) {

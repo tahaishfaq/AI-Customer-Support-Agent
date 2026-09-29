@@ -191,6 +191,7 @@
     "test:resolution-metrics": "node --test scripts/test-resolution-metrics.mjs",
     "test:customer-traits": "node --test scripts/test-customer-traits.mjs",
     "test:guidance-rules": "node --import ./scripts/register-aliases.mjs --test scripts/test-guidance-rules.mjs",
+    "test:desk-routing": "node --test scripts/test-desk-routing.mjs",
     "bench:chat-latency": "node scripts/bench-chat-latency.mjs",
     "test:mcp-list": "node --test scripts/test-mcp-list-result.mjs",
     "test:embed-public-read": "node --test scripts/test-embed-public-read-policy.mjs",

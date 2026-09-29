@@ -66,6 +66,16 @@ export function ConversationRow({
               Waiting
             </Badge>
           ) : null}
+          {showDeskStatus && conversation.sla?.state === "overdue" && conversation.waitingForHuman ? (
+            <Badge variant="outline" className="rounded-full border-red-500/40 text-red-700 dark:text-red-400">
+              Overdue
+            </Badge>
+          ) : null}
+          {showDeskStatus && conversation.sla?.state === "due" && Number.isFinite(conversation.sla.remainingMs) ? (
+            <Badge variant="outline" className="rounded-full border-amber-500/40 text-amber-700 dark:text-amber-400">
+              Reply in {Math.max(1, Math.ceil(conversation.sla.remainingMs / 60_000))}m
+            </Badge>
+          ) : null}
           {showDeskStatus && priority !== "NORMAL" ? (
             <Badge
               variant="outline"

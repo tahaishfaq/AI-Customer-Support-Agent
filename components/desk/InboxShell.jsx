@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Headphones, Inbox, Search } from "lucide-react";
 import { listInbox, getDeskStats, markInboxSeen } from "@/lib/api/desk";
+import { DeskSettingsDialog } from "@/components/desk/DeskSettingsDialog";
 import { ConversationRow } from "@/components/conversations/ConversationRow";
 import {
   SoftStagger,
@@ -37,7 +38,9 @@ const LIST_POLL_MS = DESK_INBOX_POLL_MS;
 
 /** Botpress-style folders → API status filter */
 const FOLDERS = [
-  { id: "WAITING_HUMAN", label: "My Inbox", short: "Inbox" },
+  { id: "WAITING_HUMAN", label: "Waiting", short: "Waiting" },
+  { id: "MINE", label: "Assigned to me", short: "Mine" },
+  { id: "OVERDUE", label: "Overdue", short: "Overdue" },
   { id: "ALL", label: "All", short: "All" },
   { id: "OPEN", label: "Open", short: "Open" },
   { id: "RESOLVED", label: "Resolved", short: "Done" },
@@ -73,6 +76,7 @@ export function InboxShell({ selectedId, children }) {
     queryFn: () => getDeskStats(7),
   });
   const conversations = inboxQuery.data?.conversations || [];
+  const canManageDesk = Boolean(inboxQuery.data?.desk?.canManage);
   const total = inboxQuery.data?.total || 0;
   const stats = statsQuery.data;
   const loading = inboxQuery.isPending;
@@ -195,6 +199,7 @@ export function InboxShell({ selectedId, children }) {
                 </p>
               </div>
             </div>
+            {canManageDesk ? <DeskSettingsDialog /> : null}
             <Button
               type="button"
               variant="outline"
