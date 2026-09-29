@@ -333,6 +333,8 @@ model Agent {
   answerStyle         String              @default("DETAILED")
   welcomeMessage      String
   customization       Json?
+  /// Owner "when X, do Y" guidance rules (Level 2 · M5); null = none. Validated by lib/validations/guidance.js.
+  guidance            Json?
   publicKey           String?             @unique
   enabled             Boolean             @default(true)
   embedEnabled        Boolean             @default(true)

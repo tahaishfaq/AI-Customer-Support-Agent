@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
+import { GuidanceEditor } from "@/components/agents/GuidanceEditor";
 import {
   AppRouteSkeleton,
   LoadingSurface,
@@ -86,6 +87,9 @@ export default function EditAgentPage() {
       </header>
       <div className="mt-6 max-w-3xl">
         <AgentForm mode="edit" initialAgent={agent} />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <GuidanceEditor agent={agent} onSaved={(updated) => setAgent((current) => ({ ...current, ...updated }))} />
       </div>
     </main>
   );
