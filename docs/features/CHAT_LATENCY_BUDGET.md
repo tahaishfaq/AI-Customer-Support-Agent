@@ -14,7 +14,7 @@ People notice waits past ~1 s and give up past ~10 s. Status always shows first;
 | One READ tool | ≤ 0.3 s, tool chip ≤ 1 s | ≤ 2.5 s / 4 s | ≤ 5 s |
 | WRITE needing approval | ≤ 0.3 s | approval card ≤ 2 s / 3.5 s | — |
 | Web search | "Searching the web" ≤ 1 s | ≤ 4 s / 7 s | ≤ 8 s |
-| Large list | first chunk ≤ 3 s | — | ≤ 18 s (cap) |
+| Large list | first chunk ≤ 3 s | — | ≤ 12 s (cap) |
 
 ## Where the time goes
 

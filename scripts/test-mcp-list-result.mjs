@@ -85,12 +85,12 @@ test("chunked fetching: 237 items → 3 pages, complete, progress per page", asy
   assert.deepEqual(progress, [100, 100, 37]);
 });
 
-test("chunked fetching caps at 500 items and reports it", async () => {
+test("chunked fetching caps at 300 items (3 pages) and reports it", async () => {
   const api = fakeApi(700);
   const result = await collectPagedList({ first: parseListPayload(api.page(1)), paginate: true, fetchPage: async (n) => api.page(n) });
   assert.equal(result.items.length, LIST_MAX_ITEMS);
   assert.equal(result.fetchedAll, false);
-  assert.deepEqual(api.calls, [1, 2, 3, 4, 5]);
+  assert.deepEqual(api.calls, [1, 2, 3]);
 });
 
 test("time budget, page errors and paginate=false all stop paging", async () => {
