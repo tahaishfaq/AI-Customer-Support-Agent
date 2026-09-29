@@ -882,6 +882,10 @@ model Conversation {
   resolvedBy             String?
   /// First human reply after the latest handoff (SLA first response); reset on each handoff.
   firstHumanReplyAt      DateTime?
+  /// Rolling summary of messages older than the history window (conversation memory, data only).
+  memorySummary          String?
+  /// createdAt of the newest message folded into memorySummary.
+  memorySummaryUpTo      DateTime?
   startedAt              DateTime                   @default(now())
   endedAt                DateTime?
   createdAt              DateTime                   @default(now())
@@ -951,6 +955,8 @@ model Message {
   feedbackAt     DateTime?
   /// AI reply outcome: ANSWERED | NO_EVIDENCE | NOT_FOUND | HANDOFF | DEGRADED (null before tracking / non-AI).
   answerState    String?
+  /// Compact public tool results behind this reply, replayed as fenced data on later turns.
+  toolMemory     Json?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
