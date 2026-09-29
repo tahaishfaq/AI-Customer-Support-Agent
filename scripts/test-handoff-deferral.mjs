@@ -52,6 +52,12 @@ test("yes to the team offer in the previous reply is a request for a person", ()
   assert.equal(offeredHuman("Main aap ko team se connect kar sakta hoon?"), true);
   assert.equal(offeredHuman("Shall I transfer you to a human agent?"), true);
   assert.equal(offeredHuman("Here are our plans."), false);
+  // Live replies that point to the team count as an offer (button shown, "yes" hands off).
+  assert.equal(offeredHuman("Please reach out to our support team for assistance with your order status."), true);
+  assert.equal(offeredHuman("Please contact our support team directly for help with order 88231."), true);
+  assert.equal(offeredHuman("You can contact us by email at hello@acme.com."), false, "not a team offer");
+  assert.equal(offeredHuman("I recommend contacting our support team directly."), true);
+  assert.equal(offeredHuman("I recommend reaching out to our customer support team for details."), true);
   assert.equal(offeredHuman(null), false);
 });
 
