@@ -3,7 +3,7 @@ import { getPublicAgentByKey } from "@/lib/services/embed.service";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { pubChatLimitOpts } from "@/lib/rate-limit-config";
 import { originFromRequest } from "@/lib/utils/request-origin";
-import { chatMessageSchema, zodErrorDetails } from "@/lib/validations/chat";
+import { chatMessageSchema, chatValidationError } from "@/lib/validations/chat";
 import { jsonError, jsonOk } from "@/lib/api/error-response";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { durationHeaders, durationMsSince } from "@/lib/observability/duration";
@@ -59,12 +59,8 @@ export async function POST(request, { params }) {
 
     const parsed = chatMessageSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError(
-        request,
-        400,
-        "Validation failed",
-        zodErrorDetails(parsed.error)
-      );
+      const invalid = chatValidationError(parsed.error);
+      return jsonError(request, 400, invalid.message, invalid.details);
     }
 
     const authHeader = request.headers.get("authorization") || "";

@@ -2,7 +2,7 @@ import { sendChatMessage } from "@/lib/services/chat.service";
 import { requireAuth } from "@/lib/require-auth";
 import {
   chatMessageSchema,
-  zodErrorDetails,
+  chatValidationError,
 } from "@/lib/validations/chat";
 import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { studioChatLimitOpts } from "@/lib/rate-limit-config";
@@ -51,12 +51,8 @@ export async function POST(request, { params }) {
 
     const parsed = chatMessageSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError(
-        request,
-        400,
-        "Validation failed",
-        zodErrorDetails(parsed.error)
-      );
+      const invalid = chatValidationError(parsed.error);
+      return jsonError(request, 400, invalid.message, invalid.details);
     }
 
     const wantsStream =

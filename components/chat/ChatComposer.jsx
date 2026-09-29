@@ -9,6 +9,7 @@ import {
   CHAT_UPLOAD_MAX_BYTES,
   formatChatUploadLimit,
 } from "@/lib/utils/chat-attachments";
+import { CHAT_MESSAGE_MAX_CHARS } from "@/lib/chat/limits";
 
 export function ChatComposer({
   disabled,
@@ -172,6 +173,7 @@ export function ChatComposer({
             placeholder={placeholder === "Type your message..." ? "Message…" : activePlaceholder}
             disabled={busy}
             aria-busy={busy}
+            maxLength={CHAT_MESSAGE_MAX_CHARS}
             aria-label="Message"
             rows={1}
             className="block w-full resize-none border-0 bg-transparent text-[15px] leading-6 text-[var(--wc-shell-fg)] outline-none placeholder:text-[var(--wc-muted)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -297,6 +299,7 @@ export function ChatComposer({
             placeholder={activePlaceholder}
             disabled={busy}
             aria-busy={busy}
+            maxLength={CHAT_MESSAGE_MAX_CHARS}
             rows={1}
             className={cn(
               "h-8 min-w-0 flex-1 resize-none border-0 bg-transparent py-1.5 text-[13px] leading-5 outline-none",
