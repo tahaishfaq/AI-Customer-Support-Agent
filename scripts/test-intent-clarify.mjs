@@ -14,6 +14,7 @@ import {
   filterActionsKnowledgeFirst,
   formatSourceClarifyQuestion,
   inferStickySourcePreference,
+  isRepoWriteAsk,
   resolveSourceClarifyReply,
   sourceClarifyButtonsFromContent,
 } from "../lib/services/ai/intent-clarify.js";
@@ -28,6 +29,25 @@ const bareRepos = detectSourceAmbiguity({
 });
 assert.ok(bareRepos);
 assert.deepEqual(bareRepos.options.sort(), ["github", "web"]);
+
+// Live: "create a new repository called X" asked "GitHub or web?" — writes can only go to GitHub.
+for (const utterance of [
+  "create a new repository called aide-live-test-delete-me",
+  "delete the file README.md in repo acme/site",
+  "merge the pull request 12 in repo acme/site",
+  "create an issue in my repo about the login bug",
+]) {
+  assert.equal(isRepoWriteAsk(utterance), true, utterance);
+  assert.equal(
+    detectSourceAmbiguity({ utterance, hasGithubMcp: true, webSearchEnabled: true, hasKnowledgeHit: true }),
+    null,
+    `no picker for write: ${utterance}`
+  );
+}
+// Reads are still ambiguous, and without GitHub a write is not special-cased.
+assert.equal(isRepoWriteAsk("show repositories"), false);
+assert.equal(isRepoWriteAsk("how do I create a repository?") , true, "how-to reads as write intent; GitHub-only is still correct");
+assert.ok(detectSourceAmbiguity({ utterance: "show repositories", hasGithubMcp: true, webSearchEnabled: true }));
 
 const explicit = detectSourceAmbiguity({
   utterance: "show my github repositories",
