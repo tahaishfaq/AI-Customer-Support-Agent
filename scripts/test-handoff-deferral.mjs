@@ -7,6 +7,8 @@ import { test } from "node:test";
 import {
   DEFERRED_HANDOFF_RESULT,
   asksForHuman,
+  customerWantsHuman,
+  previousAssistantFromHistoryDesc,
   isHandoffCall,
   isShortYes,
   offeredHuman,
@@ -95,4 +97,20 @@ test("deferred result is a valid tool message and handoff detection is safe with
   assert.equal(isHandoffCall(call("request_handoff"), undefined), true);
   assert.equal(isHandoffCall(call("list_brandly_plans"), undefined), false);
   assert.equal(isHandoffCall({}, byName), false);
+});
+
+test("[[NEED_HUMAN]] auto-handoff uses the same rule (live: order question handed off unasked)", () => {
+  const historyDesc = [
+    { role: "USER", content: "yes" },
+    { role: "ASSISTANT", content: "I can't see orders here. Shall I connect you with our support team?" },
+    { role: "USER", content: "where is my order 88231?" },
+  ];
+  const previous = previousAssistantFromHistoryDesc(historyDesc);
+  assert.match(previous, /connect you with our support team/);
+  assert.equal(customerWantsHuman("yes", previous), true, "yes to the offer");
+  assert.equal(customerWantsHuman("where is my order 88231?", ""), false, "no ask → offer the button instead");
+  assert.equal(customerWantsHuman("I want to talk to a human", ""), true);
+  assert.equal(customerWantsHuman("yes", "Your order ships on Monday."), false, "yes to something else");
+  assert.equal(previousAssistantFromHistoryDesc([{ role: "USER", content: "hi" }]), "");
+  assert.equal(previousAssistantFromHistoryDesc(undefined), "");
 });
