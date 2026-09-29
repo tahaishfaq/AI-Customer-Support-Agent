@@ -69,6 +69,53 @@ export function GET(request) {
     });
   }
 
+  // Level 2 · P6 — targeted proactive messages match on the page path. Only the path is sent
+  // (never the query string or hash, which can carry tokens or personal data).
+  function currentPath() {
+    try { return String(window.location.pathname || "/").slice(0, 500); } catch (e) { return "/"; }
+  }
+
+  function pushPageToFrame(iframe) {
+    if (!iframe || !iframe.contentWindow) return;
+    var targetOrigin = aideAppOrigin;
+    try {
+      targetOrigin = new URL(iframe.src, window.location.href).origin;
+    } catch (e) {}
+    try {
+      iframe.contentWindow.postMessage({ source: "hapy-host", type: "page", path: currentPath() }, targetOrigin);
+    } catch (e) {}
+  }
+
+  function pushPageToAll() {
+    document.querySelectorAll("iframe[data-hapy-widget]").forEach(pushPageToFrame);
+  }
+
+  // Single-page apps change the URL without reloading: follow pushState / replaceState / back.
+  function hookNavigation() {
+    if (window.__hapyNavHooked) return;
+    window.__hapyNavHooked = true;
+    var lastPath = currentPath();
+    function onNavigate() {
+      setTimeout(function () {
+        var next = currentPath();
+        if (next === lastPath) return;
+        lastPath = next;
+        pushPageToAll();
+      }, 0);
+    }
+    ["pushState", "replaceState"].forEach(function (name) {
+      var original = window.history && window.history[name];
+      if (typeof original !== "function") return;
+      window.history[name] = function () {
+        var result = original.apply(this, arguments);
+        onNavigate();
+        return result;
+      };
+    });
+    window.addEventListener("popstate", onNavigate);
+    window.addEventListener("hashchange", onNavigate);
+  }
+
   function clampFrame(n, min, max) {
     return Math.min(Math.max(n, Math.min(min, max)), max);
   }
@@ -312,6 +359,8 @@ export function GET(request) {
       }
       if (event.data.type === "ready") {
         pushUserToFrame(iframe, true);
+        pushPageToFrame(iframe);
+        hookNavigation();
         return;
       }
       if (event.data.type === "authRefreshRequired") {

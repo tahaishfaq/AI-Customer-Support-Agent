@@ -56,6 +56,7 @@ import { EmbedIdentityGuide } from "@/components/customization/EmbedIdentityGuid
 import { cn } from "@/lib/utils";
 import { PlanLock } from "@/components/customization/WhiteLabelFields";
 import { WidgetLauncher } from "@/components/chat/WidgetLauncher";
+import { ProactiveRulesEditor } from "@/components/customization/ProactiveRulesEditor";
 
 const PLATFORMS = [
   {
@@ -710,56 +711,10 @@ export function DeployForm({
 
       <FormSection title="Engagement">
         <FieldBlock
-          label="Proactive message"
-          hint="A short message that appears above the chat bubble."
+          label="Proactive messages"
+          hint="Short messages next to the chat button — by page, audience, delay and frequency."
         >
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-sm text-foreground">
-              Show a greeting before the visitor opens chat.
-            </p>
-            <Switch
-              checked={deploy.proactiveEnabled}
-              onCheckedChange={(proactiveEnabled) =>
-                patch({ proactiveEnabled })
-              }
-            />
-          </div>
-
-          {deploy.proactiveEnabled ? (
-            <div className="mt-3 space-y-3">
-              <Textarea
-                value={deploy.proactiveMessage}
-                onChange={(e) => patch({ proactiveMessage: e.target.value })}
-                rows={2}
-                placeholder="Hi! Need help?"
-                className={areaClass}
-              />
-              <div className="rounded-lg border border-border bg-card p-3">
-                <div className="flex max-w-xs items-start gap-2">
-                  {identity?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={identity.avatarUrl}
-                      alt=""
-                      className="size-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                      AI
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm text-foreground">
-                      {deploy.proactiveMessage || "Hi! Need help?"}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      a few moments ago
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <ProactiveRulesEditor deploy={deploy} patch={patch} />
         </FieldBlock>
       </FormSection>
 

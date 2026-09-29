@@ -37,6 +37,7 @@ import { useEmbedDesk } from "@/hooks/use-embed-desk";
 import { usePublicRealtime } from "@/hooks/use-public-realtime";
 import { useChatStream } from "@/hooks/use-chat-stream";
 import { useEmbedFrame } from "@/hooks/use-embed-frame";
+import { useProactiveMessage } from "@/hooks/use-proactive-message";
 import { launcherFrame } from "@/lib/customization/launcher";
 import { REALTIME_EVENT_TYPES } from "@/lib/realtime/constants";
 
@@ -120,6 +121,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   const [realtimeAccessToken, setRealtimeAccessToken] = useState(null);
   /** F14-C — host setUser session (subject / accessToken / displayName). */
   const [hostUser, setHostUser] = useState(null);
+  /** Host page path from embed.js (Level 2 · P6 targeted proactive messages); null until sent. */
+  const [hostPath, setHostPath] = useState(null);
 
   const realtimeAccessKey = (id) =>
     `aide:realtime-access:${agent.publicKey}:${id}`;
@@ -459,6 +462,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     function onHostMessage(event) {
       if (parentOrigin && event.origin !== parentOrigin) return;
       if (!event.data || event.data.source !== "hapy-host") return;
+      if (event.data.type === "page") {
+        if (typeof event.data.path === "string") setHostPath(event.data.path.slice(0, 500));
+        return;
+      }
       if (event.data.type === "setUser") {
         const raw = event.data.user;
         const handshake = Boolean(event.data.handshake);
@@ -497,10 +504,16 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     return () => window.removeEventListener("message", onHostMessage);
   }, [parentOrigin, bindOrRestoreUserSession]);
 
-  const proactive =
-    !widgetOpen &&
-    deploy.proactiveEnabled &&
-    (deploy.proactiveMessage || "Hi! Need help?");
+  // Level 2 · P6 — targeted bubble (page, audience, delay, frequency); never while chatting.
+  const proactiveState = useProactiveMessage({
+    deploy,
+    publicKey: agent.publicKey,
+    path: hostPath,
+    identified: Boolean(hostUser?.subject),
+    open: widgetOpen,
+    chatting: messages.some((message) => message.role === "USER"),
+  });
+  const proactive = proactiveState.message;
 
   const frameLayout = useEmbedFrame({
     enabled: isFloatingEmbed, open: widgetOpen, proactive: Boolean(proactive),
@@ -1266,6 +1279,8 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         }}
         fullPage={fullPage}
         fillHost={bubbleMode}
+        proactiveMessage={proactive}
+        onDismissProactive={proactiveState.dismiss}
         coordinatedFrame={isFloatingEmbed}
         panelReady={frameLayout.panelReady}
         align={positionToChatAlign(isFloatingEmbed ? frameLayout.position : widgetPosition)}

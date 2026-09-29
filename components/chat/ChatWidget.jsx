@@ -16,6 +16,7 @@ import { AideLogoMark } from "@/components/brand/AideLogo";
 import { ShinyButton } from "@/components/ui/shiny-button";
 import { WidgetLauncher } from "@/components/chat/WidgetLauncher";
 import { launcherBox } from "@/lib/customization/launcher";
+import { normalizeProactiveRules } from "@/lib/embed/proactive-rules";
 
 function Avatar({ src, label, className, style }) {
   if (src) {
@@ -57,6 +58,12 @@ export function ChatWidget({
   messenger = false,
   /** "Expand window": larger panel (host frame grows via useEmbedFrame). */
   expanded = false,
+  /**
+   * Level 2 · P6 — targeted bubble text from the live widget (null = none). When omitted (preview),
+   * the first enabled proactive rule is shown.
+   */
+  proactiveMessage,
+  onDismissProactive,
   children,
 }) {
   const identity = customization?.identity || {};
@@ -80,10 +87,9 @@ export function ChatWidget({
     ? identity.avatarUrl
     : deploy.buttonImageUrl;
   const customLauncher = deploy.chatLauncher === "custom";
+  const previewRule = normalizeProactiveRules(deploy).find((rule) => rule.enabled);
   const proactive =
-    !open &&
-    deploy.proactiveEnabled &&
-    (deploy.proactiveMessage || "Hi! Need help?");
+    !open && (proactiveMessage !== undefined ? proactiveMessage : previewRule?.message || null);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -258,12 +264,27 @@ export function ChatWidget({
               monogram(displayName)
             )}
           </div>
-          <div className="min-w-[120px] flex-1">
+          <button
+            type="button"
+            className="min-w-[120px] flex-1 cursor-pointer text-left"
+            onClick={() => onToggle?.()}
+            aria-label={`Open chat: ${proactive}`}
+          >
             <p className="text-[12px] leading-snug text-slate-800">{proactive}</p>
             <p className="mt-0.5 whitespace-nowrap text-[10px] text-slate-400">
               a few moments ago
             </p>
-          </div>
+          </button>
+          {onDismissProactive ? (
+            <button
+              type="button"
+              onClick={onDismissProactive}
+              aria-label="Dismiss message"
+              className="-mt-1 -mr-1 flex size-6 shrink-0 items-center justify-center rounded-full text-[14px] leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              ×
+            </button>
+          ) : null}
           <span
             aria-hidden
             className="pointer-events-none absolute -bottom-1.5 right-[18px] size-2.5 rotate-45 border-r border-b border-black/5 bg-white shadow-sm"

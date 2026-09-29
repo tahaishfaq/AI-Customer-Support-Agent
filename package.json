@@ -196,6 +196,7 @@
     "test:chat-message-limit": "node --import ./scripts/register-aliases.mjs --test scripts/test-chat-message-limit.mjs",
     "test:conversation-memory": "node --test scripts/test-conversation-memory.mjs",
     "test:agent-revisions": "node --import ./scripts/register-aliases.mjs --test scripts/test-agent-revisions.mjs",
+    "test:proactive-rules": "node --import ./scripts/register-aliases.mjs --test scripts/test-proactive-rules.mjs",
     "bench:chat-latency": "node scripts/bench-chat-latency.mjs",
     "test:mcp-list": "node --test scripts/test-mcp-list-result.mjs",
     "test:embed-public-read": "node --test scripts/test-embed-public-read-policy.mjs",
