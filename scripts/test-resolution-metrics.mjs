@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ANSWER_STATES, deriveAnswerState, saysCannotAnswer } from "../lib/analytics/answer-state.js";
+import { ANSWER_STATES, UNRESOLVED_STATES, deriveAnswerState, saysCannotAnswer } from "../lib/analytics/answer-state.js";
 import {
   SETTLED_AFTER_MS,
   groupUnansweredQuestions,
@@ -123,4 +123,34 @@ test("a weak knowledge hit that did not help: the reply says it cannot answer", 
   for (const text of ["You can reset your password from Settings.", "We don't have a Pro Max plan, but Pro includes team seats.", "", null]) {
     assert.equal(saysCannotAnswer(text), false, String(text));
   }
+});
+
+test("live regressions: failed tools and 'could not' replies are not ANSWERED", () => {
+  const failed = (name, status = "ERROR") => ({ name, status });
+  // GitHub MCP with an expired sign-in (route is not STORE).
+  assert.equal(
+    deriveAnswerState({ route: "TOOL", toolSteps: [failed("mcp_github_mcp_search_repositories")], replyText: "I can’t reach GitHub right now — the connection sign-in looks expired." }),
+    ANSWER_STATES.TOOL_FAILED
+  );
+  assert.equal(deriveAnswerState({ toolSteps: [failed("list_plans", "SSRF_BLOCKED")], usedKnowledgeCount: 0 }), ANSWER_STATES.TOOL_FAILED);
+  // Tool failed, weak knowledge match, reply admits it (English / Roman Urdu).
+  assert.equal(
+    deriveAnswerState({ route: "STORE", usedKnowledgeCount: 2, toolSteps: [failed("list_plans")], replyText: "I couldn't retrieve the latest plans at the moment." }),
+    ANSWER_STATES.TOOL_FAILED
+  );
+  assert.equal(
+    deriveAnswerState({ route: "STORE", usedKnowledgeCount: 2, toolSteps: [failed("list_plans")], replyText: "Mujhe aapke liye plans ke baray mein maloomat hasil karne mein masla aa raha hai." }),
+    ANSWER_STATES.TOOL_FAILED
+  );
+  // Tool failed but knowledge answered, or web search answered → still ANSWERED.
+  assert.equal(deriveAnswerState({ route: "STORE", usedKnowledgeCount: 2, toolSteps: [failed("list_plans")], replyText: "Brandly has a free plan." }), ANSWER_STATES.ANSWERED);
+  assert.equal(deriveAnswerState({ route: "MIXED", searchUsed: true, toolSteps: [failed("list_plans")] }), ANSWER_STATES.ANSWERED);
+  // A paused / confirmation step is not a failure.
+  assert.equal(deriveAnswerState({ route: "TOOL", toolSteps: [{ name: "refund", status: "PAUSED" }], replyText: "Please confirm the refund." }), ANSWER_STATES.ANSWERED);
+  // Urdu-script "information not available", on a non-store route, no tools.
+  assert.equal(deriveAnswerState({ route: "GENERAL", usedKnowledgeCount: 2, replyText: "مجھے معاف کریں، لیکن میرے پاس پلانز کی قیمتوں کی معلومات دستیاب نہیں ہیں۔" }), ANSWER_STATES.NO_EVIDENCE);
+  // Ordinary answers stay ANSWERED.
+  assert.equal(deriveAnswerState({ route: "GENERAL", replyText: "Hello! How can I assist you today?" }), ANSWER_STATES.ANSWERED);
+  assert.equal(deriveAnswerState({ route: "GENERAL", replyText: "I couldn't be happier to help — here is how to reset it." }), ANSWER_STATES.ANSWERED);
+  assert.ok(UNRESOLVED_STATES.includes(ANSWER_STATES.TOOL_FAILED));
 });
