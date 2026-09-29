@@ -46,6 +46,8 @@ export async function POST(request, { params }) {
       ttlSeconds: body.ttlSeconds,
       email: body.email,
       phone: body.phone,
+      // Optional profile traits (sanitized in mintEndUserIdentityToken; personalisation only).
+      traits: body.traits,
       iss: body.iss || `aide:agent:${id}`,
       aud: body.aud || "aide-embed",
     });
