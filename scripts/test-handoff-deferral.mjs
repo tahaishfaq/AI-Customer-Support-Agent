@@ -31,10 +31,10 @@ test("R48: handoff batched with other tools is deferred when no person was asked
   assert.equal(shouldDeferHandoff([call("list_brandly_plans"), call("handoff_alias")], byName, R48), true, "matched by built-in id");
 });
 
-test("handoff alone: deferred once (offer the team), dispatched if the model insists", () => {
-  // Live: "where is my order 88231?" was handed to a person without asking.
+test("handoff alone: deferred every time the customer did not ask (the loop then offers the team)", () => {
+  // Live: "where is my order 88231?" and a failed GitHub search were handed to a person unasked.
   assert.equal(shouldDeferHandoff([call("request_handoff")], byName, "where is my order 88231?"), true);
-  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, R48, { alreadyDeferred: true }), false, "second ask in the same turn");
+  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, "github par react ki repositories dhoondo", { alreadyDeferred: true }), true, "model insists: still not dispatched");
   // Batched handoffs keep deferring every time (unchanged).
   assert.equal(shouldDeferHandoff([call("list_brandly_plans"), call("request_handoff")], byName, R48, { alreadyDeferred: true }), true);
 });

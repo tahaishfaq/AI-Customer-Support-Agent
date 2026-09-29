@@ -342,7 +342,8 @@ model Agent {
   embedEnabled        Boolean             @default(true)
   actionsEnabled      Boolean             @default(false)
   webSearchEnabled    Boolean             @default(false)
-  siteKnowledgeOrigin String?             @unique
+  /// Live site origin for crawl/embed lock. Not globally unique — same workspace may share.
+  siteKnowledgeOrigin String?
   siteCrawledAt       DateTime?
   crawlRecrawlHours   Int                 @default(0)
   /**
@@ -366,9 +367,24 @@ model Agent {
   toolRuns            ToolRun[]
   taskRuns            TaskRun[]
   turnRuns            TurnRun[]
+  knowledgeDocShares  KnowledgeDocumentShare[]
 
   @@index([userId])
   @@index([workspaceId])
+  @@index([siteKnowledgeOrigin])
+}
+
+/// Live document share within a workspace: consumer sees the same KnowledgeDocument row.
+model KnowledgeDocumentShare {
+  id              String            @id @default(cuid())
+  documentId      String
+  consumerAgentId String
+  createdAt       DateTime          @default(now())
+  document        KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  consumer        Agent             @relation(fields: [consumerAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, consumerAgentId])
+  @@index([consumerAgentId])
 }
 
 model AgentTask {
@@ -457,7 +473,7 @@ model TaskStepRun {
 }
 
 model KnowledgeDocument {
-  id                 String        @id @default(cuid())
+  id                 String                  @id @default(cuid())
   agentId            String
   name               String
   type               KnowledgeType
@@ -467,9 +483,10 @@ model KnowledgeDocument {
   sourceUrl          String?
   origin             String?
   crawlJobId         String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  agent              Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  agent              Agent                   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  shares             KnowledgeDocumentShare[]
 
   @@index([agentId])
   @@index([crawlJobId])

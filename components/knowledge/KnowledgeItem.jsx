@@ -1,11 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, ExternalLink, FileText, FileType2, Globe, Trash2 } from "lucide-react";
+import {
+  Eye,
+  ExternalLink,
+  FileText,
+  FileType2,
+  Globe,
+  Share2,
+  Trash2,
+  Unlink,
+} from "lucide-react";
 import { DeleteKnowledgeDialog } from "@/components/knowledge/DeleteKnowledgeDialog";
 import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
+import { ShareKnowledgeDialog } from "@/components/knowledge/ShareKnowledgeDialog";
 import { isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
+import { unshareKnowledgeDocument } from "@/lib/api/knowledge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 function formatDate(value) {
   if (!value) return "";
@@ -19,13 +31,30 @@ function formatDate(value) {
   }
 }
 
-export function KnowledgeItem({ document, onDeleted }) {
+export function KnowledgeItem({ document, agentId, onDeleted, onUnshared }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [unsharing, setUnsharing] = useState(false);
   const isPdf = document.type === "PDF";
   const isWeb = document.type === "WEB";
   const fileUrl = document.fileUrl;
   const large = isLargeKnowledgeDoc(document);
+  const isShared = document.isShared === true;
+
+  async function handleUnshare() {
+    if (!agentId || unsharing) return;
+    setUnsharing(true);
+    try {
+      await unshareKnowledgeDocument(agentId, document.id);
+      toast.success("Removed shared knowledge");
+      onUnshared?.(document.id);
+    } catch (err) {
+      toast.error(err.message || "Unable to remove shared knowledge");
+    } finally {
+      setUnsharing(false);
+    }
+  }
 
   return (
     <>
@@ -54,7 +83,7 @@ export function KnowledgeItem({ document, onDeleted }) {
             )}
           </span>
           <span className="min-w-0">
-            <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="truncate text-sm font-medium text-foreground">
                 {document.name}
               </span>
@@ -70,6 +99,11 @@ export function KnowledgeItem({ document, onDeleted }) {
               >
                 {isWeb ? "Website" : document.type}
               </span>
+              {isShared ? (
+                <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Shared from {document.sharedFromAgentName || "another agent"}
+                </span>
+              ) : null}
             </span>
             <span className="mt-0.5 block text-[11px] text-muted-foreground">
               {isWeb && document.origin
@@ -106,14 +140,36 @@ export function KnowledgeItem({ document, onDeleted }) {
               Open PDF
             </a>
           ) : null}
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-destructive hover:bg-destructive/5"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="size-3" />
-            Delete
-          </button>
+          {!isShared ? (
+            <>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setShareOpen(true)}
+              >
+                <Share2 className="size-3" />
+                Share
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-destructive hover:bg-destructive/5"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="size-3" />
+                Delete
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={unsharing}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+              onClick={handleUnshare}
+            >
+              <Unlink className="size-3" />
+              Remove
+            </button>
+          )}
         </div>
       </article>
 
@@ -123,12 +179,21 @@ export function KnowledgeItem({ document, onDeleted }) {
         onOpenChange={setPreviewOpen}
       />
 
-      <DeleteKnowledgeDialog
-        document={document}
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        onDeleted={onDeleted}
-      />
+      {!isShared ? (
+        <>
+          <ShareKnowledgeDialog
+            document={document}
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+          />
+          <DeleteKnowledgeDialog
+            document={document}
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            onDeleted={onDeleted}
+          />
+        </>
+      ) : null}
     </>
   );
 }

@@ -83,9 +83,19 @@ export async function PUT(request, { params }) {
         { status: 402 }
       );
     }
-    if (error.status === 403 || error.status === 404) {
+    if (
+      error.status === 400 ||
+      error.status === 403 ||
+      error.status === 404 ||
+      error.status === 409
+    ) {
       return NextResponse.json(
-        { error: { message: error.message, details: {} } },
+        {
+          error: {
+            message: error.message,
+            details: error.details || {},
+          },
+        },
         { status: error.status }
       );
     }

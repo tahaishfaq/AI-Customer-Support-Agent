@@ -133,16 +133,23 @@ test("handoff on its own (customer did not ask): deferred, the reply offers the 
   assert.deepEqual(unansweredToolCalls(requests[1].messages), []);
 });
 
-test("model insists on the handoff in the same turn: second request is dispatched (no endless deferral)", async () => {
+test("model insists on an unasked handoff: loop stops, final reply offers the team, never dispatched", async () => {
   const result = await runLoop({
-    lastUserMessage: "where is my order 88231?",
+    lastUserMessage: "mera order 88231 kab aayega?",
     script: [
       { tool_calls: [toolCall("call_h1", "request_handoff", { reason: "order" })] },
       { tool_calls: [toolCall("call_h2", "request_handoff", { reason: "order" })] },
-      { content: "Connecting you." },
+      { content: "Maaf kijiye, main yahan order status nahi dekh sakta. Kya aap team se baat karna chahenge?" },
+      { tool_calls: [toolCall("call_h3", "request_handoff", { reason: "should never be requested" })] },
     ],
   });
-  assert.ok(result.toolSteps.some((step) => step.name === "request_handoff"), "dispatched on the second ask");
+  assert.equal(result.stopReason, "offer_team");
+  assert.equal(result.humanOffered, true);
+  assert.ok(!result.toolSteps.some((step) => step.name === "request_handoff"), "never dispatched");
+  assert.match(result.assistantText, /team se baat/);
+  assert.equal(requests.length, 3, "two tool rounds + one final text call, no endless loop");
+  assert.match(requests[2].messages[0].content, /did not ask for a person/, "final call carries the offer note");
+  assert.deepEqual(unansweredToolCalls(requests[2].messages), []);
 });
 
 test("customer says yes to the team offer: handoff dispatched", async () => {

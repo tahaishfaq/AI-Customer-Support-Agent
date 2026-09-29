@@ -165,7 +165,7 @@ export function FeaturesForm({ features, onChange, support, onSupportChange }) {
       <FormSection title="Embed origins">
         <FieldBlock
           label="Origin policy"
-          hint="All = first live HTTPS site claim locks the agent (existing behavior). Allowlist = only listed origins may call public embed APIs or claim the lock. Localhost / Aide app preview still allowed."
+          hint="All = first live HTTPS site claim locks the agent (existing behavior). Allowlist = only listed origins may call public embed APIs or claim the lock. Localhost / Aide app preview still allowed. You can also set the base URL under Deploy → Website base URL."
         >
           <Select
             value={features.allowedOriginsMode || "all"}

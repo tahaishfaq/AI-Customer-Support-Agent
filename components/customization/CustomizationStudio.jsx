@@ -135,6 +135,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
       setSaved(JSON.stringify(next));
       setJustSaved(true);
       window.setTimeout(() => setJustSaved(false), 900);
+      onAgentChange?.(updated);
       toast.success("Customization saved");
     } catch (err) {
       const detail = Object.values(err.details || {}).find(Boolean);
@@ -271,6 +272,7 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                   deploy={draft.deploy}
                   identity={draft.identity}
                   appearance={draft.appearance}
+                  features={draft.features}
                   crawlRecrawlHours={agent.crawlRecrawlHours ?? 0}
                   siteCrawledAt={agent.siteCrawledAt}
                   siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
@@ -279,6 +281,9 @@ export function CustomizationStudio({ agent, onAgentChange }) {
                     onAgentChange?.({ ...agent, crawlRecrawlHours: hours });
                   }}
                   onChange={(deploy) => patchSection("deploy", deploy)}
+                  onFeaturesChange={(features) =>
+                    patchSection("features", features)
+                  }
                   whiteLabelAllowed={whiteLabelAllowed}
                   onPublicKeyChange={(nextKey) => {
                     setPublicKey(nextKey);

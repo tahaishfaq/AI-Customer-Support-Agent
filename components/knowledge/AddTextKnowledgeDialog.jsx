@@ -121,7 +121,8 @@ export function AddTextKnowledgeDialog({
         onOpenChange?.(next);
       }}
     >
-      <DialogContent className="relative flex h-[min(640px,85dvh)] w-[min(32rem,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex h-[min(640px,85dvh)] w-[min(32rem,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <div className="relative flex h-full min-h-0 flex-col">
         {loading ? (
           <AidePreloader variant="overlay" label="Saving knowledge…" />
         ) : null}
@@ -287,6 +288,7 @@ export function AddTextKnowledgeDialog({
             </Button>
           </DialogFooter>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

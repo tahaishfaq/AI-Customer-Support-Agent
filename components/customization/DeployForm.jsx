@@ -46,8 +46,10 @@ import {
   FieldBlock,
   FormSection,
   areaClass,
+  fieldClass,
 } from "@/components/customization/CustomizationFields";
 import { buildEmbedSnippet } from "@/lib/customization/embed";
+import { parseAllowedOriginsList } from "@/lib/embed/allowed-origins";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { EmbedReadinessChecklist } from "@/components/customization/EmbedReadinessChecklist";
 import { EmbedIdentityGuide } from "@/components/customization/EmbedIdentityGuide";
@@ -221,7 +223,9 @@ export function DeployForm({
   deploy,
   identity,
   appearance = {},
+  features = {},
   onChange,
+  onFeaturesChange,
   onPublicKeyChange,
   crawlRecrawlHours = 0,
   siteCrawledAt = null,
@@ -277,6 +281,33 @@ export function DeployForm({
   function patch(partial) {
     onChange({ ...deploy, ...partial });
   }
+
+  function patchFeatures(partial) {
+    if (typeof onFeaturesChange !== "function") return;
+    onFeaturesChange({ ...features, ...partial });
+  }
+
+  function applyWebsiteBaseUrl(rawText) {
+    const list = parseAllowedOriginsList(rawText);
+    if (!list.length) {
+      patchFeatures({
+        allowedOriginsMode: "all",
+        allowedOrigins: "",
+      });
+      return;
+    }
+    patchFeatures({
+      allowedOriginsMode: "allowlist",
+      allowedOrigins: list.join("\n"),
+    });
+  }
+
+  const websiteBaseUrlText =
+    features.allowedOriginsMode === "allowlist"
+      ? String(features.allowedOrigins || "")
+      : siteKnowledgeOrigin
+        ? String(siteKnowledgeOrigin)
+        : "";
 
   async function copySnippet() {
     try {
@@ -352,6 +383,31 @@ export function DeployForm({
 
       <FormSection title="Install">
         <EmbedReadinessChecklist agentId={agentId} />
+        {typeof onFeaturesChange === "function" ? (
+          <FieldBlock
+            label="Website base URL"
+            hint="Add your live site origin (https://www.example.com). The widget will only load on listed origins. Saving also locks website knowledge to this site when unlocked. Extra variants (www / shop) go on new lines."
+          >
+            <textarea
+              className={fieldClass + " min-h-[72px] resize-y font-mono text-xs"}
+              value={websiteBaseUrlText}
+              onChange={(e) => applyWebsiteBaseUrl(e.target.value)}
+              placeholder={"https://www.example.com"}
+              spellCheck={false}
+            />
+            {(features.allowedOriginsMode || "all") === "allowlist" ? (
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                Allowlist on — public embed only works from the origins above.
+                Localhost and Aide preview still work for testing.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                Leave empty to allow any site until the first live visit locks
+                the agent (or switch Features → Embed origins to Allowlist).
+              </p>
+            )}
+          </FieldBlock>
+        ) : null}
         <FieldBlock
           label="One script for your site"
           hint="Copy once into your HTML. That is all most sites need to go live."

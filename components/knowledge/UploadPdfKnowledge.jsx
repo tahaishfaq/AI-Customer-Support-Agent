@@ -124,7 +124,8 @@ export function UploadPdfKnowledge({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="relative sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg">
+          <div className="relative">
           {loading ? (
             <AidePreloader variant="overlay" label="Uploading PDF…" />
           ) : null}
@@ -249,6 +250,7 @@ export function UploadPdfKnowledge({
                   : "Add PDF"}
             </Button>
           </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>

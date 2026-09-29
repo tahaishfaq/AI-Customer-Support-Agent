@@ -72,13 +72,17 @@ export function KnowledgeList({
 
   const crawlDocuments = documents.filter(
     (doc) =>
+      !doc.isShared &&
       doc.type === "WEB" &&
       (String(doc.name || "").startsWith(CRAWL_PAGE_KNOWLEDGE_PREFIX) ||
         Boolean(doc.crawlJobId) ||
         Boolean(doc.origin))
   );
   const crawlIds = new Set(crawlDocuments.map((d) => d.id));
-  const manualDocuments = documents.filter((doc) => !crawlIds.has(doc.id));
+  const sharedDocuments = documents.filter((doc) => doc.isShared === true);
+  const manualDocuments = documents.filter(
+    (doc) => !crawlIds.has(doc.id) && !doc.isShared
+  );
   const crawlChars = crawlDocuments.reduce(
     (sum, doc) => sum + String(doc.content || "").length,
     0
@@ -112,6 +116,10 @@ export function KnowledgeList({
     void invalidateKnowledgeQuery(queryClient, agentId);
   }
 
+  function handleUnshared(id) {
+    handleDeleted(id);
+  }
+
   if (loading) {
     return (
       <LoadingSurface label="Loading knowledge…">
@@ -125,7 +133,7 @@ export function KnowledgeList({
     );
   }
 
-  const hasWeb = documents.some((d) => d.type === "WEB");
+  const hasWeb = documents.some((d) => d.type === "WEB" && !d.isShared);
   const hasLargeDoc = documents.some((d) => isLargeKnowledgeDoc(d));
 
   return (
@@ -276,6 +284,7 @@ export function KnowledgeList({
                 <KnowledgeItem
                   key={doc.id}
                   document={doc}
+                  agentId={agentId}
                   onDeleted={handleDeleted}
                 />
               ))}
@@ -284,7 +293,7 @@ export function KnowledgeList({
 
           {manualDocuments.length > 0 ? (
             <section className="overflow-hidden rounded-xl border border-border bg-card">
-              {crawlDocuments.length > 0 ? (
+              {crawlDocuments.length > 0 || sharedDocuments.length > 0 ? (
                 <div className="border-b border-border px-4 py-3">
                   <h3 className="text-sm font-semibold text-foreground">
                     Manual knowledge
@@ -298,7 +307,30 @@ export function KnowledgeList({
                 <KnowledgeItem
                   key={doc.id}
                   document={doc}
+                  agentId={agentId}
                   onDeleted={handleDeleted}
+                />
+              ))}
+            </section>
+          ) : null}
+
+          {sharedDocuments.length > 0 ? (
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Shared with this agent
+                </h3>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  Live from another agent in this workspace. Updates on the
+                  source document show up here automatically.
+                </p>
+              </div>
+              {sharedDocuments.map((doc) => (
+                <KnowledgeItem
+                  key={`shared-${doc.id}`}
+                  document={doc}
+                  agentId={agentId}
+                  onUnshared={handleUnshared}
                 />
               ))}
             </section>
