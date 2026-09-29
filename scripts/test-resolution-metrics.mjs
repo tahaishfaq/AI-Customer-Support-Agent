@@ -145,6 +145,17 @@ test("live regressions: failed tools and 'could not' replies are not ANSWERED", 
   // Tool failed but knowledge answered, or web search answered → still ANSWERED.
   assert.equal(deriveAnswerState({ route: "STORE", usedKnowledgeCount: 2, toolSteps: [failed("list_plans")], replyText: "Brandly has a free plan." }), ANSWER_STATES.ANSWERED);
   assert.equal(deriveAnswerState({ route: "MIXED", searchUsed: true, toolSteps: [failed("list_plans")] }), ANSWER_STATES.ANSWERED);
+  // A write waiting for confirmation is recorded as ERROR but is not a failure (live: create_repository).
+  assert.equal(
+    deriveAnswerState({ route: "TOOL", toolSteps: [{ name: "mcp_github_mcp_create_repository", status: "ERROR", errorCode: "CONFIRMATION_REQUIRED" }], replyText: "Creating the repository requires your explicit confirmation." }),
+    ANSWER_STATES.ANSWERED
+  );
+  assert.equal(
+    deriveAnswerState({ route: "TOOL", toolSteps: [{ name: "refund", status: "ERROR", pendingConfirmation: { id: "c1" } }] }),
+    ANSWER_STATES.ANSWERED
+  );
+  // Private data that needs sign-in is a deliberate refusal, not a tool failure.
+  assert.equal(deriveAnswerState({ route: "TOOL", toolSteps: [{ name: "get_order", status: "ERROR", errorCode: "IDENTITY_REQUIRED" }] }), ANSWER_STATES.ANSWERED);
   // A paused / confirmation step is not a failure.
   assert.equal(deriveAnswerState({ route: "TOOL", toolSteps: [{ name: "refund", status: "PAUSED" }], replyText: "Please confirm the refund." }), ANSWER_STATES.ANSWERED);
   // Urdu-script "information not available", on a non-store route, no tools.
