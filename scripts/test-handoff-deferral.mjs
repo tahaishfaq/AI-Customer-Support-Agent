@@ -8,6 +8,9 @@ import {
   DEFERRED_HANDOFF_RESULT,
   asksForHuman,
   isHandoffCall,
+  isShortYes,
+  offeredHuman,
+  previousAssistantText,
   shouldDeferHandoff,
 } from "../lib/orchestrator/handoff-deferral.js";
 
@@ -26,8 +29,43 @@ test("R48: handoff batched with other tools is deferred when no person was asked
   assert.equal(shouldDeferHandoff([call("list_brandly_plans"), call("handoff_alias")], byName, R48), true, "matched by built-in id");
 });
 
-test("never deferred: handoff alone, explicit human asks, no handoff at all", () => {
-  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, R48), false, "alone = model found nothing else to do");
+test("handoff alone: deferred once (offer the team), dispatched if the model insists", () => {
+  // Live: "where is my order 88231?" was handed to a person without asking.
+  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, "where is my order 88231?"), true);
+  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, R48, { alreadyDeferred: true }), false, "second ask in the same turn");
+  // Batched handoffs keep deferring every time (unchanged).
+  assert.equal(shouldDeferHandoff([call("list_brandly_plans"), call("request_handoff")], byName, R48, { alreadyDeferred: true }), true);
+});
+
+test("yes to the team offer in the previous reply is a request for a person", () => {
+  const offer = "I can't see order details here. Would you like me to connect you with our support team?";
+  for (const yes of ["yes", "Yes please", "sure", "ok", "haan ji", "theek hai", "please do", "yes connect me"]) {
+    assert.equal(isShortYes(yes), true, yes);
+    assert.equal(shouldDeferHandoff([call("request_handoff")], byName, yes, { previousAssistant: offer }), false, yes);
+  }
+  // "Yes" without an offer, or a long message that starts with yes, is not consent to a handoff.
+  assert.equal(shouldDeferHandoff([call("request_handoff")], byName, "yes", { previousAssistant: "Your plan renews monthly." }), true);
+  assert.equal(isShortYes("yes but first tell me the price of the pro plan and the refund rules"), false);
+  assert.equal(isShortYes("no thanks"), false);
+  assert.equal(offeredHuman("Main aap ko team se connect kar sakta hoon?"), true);
+  assert.equal(offeredHuman("Shall I transfer you to a human agent?"), true);
+  assert.equal(offeredHuman("Here are our plans."), false);
+  assert.equal(offeredHuman(null), false);
+});
+
+test("previous assistant text comes from history only", () => {
+  const history = [
+    { role: "user", content: "hi" },
+    { role: "assistant", content: "Want me to connect you with our team?" },
+    { role: "assistant", content: null, tool_calls: [] },
+    { role: "user", content: "yes" },
+  ];
+  assert.equal(previousAssistantText(history), "Want me to connect you with our team?");
+  assert.equal(previousAssistantText([]), "");
+  assert.equal(previousAssistantText(null), "");
+});
+
+test("never deferred: explicit human asks, no handoff at all", () => {
   assert.equal(shouldDeferHandoff([call("list_brandly_plans")], byName, R48), false);
   assert.equal(shouldDeferHandoff([], byName, R48), false);
   assert.equal(shouldDeferHandoff(null, byName, R48), false);

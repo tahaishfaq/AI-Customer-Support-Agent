@@ -68,7 +68,7 @@ before(async () => {
 
 after(() => server?.close());
 
-async function runLoop({ lastUserMessage, script }) {
+async function runLoop({ lastUserMessage, script, history = [] }) {
   const { runOrchestratorLoop } = await import("../lib/orchestrator/loop.js");
   const { listBuiltinActionsForAgent } = await import("../lib/capabilities/builtins.js");
   queue = [...script];
@@ -76,7 +76,7 @@ async function runLoop({ lastUserMessage, script }) {
   const actions = listBuiltinActionsForAgent("agent_test", { includeWebSearch: false });
   return runOrchestratorLoop({
     system: "You are a support agent.",
-    messages: [{ role: "user", content: lastUserMessage }],
+    messages: [...history, { role: "user", content: lastUserMessage }],
     actions,
     agentId: "agent_test",
     conversationId: null,
@@ -119,10 +119,40 @@ test("explicit human ask: the same batch dispatches the handoff (not deferred)",
   assert.equal(result.humanOffered, undefined);
 });
 
-test("handoff requested on its own is dispatched as before", async () => {
+test("handoff on its own (customer did not ask): deferred, the reply offers the team", async () => {
   const result = await runLoop({
-    lastUserMessage: R48,
-    script: [{ tool_calls: [toolCall("call_handoff", "request_handoff", { reason: "cannot answer" })] }, { content: "Connecting you." }],
+    lastUserMessage: "where is my order 88231?",
+    script: [
+      { tool_calls: [toolCall("call_handoff", "request_handoff", { reason: "order lookup" })] },
+      { content: "I can't look up orders here. Would you like me to connect you with our support team?" },
+    ],
+  });
+  assert.equal(result.humanOffered, true);
+  assert.ok(!result.toolSteps.some((step) => step.name === "request_handoff"), "not dispatched");
+  assert.match(result.assistantText, /connect you with our support team/);
+  assert.deepEqual(unansweredToolCalls(requests[1].messages), []);
+});
+
+test("model insists on the handoff in the same turn: second request is dispatched (no endless deferral)", async () => {
+  const result = await runLoop({
+    lastUserMessage: "where is my order 88231?",
+    script: [
+      { tool_calls: [toolCall("call_h1", "request_handoff", { reason: "order" })] },
+      { tool_calls: [toolCall("call_h2", "request_handoff", { reason: "order" })] },
+      { content: "Connecting you." },
+    ],
+  });
+  assert.ok(result.toolSteps.some((step) => step.name === "request_handoff"), "dispatched on the second ask");
+});
+
+test("customer says yes to the team offer: handoff dispatched", async () => {
+  const result = await runLoop({
+    history: [
+      { role: "user", content: "where is my order 88231?" },
+      { role: "assistant", content: "Would you like me to connect you with our support team?" },
+    ],
+    lastUserMessage: "yes please",
+    script: [{ tool_calls: [toolCall("call_handoff", "request_handoff", { reason: "accepted offer" })] }, { content: "Connecting you." }],
   });
   assert.ok(result.toolSteps.some((step) => step.name === "request_handoff"));
   assert.equal(result.humanOffered, undefined);
