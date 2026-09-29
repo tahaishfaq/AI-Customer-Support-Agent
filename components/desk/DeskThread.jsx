@@ -882,7 +882,7 @@ export function DeskThread({ conversation: initial, onResolved }) {
                   Hide
                 </Button>
               </div>
-              <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground">
+              <pre className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground">
                 {aiSummary}
               </pre>
             </div>

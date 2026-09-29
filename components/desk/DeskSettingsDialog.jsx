@@ -85,6 +85,7 @@ export function DeskSettingsDialog() {
                   <input
                     type="radio"
                     name="desk-assignment"
+                    value={mode.id}
                     className="mt-1"
                     checked={settings.assignment === mode.id}
                     onChange={() => update({ assignment: mode.id })}
