@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Eye, Inbox, MessageSquareText, Send, StickyNote, UserRound } from "lucide-react";
+import { Eye, Inbox, MessageSquareText, Send, Sparkles, StickyNote, UserRound } from "lucide-react";
 import { getConversation } from "@/lib/api/conversations";
 import {
   assignConversation,
@@ -15,6 +15,8 @@ import {
   sendInternalNote,
   setConversationPriority,
   signalHumanTyping,
+  suggestDeskReply,
+  summarizeDeskConversation,
 } from "@/lib/api/desk";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import {
@@ -171,9 +173,26 @@ function DeskReplyComposer({
   mode = "reply",
   onModeChange,
   allowReply = true,
+  onSuggest,
 }) {
   const [value, setValue] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
   const isNote = mode === "note";
+
+  // Level 2 · M4 — the draft lands in the box for the human to edit; typed text is kept.
+  async function suggest() {
+    if (!onSuggest || suggesting) return;
+    setSuggesting(true);
+    try {
+      const draft = await onSuggest();
+      if (!draft) return;
+      const next = value.trim() ? `${value.trim()}\n\n${draft}` : draft;
+      setValue(next);
+      onValueChange?.(next);
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   function submit() {
     const text = value.trim();
@@ -219,6 +238,23 @@ function DeskReplyComposer({
             Team only — customer never sees this. After Return to AI, the bot
             can use note facts for better replies (without quoting them).
           </p>
+        ) : null}
+        {!isNote && onSuggest ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 rounded-full text-[11px]"
+            disabled={disabled || suggesting}
+            onClick={suggest}
+          >
+            {suggesting ? (
+              <Spinner data-icon="inline-start" />
+            ) : (
+              <Sparkles className="size-3.5" data-icon="inline-start" />
+            )}
+            {suggesting ? "Drafting…" : "Suggest reply"}
+          </Button>
         ) : null}
         {!isNote && cannedReplies?.length ? (
           <DropdownMenu>
@@ -319,9 +355,17 @@ export function DeskThread({ conversation: initial, onResolved }) {
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [customerTyping, setCustomerTyping] = useState(false);
   const [teammatePresence, setTeammatePresence] = useState(null);
+  // Keyed by conversation: the page can reuse this component when switching chats.
+  const [summaryState, setSummaryState] = useState(null);
+  const aiSummary = summaryState?.conversationId === conversation.id ? summaryState.text : null;
+  const [summarizing, setSummarizing] = useState(false);
   const bottomRef = useRef(null);
   const lastTypingPing = useRef(0);
   const refreshRequestRef = useRef(0);
+  const currentConversationIdRef = useRef(initial.id);
+  useEffect(() => {
+    currentConversationIdRef.current = conversation.id;
+  }, [conversation.id]);
 
   const waiting =
     conversation.waitingForHuman || conversation.status === "WAITING_HUMAN";
@@ -578,6 +622,35 @@ export function DeskThread({ conversation: initial, onResolved }) {
     }
   }
 
+  async function requestSuggestion() {
+    setError("");
+    const conversationId = conversation.id;
+    try {
+      const result = await suggestDeskReply(conversationId);
+      // Switched to another chat while drafting → drop it rather than insert into the wrong thread.
+      if (currentConversationIdRef.current !== conversationId) return "";
+      return result?.draft || "";
+    } catch (err) {
+      setError(err.message || "Could not get a suggestion");
+      return "";
+    }
+  }
+
+  async function requestSummary() {
+    if (summarizing) return;
+    setSummarizing(true);
+    setError("");
+    try {
+      const conversationId = conversation.id;
+      const result = await summarizeDeskConversation(conversationId);
+      setSummaryState(result?.summary ? { conversationId, text: result.summary } : null);
+    } catch (err) {
+      setError(err.message || "Could not summarise");
+    } finally {
+      setSummarizing(false);
+    }
+  }
+
   async function toggleClaim(claim) {
     setClaiming(true);
     setError("");
@@ -792,6 +865,46 @@ export function DeskThread({ conversation: initial, onResolved }) {
           </div>
         ) : null}
 
+        <div className="border-b border-border bg-card px-5 py-2">
+          {aiSummary ? (
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  AI summary · not saved
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setSummaryState(null)}
+                >
+                  Hide
+                </Button>
+              </div>
+              <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground">
+                {aiSummary}
+              </pre>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-full px-2.5 text-[11px]"
+              disabled={summarizing || messages.length === 0}
+              onClick={requestSummary}
+            >
+              {summarizing ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <Sparkles className="size-3.5" data-icon="inline-start" />
+              )}
+              {summarizing ? "Summarising…" : "AI summary"}
+            </Button>
+          )}
+        </div>
+
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6 sm:px-6">
             {groups.map((group) => (
@@ -838,6 +951,7 @@ export function DeskThread({ conversation: initial, onResolved }) {
           onSend={sendComposer}
           onValueChange={handleComposerChange}
           cannedReplies={cannedReplies}
+          onSuggest={waiting ? requestSuggestion : undefined}
         />
         )}
         {!waiting && canReply ? (
