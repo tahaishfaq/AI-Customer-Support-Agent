@@ -874,6 +874,8 @@ model Conversation {
    * Set when rated or skipped (so we do not re-prompt until next handoff)
    */
   csatAt                 DateTime?
+  /// HUMAN when resolved from the desk; AI resolution is computed from settled conversations.
+  resolvedBy             String?
   startedAt              DateTime                   @default(now())
   endedAt                DateTime?
   createdAt              DateTime                   @default(now())
@@ -940,10 +942,13 @@ model Message {
   feedback       String?
   feedbackReason String?
   feedbackAt     DateTime?
+  /// AI reply outcome: ANSWERED | NO_EVIDENCE | NOT_FOUND | HANDOFF | DEGRADED (null before tracking / non-AI).
+  answerState    String?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
+  @@index([answerState, createdAt])
   @@unique([conversationId, clientMessageId])
   @@index([createdAt])
   @@index([feedback, feedbackAt])

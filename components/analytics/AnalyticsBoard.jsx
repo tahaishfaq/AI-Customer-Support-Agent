@@ -10,6 +10,7 @@ import {
   useAnalyticsDashboard,
 } from "@/components/analytics/analytics-shared";
 import { AnalyticsExportMenu } from "@/components/analytics/AnalyticsExportMenu";
+import { ResolutionPanel } from "@/components/analytics/ResolutionPanel";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
 import {
   SentimentOverTimeChart,
@@ -80,6 +81,8 @@ export function AnalyticsBoard({ agentId }) {
       <AnalyticsError error={error} onRetry={reload} />
 
       <AnalyticsKpiGrid overview={data?.overview} loading={loading} />
+
+      <ResolutionPanel agentId={agentId} range={range} />
 
       {!loading && data?.agents?.[0] ? (
         <Card className="shadow-none">

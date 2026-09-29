@@ -17,6 +17,7 @@ import {
 import { AnalyticsExportMenu } from "@/components/analytics/AnalyticsExportMenu";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
 import { ChartAreaInteractive } from "@/components/analytics/WorkspaceCharts";
+import { ResolutionPanel } from "@/components/analytics/ResolutionPanel";
 import {
   ActivityHeatmap,
   AgentRadarChart,
@@ -75,6 +76,8 @@ export function WorkspaceAnalytics({
           />
         }
       />
+
+      <ResolutionPanel range={range} />
 
       <ChartAreaInteractive
         points={data?.trends?.points || []}
