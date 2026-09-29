@@ -163,5 +163,8 @@ test("live regressions: failed tools and 'could not' replies are not ANSWERED", 
   // Ordinary answers stay ANSWERED.
   assert.equal(deriveAnswerState({ route: "GENERAL", replyText: "Hello! How can I assist you today?" }), ANSWER_STATES.ANSWERED);
   assert.equal(deriveAnswerState({ route: "GENERAL", replyText: "I couldn't be happier to help — here is how to reset it." }), ANSWER_STATES.ANSWERED);
+  // Live: "do you have github access?" was listed as unanswered. A capability ask is answered from config.
+  assert.equal(deriveAnswerState({ route: "STORE", usedKnowledgeCount: 0, capabilityAsk: true, replyText: "Yes, GitHub tools are configured." }), ANSWER_STATES.ANSWERED);
+  assert.equal(deriveAnswerState({ degraded: true, capabilityAsk: true }), ANSWER_STATES.DEGRADED, "failures still win");
   assert.ok(UNRESOLVED_STATES.includes(ANSWER_STATES.TOOL_FAILED));
 });
