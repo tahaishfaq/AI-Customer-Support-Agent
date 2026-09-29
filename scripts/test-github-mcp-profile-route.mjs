@@ -86,6 +86,26 @@ assert.match(addonYes, /mcp_github_mcp_get_me/);
 const addonNo = capabilityAskSystemAddon({ connected: false, toolNames: [] });
 assert.match(addonNo, /No GitHub MCP tools/);
 
+// Live: with an expired GitHub sign-in the agent said "Yes, I have access". It must say it is not working.
+const addonExpired = capabilityAskSystemAddon({
+  connected: true,
+  signInFailed: true,
+  toolNames: ["mcp_github_mcp_get_me"],
+});
+assert.match(addonExpired, /sign-in has failed or expired/);
+assert.match(addonExpired, /reconnect GitHub/);
+assert.match(addonExpired, /Do not say you have working access/);
+assert.doesNotMatch(addonExpired, /yes, those tools are configured/);
+assert.equal(
+  capabilityAskSystemAddon({
+    connected: true,
+    signInFailed: false,
+    toolNames: ["mcp_github_mcp_get_me", "mcp_github_mcp_search_repositories"],
+  }),
+  addonYes,
+  "working sign-in: unchanged"
+);
+
 assert.equal(
   isGithubMcpAction({ _mcp: true, name: "mcp_github_mcp_get_me" }),
   true
