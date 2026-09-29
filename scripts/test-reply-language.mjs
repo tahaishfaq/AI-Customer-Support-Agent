@@ -80,3 +80,12 @@ test("prompt rule text: customer language vs the unchanged knowledge default", (
   assert.match(legacy, /^Reply language policy: always reply in English\. This language is chosen from the agent's knowledge bases/);
   assert.match(legacy, /Do not switch languages/);
 });
+
+test("live: Roman Urdu commands with English nouns (dhoondo / dikhao)", () => {
+  assert.equal(detectMessageLanguage("github par react ki repositories dhoondo"), "roman_urdu");
+  assert.equal(detectMessageLanguage("react ki repos dikhao"), "roman_urdu");
+  assert.equal(detectMessageLanguage("mujhe latest release bhejo"), "roman_urdu");
+  // English stays English.
+  assert.equal(detectMessageLanguage("show me the latest react repositories"), "english");
+  assert.equal(detectMessageLanguage("search github for next auth examples"), "english");
+});
