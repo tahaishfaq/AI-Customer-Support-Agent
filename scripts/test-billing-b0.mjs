@@ -60,8 +60,15 @@ async function main() {
     ""
   );
 
-  const publicPlans = await fetch(`${base}/api/billing/plans`);
-  if (publicPlans.ok) {
+  // A local server that is not running skips the HTTP checks; an unreachable remote target fails.
+  const isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(new URL(base).hostname);
+  const publicPlans = await fetch(`${base}/api/billing/plans`).catch((error) => {
+    if (!isLocal) throw error;
+    return null;
+  });
+  if (!publicPlans) {
+    console.log(`B0 HTTP: skipped, ${base} not running (start the app for live check)`);
+  } else if (publicPlans.ok) {
     const body = await publicPlans.json();
     const plans = body.plans || [];
     assert(plans.length === 4, `public catalog must return 4 plans, got ${plans.length}`);
@@ -78,13 +85,15 @@ async function main() {
     );
   }
 
-  const anonAdmin = await fetch(`${base}/api/admin/billing/plans`);
-  if (anonAdmin.status === 401) {
-    console.log("B0 HTTP: anon /api/admin/billing/plans → 401");
-  } else {
-    console.log(
-      `B0 HTTP: anon admin plans status ${anonAdmin.status} (expected 401 when dev is up)`
-    );
+  if (publicPlans) {
+    const anonAdmin = await fetch(`${base}/api/admin/billing/plans`);
+    if (anonAdmin.status === 401) {
+      console.log("B0 HTTP: anon /api/admin/billing/plans → 401");
+    } else {
+      console.log(
+        `B0 HTTP: anon admin plans status ${anonAdmin.status} (expected 401 when dev is up)`
+      );
+    }
   }
 
   const connectionString = process.env.DATABASE_URL;

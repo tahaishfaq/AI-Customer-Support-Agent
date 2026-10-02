@@ -24,6 +24,7 @@ async function main() {
   let socket;
   let accessId;
   let gatewayErrors = "";
+  const stream = `aide:phase3:${process.pid}:${Date.now()}`;
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -70,6 +71,7 @@ async function main() {
         REALTIME_ALLOWED_ORIGINS: origin,
         REALTIME_CONSUMER_GROUP: `phase3-${process.pid}-${Date.now()}`,
         REALTIME_CONSUMER_NAME: `phase3-${process.pid}`,
+        REALTIME_STREAM_NAME: stream,
         REALTIME_HEARTBEAT_INTERVAL_SECONDS: "1",
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -127,12 +129,7 @@ async function main() {
         resolve(payload);
       });
     });
-    await redis.xadd(
-      process.env.REALTIME_STREAM_NAME || "aide:realtime:events",
-      "*",
-      "event",
-      JSON.stringify(event)
-    );
+    await redis.xadd(stream, "*", "event", JSON.stringify(event));
     assert.equal((await received).eventId, event.eventId);
 
     let disconnected = false;
@@ -157,6 +154,7 @@ async function main() {
       await prisma.publicConversationAccess.delete({ where: { id: accessId } }).catch(() => {});
     }
     if (gateway && !gateway.killed) gateway.kill("SIGTERM");
+    await redis.del(stream).catch(() => {});
     await redis.quit().catch(() => {});
     await prisma.$disconnect?.().catch(() => {});
   }

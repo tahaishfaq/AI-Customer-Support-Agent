@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { applyCustomizationPatch, mergeCustomization } from "@/lib/customization/defaults";
+import { messageBubbleColors, widgetStyleVars } from "@/lib/customization/theme";
 import { customizationSchema } from "@/lib/validations/customization";
 import {
   isWhiteLabelPlan,
@@ -15,11 +16,36 @@ import {
 test("stored agents without the new sections get messenger defaults", () => {
   const merged = mergeCustomization({ appearance: { primaryColor: "#123456" } });
   assert.equal(merged.appearance.primaryColor, "#123456");
+  assert.equal(merged.appearance.agentBubbleColor, null);
+  assert.equal(merged.appearance.userBubbleColor, null);
   assert.equal(merged.identity.greetingTitle, "Hi there 👋");
   assert.deepEqual(merged.home.links, []);
   assert.equal(merged.home.status.level, "operational");
   assert.equal(merged.deploy.allowExpand, true);
   assert.equal(merged.branding.hideAideBranding, false);
+});
+
+test("agent and user bubble colors are optional, validated and contrast-aware", () => {
+  assert.equal(customizationSchema.safeParse({ appearance: { agentBubbleColor: "red" } }).success, false);
+  assert.equal(customizationSchema.safeParse({ appearance: { userBubbleColor: "#123456" } }).success, true);
+  assert.equal(customizationSchema.safeParse({ appearance: { agentBubbleColor: null, userBubbleColor: null } }).success, true);
+  assert.deepEqual(messageBubbleColors({ appearance: { theme: "light", messageStyle: "light", primaryColor: "#ea580c" } }), {
+    agentBackground: "#f1f5f9",
+    agentForeground: "#0f172a",
+    userBackground: "#ea580c",
+    userForeground: "#ffffff",
+  });
+  assert.deepEqual(messageBubbleColors({ appearance: { theme: "dark", messageStyle: "darker", agentBubbleColor: "#fefefe", userBubbleColor: "#123456" } }), {
+    agentBackground: "#fefefe",
+    agentForeground: "#0f172a",
+    userBackground: "#123456",
+    userForeground: "#ffffff",
+  });
+  const vars = widgetStyleVars({ appearance: { agentBubbleColor: "#fefefe", userBubbleColor: "#123456" } });
+  assert.equal(vars["--wc-agent-bubble-bg"], "#fefefe");
+  assert.equal(vars["--wc-agent-bubble-fg"], "#0f172a");
+  assert.equal(vars["--wc-user-bubble-bg"], "#123456");
+  assert.equal(vars["--wc-user-bubble-fg"], "#ffffff");
 });
 
 test("partial status patch keeps the other status fields", () => {
@@ -61,7 +87,7 @@ test("unchanged stored white-label values pass (full-draft saves)", () => {
 test("strip reverts paid branding but keeps colors, texts, links and status", () => {
   const stored = applyCustomizationPatch({}, {
     identity: { logoUrl: "https://a.com/l.png", footer: "Acme", greetingTitle: "Welcome" },
-    appearance: { primaryColor: "#112233" },
+    appearance: { primaryColor: "#112233", agentBubbleColor: "#445566", userBubbleColor: "#778899" },
     deploy: { chatLauncher: "custom", buttonImageUrl: "https://a.com/b.png" },
     home: { links: [{ label: "Help", url: "https://a.com" }] },
     branding: { hideAideBranding: true },
@@ -75,6 +101,8 @@ test("strip reverts paid branding but keeps colors, texts, links and status", ()
   assert.equal(stripped.branding.hideAideBranding, false);
   assert.equal(stripped.identity.greetingTitle, "Welcome");
   assert.equal(stripped.appearance.primaryColor, "#112233");
+  assert.equal(stripped.appearance.agentBubbleColor, "#445566");
+  assert.equal(stripped.appearance.userBubbleColor, "#778899");
   assert.equal(stripped.home.links.length, 1);
 });
 

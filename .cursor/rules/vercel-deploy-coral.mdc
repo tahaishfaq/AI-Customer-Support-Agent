@@ -1,0 +1,23 @@
+---
+description: Default Vercel prod deploy to coral URL when user says deploy
+alwaysApply: true
+---
+
+# Vercel production deploy (coral)
+
+When the user asks to **deploy**, **redeploy**, **prod deploy**, or typos like **repdly** / **deply**:
+
+1. **Target is always** the existing coral production alias unless they name a different URL/project:
+   - Production URL: `https://ai-customer-support-agent-coral.vercel.app`
+   - Scope: `ranasamiafzals-projects`
+2. **Confirm in one short line** that you are deploying to that same coral URL, then **run deploy immediately** — do not wait for a second “yes” when they already said deploy.
+3. Command:
+
+```bash
+npx vercel deploy --prod --scope ranasamiafzals-projects
+```
+
+4. If CLI returns `Not authorized`, retry with `--scope ranasamiafzals-projects` (do not ask them to re-explain the URL).
+5. After success, reply with the coral production URL only (and inspect link if useful).
+6. Do **not** change the production alias, create a new Vercel project, or deploy to a different team unless the user explicitly names one.
+7. This does **not** authorize `git push`. Push still follows the git-push confirm-branch rule.

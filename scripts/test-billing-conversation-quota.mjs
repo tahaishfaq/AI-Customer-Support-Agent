@@ -28,12 +28,18 @@ async function main() {
 
   const usage = read("lib/billing/conversation-usage.service.js");
   assert(usage.includes("HAVING COUNT(*) >= 2"), "Botpress-style 2+ visitor messages");
-  assert(usage.includes('source" = \'EMBED\''), "quota counts EMBED only");
+  assert(
+    usage.includes("EMAIL") && usage.includes("EMBED"),
+    "quota counts EMBED and EMAIL"
+  );
   assert(usage.includes("conversation_limit_reached"), "quota error code");
 
   const chat = read("lib/services/chat.service.js");
   assert(chat.includes("assertConversationQuota"), "chat must enforce quota");
-  assert(chat.includes('source: publicAccess ? "EMBED" : "STUDIO"'), "chat tags studio vs embed");
+  assert(
+    chat.includes('conversationSource') || chat.includes('"EMAIL"'),
+    "chat tags email/embed/studio sources"
+  );
   assert(chat.includes("if (!publicAccess) return"), "studio skips quota");
 
   assert(

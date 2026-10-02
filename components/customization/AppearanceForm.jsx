@@ -21,10 +21,49 @@ import {
   fieldClass,
 } from "@/components/customization/CustomizationFields";
 import { DEFAULT_CUSTOMIZATION } from "@/lib/customization/defaults";
+import { messageBubbleColors } from "@/lib/customization/theme";
 import { WidgetLayoutPicker } from "@/components/customization/WidgetPositionPicker";
 import { applyWidgetLayout } from "@/lib/customization/position";
 
 const FONTS = [{ id: "dm-sans", label: "DM Sans" }];
+
+function BubbleColorField({ id, label, value, fallback, onChange, onReset }) {
+  const color = /^#[0-9A-Fa-f]{6}$/.test(value || "") ? value : fallback;
+
+  return (
+    <div>
+      <MiniLabel htmlFor={id}>{label}</MiniLabel>
+      <div className="flex items-center gap-2">
+        <input
+          id={id}
+          type="color"
+          value={color}
+          onChange={(event) => onChange(event.target.value)}
+          className="size-11 cursor-pointer rounded-xl border border-border bg-card p-1"
+          aria-label={`Pick ${label.toLowerCase()}`}
+        />
+        <Input
+          value={value || ""}
+          onChange={(event) => onChange(event.target.value || null)}
+          placeholder={fallback}
+          className={`${fieldClass} font-mono uppercase`}
+          aria-label={`${label} hex value`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-11 shrink-0"
+          title={`Reset ${label.toLowerCase()}`}
+          aria-label={`Reset ${label.toLowerCase()}`}
+          onClick={onReset}
+        >
+          <RotateCcw />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function AppearanceForm({
   appearance,
@@ -44,6 +83,13 @@ export function AppearanceForm({
   }
 
   const primary = appearance.primaryColor || "#ea580c";
+  const bubbleColors = messageBubbleColors({ appearance });
+  const lightBubbles = messageBubbleColors({
+    appearance: { ...appearance, messageStyle: "light" },
+  });
+  const darkerBubbles = messageBubbleColors({
+    appearance: { ...appearance, messageStyle: "darker" },
+  });
 
   return (
     <div className="space-y-6">
@@ -168,6 +214,40 @@ export function AppearanceForm({
           </div>
         </FieldBlock>
 
+        <FieldBlock
+          label="Message bubble colors"
+          hint="Choose separate colors for agent replies and user messages."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <BubbleColorField
+              id="appearance-agent-bubble"
+              label="Agent bubble color"
+              value={appearance.agentBubbleColor}
+              fallback={bubbleColors.agentBackground}
+              onChange={(agentBubbleColor) => patch({ agentBubbleColor })}
+              onReset={() =>
+                patch({
+                  agentBubbleColor:
+                    DEFAULT_CUSTOMIZATION.appearance.agentBubbleColor,
+                })
+              }
+            />
+            <BubbleColorField
+              id="appearance-user-bubble"
+              label="User bubble color"
+              value={appearance.userBubbleColor}
+              fallback={bubbleColors.userBackground}
+              onChange={(userBubbleColor) => patch({ userBubbleColor })}
+              onReset={() =>
+                patch({
+                  userBubbleColor:
+                    DEFAULT_CUSTOMIZATION.appearance.userBubbleColor,
+                })
+              }
+            />
+          </div>
+        </FieldBlock>
+
         <FieldBlock label="Message styling">
           <div className="grid grid-cols-2 gap-3">
             <ChoiceCard
@@ -176,12 +256,21 @@ export function AppearanceForm({
               onClick={() => patch({ messageStyle: "light" })}
             >
               <div className="flex w-full max-w-[130px] flex-col gap-1.5 rounded-lg bg-white p-2 ring-1 ring-slate-200">
-                <div className="self-start rounded-2xl bg-slate-200 px-2.5 py-1.5 text-[10px] text-slate-700">
+                <div
+                  className="self-start rounded-2xl px-2.5 py-1.5 text-[10px]"
+                  style={{
+                    backgroundColor: lightBubbles.agentBackground,
+                    color: lightBubbles.agentForeground,
+                  }}
+                >
                   Hello
                 </div>
                 <div
-                  className="self-end rounded-2xl px-2.5 py-1.5 text-[10px] text-white"
-                  style={{ backgroundColor: primary }}
+                  className="self-end rounded-2xl px-2.5 py-1.5 text-[10px]"
+                  style={{
+                    backgroundColor: lightBubbles.userBackground,
+                    color: lightBubbles.userForeground,
+                  }}
                 >
                   Hi there
                 </div>
@@ -193,12 +282,21 @@ export function AppearanceForm({
               onClick={() => patch({ messageStyle: "darker" })}
             >
               <div className="flex w-full max-w-[130px] flex-col gap-1.5 rounded-lg bg-slate-100 p-2 ring-1 ring-slate-200">
-                <div className="self-start rounded-2xl bg-zinc-800 px-2.5 py-1.5 text-[10px] text-white">
+                <div
+                  className="self-start rounded-2xl px-2.5 py-1.5 text-[10px]"
+                  style={{
+                    backgroundColor: darkerBubbles.agentBackground,
+                    color: darkerBubbles.agentForeground,
+                  }}
+                >
                   Hello
                 </div>
                 <div
-                  className="self-end rounded-2xl px-2.5 py-1.5 text-[10px] text-white"
-                  style={{ backgroundColor: primary }}
+                  className="self-end rounded-2xl px-2.5 py-1.5 text-[10px]"
+                  style={{
+                    backgroundColor: darkerBubbles.userBackground,
+                    color: darkerBubbles.userForeground,
+                  }}
                 >
                   Hi there
                 </div>

@@ -52,8 +52,15 @@ async function main() {
     ""
   );
 
-  const statusAnon = await fetch(`${base}/api/billing/status`);
-  if (statusAnon.status === 401) {
+  // A local server that is not running skips the HTTP check; an unreachable remote target fails.
+  const isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(new URL(base).hostname);
+  const statusAnon = await fetch(`${base}/api/billing/status`).catch((error) => {
+    if (!isLocal) throw error;
+    return null;
+  });
+  if (!statusAnon) {
+    console.log(`B1 HTTP: skipped, ${base} not running (start the app for live check)`);
+  } else if (statusAnon.status === 401) {
     console.log("B1 HTTP: anon /api/billing/status → 401");
   } else {
     console.log(`B1 HTTP: anon status ${statusAnon.status}`);

@@ -63,8 +63,8 @@ export function ChatAttachmentPreview({ content, themed, isUser }) {
               "inline-flex max-w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-medium",
               themed
                 ? isUser
-                  ? "bg-white/15 text-white"
-                  : "bg-black/5 text-[var(--wc-shell-fg)]"
+                  ? "bg-[color-mix(in_srgb,var(--wc-user-bubble-fg)_15%,transparent)] text-[var(--wc-user-bubble-fg)]"
+                  : "bg-[color-mix(in_srgb,var(--wc-agent-bubble-fg)_10%,transparent)] text-[var(--wc-agent-bubble-fg)]"
                 : isUser
                   ? "bg-white/15 text-white"
                   : "bg-[var(--color-bg)] text-[var(--color-text)]"
@@ -82,9 +82,11 @@ export function ChatAttachmentPreview({ content, themed, isUser }) {
           className={cn(
             "mt-1 block text-[10px]",
             isUser
-              ? "text-white/70"
+              ? themed
+                ? "text-[var(--wc-user-bubble-fg)] opacity-70"
+                : "text-white/70"
               : themed
-                ? "text-[var(--wc-muted)]"
+                ? "text-[var(--wc-agent-bubble-fg)] opacity-70"
                 : "text-[var(--color-muted)]"
           )}
         >

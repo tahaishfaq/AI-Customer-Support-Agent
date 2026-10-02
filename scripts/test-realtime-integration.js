@@ -30,6 +30,7 @@ let sessionUserId;
 let gatewayErrors = "";
 let publisherErrors = "";
 let outboxId = null;
+const stream = `aide:integration:${process.pid}:${Date.now()}`;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -67,7 +68,9 @@ try {
       ...process.env,
       PORT: String(port),
       REALTIME_ALLOWED_ORIGINS: "http://localhost:3000",
+      REALTIME_CONSUMER_GROUP: `integration-${process.pid}-${Date.now()}`,
       REALTIME_CONSUMER_NAME: `integration-${process.pid}-${Date.now()}`,
+      REALTIME_STREAM_NAME: stream,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -162,6 +165,7 @@ try {
     env: {
       ...process.env,
       REALTIME_CONSUMER_NAME: `publisher-${process.pid}`,
+      REALTIME_STREAM_NAME: stream,
       REALTIME_PUBLISH_ONLY_EVENT_ID: event.eventId,
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -203,6 +207,7 @@ try {
   if (outboxId) {
     await prisma.realtimeOutboxEvent.delete({ where: { id: outboxId } }).catch(() => {});
   }
+  await redis.del(stream).catch(() => {});
   await redis.quit().catch(() => {});
   await prisma.$disconnect?.().catch(() => {});
 }

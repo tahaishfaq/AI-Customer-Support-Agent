@@ -7,6 +7,7 @@ import {
   BookOpen,
   Bot,
   ChevronUp,
+  Code2,
   CreditCard,
   Headphones,
   Home,
@@ -275,6 +276,16 @@ export function AppSidebar() {
               >
                 <CreditCard data-icon="inline-start" />
                 Billing
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  closeMobile();
+                  router.push("/settings/developers");
+                }}
+              >
+                <Code2 data-icon="inline-start" />
+                Developers
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

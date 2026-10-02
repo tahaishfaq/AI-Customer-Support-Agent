@@ -301,10 +301,10 @@ export function MessageBubble({
             "max-w-[85%] rounded-md px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[75%]",
             isUser
               ? themed
-                ? "bg-[var(--wc-primary)] text-white"
+                ? "bg-[var(--wc-user-bubble-bg)] text-[var(--wc-user-bubble-fg)]"
                 : "bg-orange-600 text-white"
               : themed
-                ? "bg-[var(--wc-assistant-bg)] text-[var(--wc-assistant-fg)]"
+                ? "bg-[var(--wc-agent-bubble-bg)] text-[var(--wc-agent-bubble-fg)]"
                 : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
           )}
           style={
@@ -328,7 +328,9 @@ export function MessageBubble({
               <span
                 className={cn(
                   "text-[11px] font-medium",
-                  themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+                  themed
+                    ? "text-[var(--wc-agent-bubble-fg)] opacity-70"
+                    : "text-[var(--color-muted)]"
                 )}
               >
                 {streaming ? statusLabel || "Thinking…" : "Typing…"}
@@ -393,9 +395,11 @@ export function MessageBubble({
               className={cn(
                 "mt-1.5 text-[10px]",
                 isUser
-                  ? "text-white/70"
+                  ? themed
+                    ? "text-[var(--wc-user-bubble-fg)] opacity-70"
+                    : "text-white/70"
                   : themed
-                    ? "text-[var(--wc-muted)]"
+                    ? "text-[var(--wc-agent-bubble-fg)] opacity-70"
                     : "text-[var(--color-muted)]"
               )}
             >
@@ -408,7 +412,9 @@ export function MessageBubble({
             <p
               className={cn(
                 "mt-1.5 text-[11px]",
-                themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+                themed
+                  ? "text-[var(--wc-agent-bubble-fg)] opacity-70"
+                  : "text-[var(--color-muted)]"
               )}
             >
               {formatResponseTime(responseTime)}

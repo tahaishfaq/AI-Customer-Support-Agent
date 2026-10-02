@@ -5,7 +5,7 @@ Plans written with Claude Code on branch `sami` (2026-09). Each level builds on 
 | Level | Plan | Status |
 |---|---|---|
 | 1 · Basic (reliable answers) | [LEVEL_1_BASIC_PLAN.md](LEVEL_1_BASIC_PLAN.md) | ✅ Done (B1–B9) |
-| 2 · Moderate (what buyers expect) | [LEVEL_2_MODERATE_PLAN.md](LEVEL_2_MODERATE_PLAN.md) | 🟡 5 of 9 done |
+| 2 · Moderate (what buyers expect) | [LEVEL_2_MODERATE_PLAN.md](LEVEL_2_MODERATE_PLAN.md) | ✅ 8 of 9 done (M7 WhatsApp deferred) |
 | 3 · Advanced (what leaders sell on) | [LEVEL_3_ADVANCED_PLAN.md](LEVEL_3_ADVANCED_PLAN.md) | ⏸ Planned, waiting on decisions |
 
 ## Level 2 progress
@@ -17,10 +17,12 @@ Plans written with Claude Code on branch `sami` (2026-09). Each level builds on 
 | P2 | M5 Guidance rules | ✅ | `e3d4c6a` |
 | P3 | M3 Team desk: assignment, least-busy routing, SLA | ✅ | `c658547` |
 | P4 | M4 Copilot: suggest reply, AI summary | ✅ | `e512190` |
-| P5 | M6 Versioning / restore | ⏸ paused | — |
-| P6 | M9 Targeted proactive messages | ⏸ paused | — |
-| P7 | M8 Webhooks + API keys | ⏸ paused | — |
-| P8 | M1 Email channel (Resend inbound) | ⏸ paused | — |
+| P5 | M6 Versioning / restore | ✅ | `5657f31` |
+| P6 | M9 Targeted proactive messages | ✅ | `9c14e73` |
+| P7 | M8 Webhooks + API keys | ✅ | freeze + tests |
+| P8 | M1 Email channel (Resend inbound) | ✅ | freeze + tests |
+
+WhatsApp + connectors (**M7**) remain deferred to a later round.
 
 ## Level 3 decisions needed before starting
 

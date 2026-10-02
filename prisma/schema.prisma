@@ -27,11 +27,13 @@ enum ConversationStatus {
 }
 
 /**
- * Billing: only EMBED (site widget / public chat) counts toward monthly quota.
+ * Billing: EMBED (site widget) and EMAIL (inbound support) count toward monthly quota.
+ * Studio / test chats never count.
  */
 enum ConversationSource {
   STUDIO
   EMBED
+  EMAIL
 }
 
 enum HandoffPriority {
@@ -285,11 +287,77 @@ model Workspace {
   actionCredentials ActionCredential[]
   connections       IntegrationConnection[]
   members           WorkspaceMember[]
+  webhooks          WorkspaceWebhook[]
+  apiKeys           ApiKey[]
   endUsers          EndUser[]
 
   @@unique([userId, name])
   @@unique([userId, slug])
   @@index([userId])
+}
+
+/// Level 2 · P7 — outbound webhook; events come from RealtimeOutboxEvent after cursorAt/cursorEventId.
+model WorkspaceWebhook {
+  id                  String            @id @default(cuid())
+  workspaceId         String
+  url                 String
+  /// whsec_… encrypted with ACTIONS_CREDENTIALS_KEY; shown to the owner once.
+  secretCiphertext    String
+  /// string[] of subscribed event types
+  events              Json
+  includeMessageText  Boolean           @default(false)
+  enabled             Boolean           @default(true)
+  consecutiveFailures Int               @default(0)
+  disabledReason      String?
+  cursorAt            DateTime          @default(now())
+  cursorEventId       String?
+  createdByUserId     String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now()) @updatedAt
+  workspace           Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deliveries          WebhookDelivery[]
+
+  @@index([workspaceId])
+}
+
+model WebhookDelivery {
+  id             String           @id @default(cuid())
+  webhookId      String
+  eventId        String
+  eventType      String
+  payload        Json
+  /// PENDING | SUCCEEDED | FAILED (retrying) | DEAD
+  status         String           @default("PENDING")
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime         @default(now())
+  lastStatusCode Int?
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  webhook        WorkspaceWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@unique([webhookId, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([webhookId, createdAt])
+}
+
+/// Level 2 · P7 — read-only REST API key. Only the sha256 of the full key is stored.
+model ApiKey {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  name            String
+  prefix          String    @unique
+  keyHash         String
+  /// string[] — v1: ["read"]
+  scopes          Json
+  createdByUserId String?
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 /// Optional seat membership. Owner path continues via Workspace.userId when no row exists.
@@ -354,6 +422,10 @@ model Agent {
    * Last HTTP/MCP readiness probe results (no secrets / bodies).
    */
   embedReadiness      Json?
+  /// Level 2 · P8 — inbound email: { enabled, fromName }. Address is emailChannelAddress.
+  emailChannel        Json?
+  /// Normalized lowercase inbound address (unique when set). e.g. support@help.example.com
+  emailChannelAddress String?             @unique
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -369,10 +441,25 @@ model Agent {
   turnRuns            TurnRun[]
   knowledgeDocShares  KnowledgeDocumentShare[]
   revisions           AgentRevision[]
+  inboundEmails       InboundEmail[]
 
   @@index([userId])
   @@index([workspaceId])
   @@index([siteKnowledgeOrigin])
+}
+
+/// Level 2 · P8 — Resend inbound idempotency (Message-ID / provider email id).
+model InboundEmail {
+  id             String   @id @default(cuid())
+  messageId      String   @unique
+  agentId        String
+  conversationId String?
+  fromAddress    String?
+  createdAt      DateTime @default(now())
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([conversationId])
 }
 
 /// Level 2 · P5 — saved versions of an agent's behaviour and appearance (restore = new version).

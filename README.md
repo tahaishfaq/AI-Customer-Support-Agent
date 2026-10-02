@@ -88,6 +88,8 @@ rm prisma/admins.local.json
 
 Agent → **Customization** → **Deploy** — copy the snippet (`embed.js` + `data-aide-key`). Legacy `data-hapy-key` still works. First load on a new origin locks that site and queues a website crawl.
 
+Agent → **Customization** → **Appearance** — choose separate agent and user message bubble colors. The preview updates immediately; save to apply them to that agent's public widget.
+
 Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / weekly / etc.). When due, the next widget visit refreshes website knowledge automatically.
 
 ## Product map
