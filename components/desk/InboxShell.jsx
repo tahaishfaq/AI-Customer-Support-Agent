@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Headphones, Inbox, Search } from "lucide-react";
 import { listInbox, getDeskStats, markInboxSeen } from "@/lib/api/desk";
 import { DeskSettingsDialog } from "@/components/desk/DeskSettingsDialog";
+import { QaSettingsDialog } from "@/components/desk/QaSettingsDialog";
+import { PrivacySettingsDialog } from "@/components/desk/PrivacySettingsDialog";
 import { ConversationRow } from "@/components/conversations/ConversationRow";
 import {
   SoftStagger,
@@ -199,7 +201,13 @@ export function InboxShell({ selectedId, children }) {
                 </p>
               </div>
             </div>
-            {canManageDesk ? <DeskSettingsDialog /> : null}
+            {canManageDesk ? (
+              <>
+                <DeskSettingsDialog />
+                <QaSettingsDialog />
+                <PrivacySettingsDialog />
+              </>
+            ) : null}
             <Button
               type="button"
               variant="outline"

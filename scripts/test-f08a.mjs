@@ -1,5 +1,6 @@
 /**
  * F08-A contract smoke — knowledge retrieval scope & identity.
+ * Lexical F08 path remains; Level 3 · L1 may add opt-in KnowledgeChunk/pgvector.
  * Run: npm run test:f08a
  */
 import fs from "node:fs";
@@ -8,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 import { featureDoc } from "./lib/shipped-doc.mjs";
-
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -27,7 +27,7 @@ function main() {
   );
   assert(
     /Out:.*embeddings|F10/i.test(f08) && /Pinecone|pgvector/i.test(f08),
-    "vectors out of scope → F10"
+    "vectors historically out of F08 → F10 / Level 3"
   );
   assert(/Non-goals \(banned in F08\)/.test(f08), "non-goals section");
   assert(/embeddings/i.test(f08) && /KnowledgeChunk/i.test(f08), "bans listed");
@@ -39,11 +39,17 @@ function main() {
   );
 
   const schema = read("prisma/schema.prisma");
-  assert(!/model KnowledgeChunk/.test(schema), "no KnowledgeChunk table");
-  assert(!/Unsupported\("vector"\)|pgvector/i.test(schema), "no pgvector");
+  // Level 3 · L1 may ship KnowledgeChunk + pgvector (opt-in per agent).
+  // F08 still forbids third-party vector SaaS and keeps lexical retrieve.
+  assert(!/"@pinecone-database/.test(read("package.json")), "no pinecone dep");
+  if (/model KnowledgeChunk/.test(schema)) {
+    assert(
+      /Level 3|semantic RAG|semanticRagEnabled/i.test(schema),
+      "KnowledgeChunk must be Level 3 opt-in, not a silent F08 engine"
+    );
+  }
 
   const pkg = read("package.json");
-  assert(!/"@pinecone-database/.test(pkg), "no pinecone dep");
   assert(/test:f08a/.test(pkg), "npm run test:f08a");
 
   console.log("ok  F08-A scope & identity");

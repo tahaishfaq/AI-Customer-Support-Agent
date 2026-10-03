@@ -1649,6 +1649,8 @@ Helpdesk **ops console density** — not Zendesk full agent workspace.
 
 **Status:** **F08 A–H ✅** shipped (`npm run test:f08`). Next feature: **F09**.
 
+> **Level 3 note (2026-10):** F08’s lexical `selectKnowledgeChunks` path remains the default. Opt-in semantic RAG (`KnowledgeChunk` + Neon pgvector, per-agent `semanticRagEnabled`) ships as **Level 3 · L1** — not a silent F08 engine change, and not Pinecone. Contracts assert the lexical module stays embedding-free; hybrid wrap lives in `embeddings.service.js`.
+
 > **Deliverables rule:** When a phase is marked ✅, add **Delivered** (exact files/behavior) and **Manual test**. Until then, keep plan lines + the **Implementation** blocks below.
 
 ---
@@ -1831,7 +1833,7 @@ Recommend opening **F10** when an agent has **> 40** knowledge docs **or** **> ~
 | Change | What exactly |
 |--------|----------------|
 | **Confirm** | Chunk at request time from `KnowledgeDocument.content` |
-| **Confirm** | No F08 migration · no `KnowledgeChunk` · no pgvector/Pinecone |
+| **Confirm** | No F08 migration · no Pinecone; Level 3 · L1 may add opt-in `KnowledgeChunk`/pgvector later |
 | **Confirm** env | `KNOWLEDGE_MAX_CHARS` · `KNOWLEDGE_MAX_CHUNKS` · `KNOWLEDGE_MAX_CHUNKS_SCORED` in `.env.example` |
 | **Add** `scripts/test-f08g.mjs` · `npm run test:f08g` | Schema / migration / deps checks |
 

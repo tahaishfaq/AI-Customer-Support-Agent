@@ -20,10 +20,18 @@ function read(rel) {
 }
 
 function run(script) {
-  const result = spawnSync(process.execPath, [path.join(root, "scripts", script)], {
-    cwd: root,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--import",
+      path.join(root, "scripts/register-aliases.mjs"),
+      path.join(root, "scripts", script),
+    ],
+    {
+      cwd: root,
+      encoding: "utf8",
+    }
+  );
   if (result.status !== 0) {
     process.stderr.write(result.stdout || "");
     process.stderr.write(result.stderr || "");
@@ -65,7 +73,8 @@ function main() {
     "F08 clarify path kept"
   );
   assert(
-    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
+    /selectKnowledgeChunks|selectKnowledgeHybrid/.test(chat) ||
+      /selectKnowledgeChunks|selectKnowledgeHybrid/.test(turnCtx),
     "F08 retrieve still wired"
   );
 

@@ -9,6 +9,8 @@ import { UploadPdfKnowledge } from "@/components/knowledge/UploadPdfKnowledge";
 import { CrawlSchedulePanel } from "@/components/knowledge/CrawlSchedulePanel";
 import { CrawlNowPanel } from "@/components/knowledge/CrawlNowPanel";
 import { WebSearchPanel } from "@/components/knowledge/WebSearchPanel";
+import { SemanticRagPanel } from "@/components/knowledge/SemanticRagPanel";
+import { KnowledgeSuggestionsPanel } from "@/components/knowledge/KnowledgeSuggestionsPanel";
 import { listKnowledge } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,8 +53,10 @@ export function KnowledgeList({
   siteKnowledgeOrigin,
   crawlRecrawlHours = 0,
   webSearchEnabled = false,
+  semanticRagEnabled = false,
   onCrawlScheduleChange,
   onWebSearchChange,
+  onSemanticRagChange,
 }) {
   const [textOpen, setTextOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -172,6 +176,14 @@ export function KnowledgeList({
           webSearchEnabled={webSearchEnabled}
           onSaved={onWebSearchChange}
         />
+
+        <SemanticRagPanel
+          agentId={agentId}
+          semanticRagEnabled={semanticRagEnabled}
+          onSaved={onSemanticRagChange}
+        />
+
+        <KnowledgeSuggestionsPanel agentId={agentId} />
 
         <CrawlNowPanel
           agentId={agentId}

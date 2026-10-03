@@ -11,6 +11,7 @@ import {
 } from "@/components/analytics/analytics-shared";
 import { AnalyticsExportMenu } from "@/components/analytics/AnalyticsExportMenu";
 import { ResolutionPanel } from "@/components/analytics/ResolutionPanel";
+import { QaPanel } from "@/components/analytics/QaPanel";
 import { ChartCard, InsightsList } from "@/components/analytics/AnalyticsCharts";
 import {
   SentimentOverTimeChart,
@@ -83,6 +84,7 @@ export function AnalyticsBoard({ agentId }) {
       <AnalyticsKpiGrid overview={data?.overview} loading={loading} />
 
       <ResolutionPanel agentId={agentId} range={range} />
+      <QaPanel agentId={agentId} range={range} />
 
       {!loading && data?.agents?.[0] ? (
         <Card className="shadow-none">

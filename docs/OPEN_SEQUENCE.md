@@ -2,7 +2,9 @@
 
 **Single remaining backlog.** Shipped history → [`SHIPPED_FEATURES.md`](SHIPPED_FEATURES.md).  
 **Stand / go-live detail →** [`FULL_PATH_STAGE6_TO_PRODUCTION.md`](FULL_PATH_STAGE6_TO_PRODUCTION.md)
-**Do one track at a time.** Last update: **2026-09-18**.
+**Do one track at a time.** Last update: **2026-10-03**.
+
+**Shipped (not open):** Orchestrator **O01–O5** (`npm run test:orchestrator`) · Level 3 · L1 opt-in semantic RAG (supersedes deferred F10 embeds for product path).
 
 ---
 
@@ -48,7 +50,7 @@
 |---|------|-------|
 | **17** | **Q4** Socket → invalidate Query cache | Done (RealtimeQuerySync) |
 | **18** | **M01 MCP Tools UX** | UX-1–UX-2 + M3 GitHub OAuth (no DCR) done 2026-09-18 — [`features/MCP_DEEP_PLAN.md`](features/MCP_DEEP_PLAN.md) |
-| **19** | **F10 Semantic RAG** | embeds on BullMQ `knowledge` queue — [`features/F10_SEMANTIC_RAG.md`](features/F10_SEMANTIC_RAG.md) |
+| **19** | **F10 Semantic RAG** | ✅ Core path shipped as Level 3 · L1 (opt-in); optional BullMQ backfill jobs remain ops polish — [`features/F10_SEMANTIC_RAG.md`](features/F10_SEMANTIC_RAG.md) |
 | **20** | F00 live DoD ticks / deck | Owner — [`features/F00_DOD_DEMO_BUFFER.md`](features/F00_DOD_DEMO_BUFFER.md) · log [`shipped/F00_PROGRESS.md`](shipped/F00_PROGRESS.md) |
 | **21** | Email EM4 webhook / EM5 product updates | Optional — [`features/EMAIL_RESEND_PLAN.md`](features/EMAIL_RESEND_PLAN.md) |
 | **22** | Desk escalation / Botpress-parity UI | After sockets if still wanted — [`POST_MVP_BACKLOG_PLAN.md`](POST_MVP_BACKLOG_PLAN.md) |

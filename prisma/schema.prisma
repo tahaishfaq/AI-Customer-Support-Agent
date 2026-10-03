@@ -280,6 +280,10 @@ model Workspace {
   deskCannedReplies Json?
   /// Team routing + SLA (Level 2 · M3): { assignment, pool, slaFirstReplyMinutes }; null = assign to owner.
   deskSettings      Json?
+  /// Level 3 · L2 Auto-QA: { enabled, sampleRate, monthlyCap }; off until configured.
+  qaSettings        Json?
+  /// Level 3 · L6 — { redactPii, retentionDays, patterns }; off until configured.
+  privacy           Json?
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -405,6 +409,14 @@ model Agent {
   customization       Json?
   /// Owner "when X, do Y" guidance rules (Level 2 · M5); null = none. Validated by lib/validations/guidance.js.
   guidance            Json?
+  /// Level 3 · L1 — semantic RAG off until the owner enables it (requires pgvector + embeddings).
+  semanticRagEnabled  Boolean             @default(false)
+  /// Level 3 · L4 — multi-step procedures; null = none. Validated by lib/validations/procedures.js.
+  procedures          Json?
+  /// Level 3 · L7 — meaning-based tool shortlist (off by default).
+  semanticToolShortlist Boolean           @default(false)
+  /// Level 3 · L8 — A/B test config { enabled, revisionA, revisionB, minSample, stopRule }; never auto-promotes.
+  abTest              Json?
   publicKey           String?             @unique
   enabled             Boolean             @default(true)
   embedEnabled        Boolean             @default(true)
@@ -442,6 +454,10 @@ model Agent {
   knowledgeDocShares  KnowledgeDocumentShare[]
   revisions           AgentRevision[]
   inboundEmails       InboundEmail[]
+  knowledgeChunks     KnowledgeChunk[]
+  knowledgeSuggestions KnowledgeSuggestion[]
+  toolEmbeddings      ToolEmbedding[]
+  simulationRuns      SimulationRun[]
 
   @@index([userId])
   @@index([workspaceId])
@@ -592,9 +608,55 @@ model KnowledgeDocument {
   updatedAt          DateTime                @updatedAt
   agent              Agent                   @relation(fields: [agentId], references: [id], onDelete: Cascade)
   shares             KnowledgeDocumentShare[]
+  chunks             KnowledgeChunk[]
 
   @@index([agentId])
   @@index([crawlJobId])
+}
+
+/// Level 3 · L1 — embedded knowledge chunks (vector via Unsupported; written/queried with raw SQL).
+model KnowledgeChunk {
+  id            String            @id @default(cuid())
+  documentId    String
+  agentId       String
+  content       String
+  contentHash   String
+  tokenEstimate Int               @default(0)
+  embedding     Unsupported("vector(1536)")?
+  model         String
+  createdAt     DateTime          @default(now())
+  document      KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  agent         Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([documentId])
+  @@index([documentId, contentHash])
+  @@index([agentId, model])
+}
+
+/// Level 3 · L3 — owner-reviewed FAQ drafts from unanswered / human-resolved chats. Never auto-publish.
+model KnowledgeSuggestion {
+  id                     String    @id @default(cuid())
+  agentId                String
+  workspaceId            String
+  status                 String    @default("pending")
+  clusterKey             String
+  title                  String
+  draftAnswer            String
+  questionSamples        Json?
+  sourceConversationIds  Json?
+  conflictWithDocumentId String?
+  embeddingModel         String?
+  reviewedByUserId       String?
+  reviewedAt             DateTime?
+  publishedDocumentId    String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  agent                  Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, clusterKey])
+  @@index([agentId, status])
+  @@index([workspaceId])
 }
 
 model AgentAction {
@@ -1008,6 +1070,14 @@ model Conversation {
   memorySummary          String?
   /// createdAt of the newest message folded into memorySummary.
   memorySummaryUpTo      DateTime?
+  /// Level 3 · L4 — active procedure snapshot {procedureId, version, stepIndex, fields, startedAt, paused}.
+  procedureState         Json?
+  /// Level 3 · L6 — skip retention deletes when true.
+  legalHold              Boolean                    @default(false)
+  /// Level 3 · L8 — simulation chats never bill / analytics / retention.
+  isSimulation           Boolean                    @default(false)
+  /// Level 3 · L8 — A/B bucket label (revision id / A|B).
+  abBucket               String?
   startedAt              DateTime                   @default(now())
   endedAt                DateTime?
   createdAt              DateTime                   @default(now())
@@ -1018,6 +1088,8 @@ model Conversation {
   actionConfirmations    ActionConfirmation[]
   publicRealtimeAccesses PublicConversationAccess[]
   turnRuns              TurnRun[]
+  qaScores               ConversationQa[]
+  resolutionCharge       ResolutionCharge?
   realtimeVersion        Int                        @default(0)
 
   @@index([agentId])
@@ -1034,6 +1106,102 @@ model Conversation {
   @@index([handoffPriority])
   @@index([csatAt])
   @@index([source])
+}
+
+/// Level 3 · L5 — one charge row per conversation (reversals keep history via status).
+model ResolutionCharge {
+  id             String       @id @default(cuid())
+  conversationId String       @unique
+  userId         String
+  workspaceId    String?
+  agentId        String?
+  amountMinor    Int          @default(0)
+  currency       String       @default("USD")
+  status         String       @default("CHARGED")
+  chargedAt      DateTime     @default(now())
+  reversedAt     DateTime?
+  reverseReason  String?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, chargedAt])
+  @@index([status])
+}
+
+/// Level 3 · L7 — cached tool name+description embeddings for shortlist ranking only.
+model ToolEmbedding {
+  id          String                      @id @default(cuid())
+  agentId     String
+  toolKey     String
+  contentHash String
+  embedding   Unsupported("vector(1536)")?
+  model       String
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  agent       Agent                       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, toolKey])
+  @@index([agentId])
+}
+
+/// Level 3 · L8 — dry-run simulation batch (never bills / analytics).
+model SimulationRun {
+  id               String           @id @default(cuid())
+  agentId          String
+  workspaceId      String
+  status           String           @default("PENDING")
+  revisionVersion  Int?
+  persona          String?
+  questionCount    Int              @default(0)
+  completedCount   Int              @default(0)
+  avgCxScore       Float?
+  cancelRequested  Boolean          @default(false)
+  createdByUserId  String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  agent            Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  cases            SimulationCase[]
+
+  @@index([agentId, createdAt])
+  @@index([workspaceId, status])
+}
+
+model SimulationCase {
+  id        String        @id @default(cuid())
+  runId     String
+  question  String
+  persona   String?
+  reply     String?
+  cxScore   Int?
+  status    String        @default("PENDING")
+  errorCode String?
+  createdAt DateTime      @default(now())
+  run       SimulationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+/// Level 3 · L2 — automatic conversation quality score (sampled). Judge JSON only; never authority.
+model ConversationQa {
+  id             String       @id @default(cuid())
+  conversationId String
+  version        Int          @default(1)
+  cxScore        Int?
+  grounded       Json?
+  resolved       Boolean?
+  tone           String?
+  sentiment      String?
+  issues         Json?
+  status         String       @default("OK")
+  model          String?
+  scoredAt       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, version])
+  @@index([conversationId])
+  @@index([cxScore])
 }
 
 /// Durable chat turn lifecycle used for crash recovery and reconnect replay.
@@ -1168,6 +1336,10 @@ model BillingPlan {
   maxAgentsPerWorkspace    Int                 @default(2)
   /// Billable conversations per calendar month (0 = unlimited). Botpress-style: 2+ visitor messages in month.
   maxConversationsPerMonth Int                 @default(0)
+  /// Level 3 · L5 — opt-in per-resolution pricing (off by default).
+  resolutionPricingEnabled Boolean             @default(false)
+  resolutionPriceMinor     Int                 @default(0)
+  maxResolutionsPerMonth   Int                 @default(0)
   featuresJson             Json?
   sortOrder                Int                 @default(0)
   isActive                 Boolean             @default(true)

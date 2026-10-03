@@ -6,6 +6,10 @@ import { useParams } from "next/navigation";
 import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
 import { GuidanceEditor } from "@/components/agents/GuidanceEditor";
+import { ProceduresEditor } from "@/components/agents/ProceduresEditor";
+import { SimulationPanel } from "@/components/agents/SimulationPanel";
+import { EmailChannelPanel } from "@/components/agents/EmailChannelPanel";
+import { AbExperimentPanel } from "@/components/agents/AbExperimentPanel";
 import { VersionHistory } from "@/components/agents/VersionHistory";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/keys";
@@ -105,6 +109,24 @@ export default function EditAgentPage() {
         />
       </div>
       <div className="mt-6 max-w-3xl">
+        <ProceduresEditor
+          key={`procedures-${formsKey}`}
+          agent={agent}
+          onSaved={(updated) => {
+            setAgent((current) => ({ ...current, ...updated }));
+            void queryClient.invalidateQueries({ queryKey: queryKeys.agents.revisions(agent.id) });
+          }}
+        />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <EmailChannelPanel
+          agent={agent}
+          onSaved={(updated) => {
+            setAgent((current) => ({ ...current, ...updated }));
+          }}
+        />
+      </div>
+      <div className="mt-6 max-w-3xl">
         <VersionHistory
           agent={agent}
           onRestored={(restored) => {
@@ -112,6 +134,17 @@ export default function EditAgentPage() {
             setFormsKey((value) => value + 1);
           }}
         />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <AbExperimentPanel
+          agent={agent}
+          onSaved={(updated) => {
+            setAgent((current) => ({ ...current, ...updated }));
+          }}
+        />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <SimulationPanel agentId={agent.id} />
       </div>
     </main>
   );

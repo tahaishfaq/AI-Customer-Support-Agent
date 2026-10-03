@@ -63,7 +63,8 @@ function main() {
   const chat = read("lib/services/chat.service.js");
   const turnCtx = read("lib/services/ai/turn-context.js");
   assert(
-    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
+    /selectKnowledgeChunks|selectKnowledgeHybrid/.test(chat) ||
+      /selectKnowledgeChunks|selectKnowledgeHybrid/.test(turnCtx),
     "chat uses retrieve"
   );
   assert(/usedKnowledge/.test(chat), "usedKnowledge for studio");

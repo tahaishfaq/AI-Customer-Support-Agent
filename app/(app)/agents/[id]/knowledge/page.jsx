@@ -22,6 +22,7 @@ export default function AgentKnowledgePage() {
           siteKnowledgeOrigin={agent.siteKnowledgeOrigin}
           crawlRecrawlHours={agent.crawlRecrawlHours ?? 0}
           webSearchEnabled={agent.webSearchEnabled === true}
+          semanticRagEnabled={agent.semanticRagEnabled === true}
           onCrawlScheduleChange={(hours) =>
             studio.setAgent((prev) =>
               prev ? { ...prev, crawlRecrawlHours: hours } : prev
@@ -30,6 +31,11 @@ export default function AgentKnowledgePage() {
           onWebSearchChange={(enabled) =>
             studio.setAgent((prev) =>
               prev ? { ...prev, webSearchEnabled: enabled } : prev
+            )
+          }
+          onSemanticRagChange={(enabled) =>
+            studio.setAgent((prev) =>
+              prev ? { ...prev, semanticRagEnabled: enabled } : prev
             )
           }
         />

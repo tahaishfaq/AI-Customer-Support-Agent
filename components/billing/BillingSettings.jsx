@@ -9,6 +9,7 @@ import {
   reconcileBillingCheckout,
 } from "@/lib/api/billing";
 import { ConversationQuotaMeter } from "@/components/billing/ConversationQuotaMeter";
+import { ResolutionUsageStrip } from "@/components/billing/ResolutionUsageStrip";
 import { useConversationQuota, refreshConversationQuota } from "@/hooks/use-conversation-quota";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -96,6 +97,8 @@ export function BillingSettings() {
           showUpgrade={false}
         />
       ) : null}
+
+      <ResolutionUsageStrip />
 
       <section className="aide-card px-4 py-4">
         <h2 className="text-sm font-semibold text-foreground">Current plan</h2>

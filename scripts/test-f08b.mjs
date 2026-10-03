@@ -37,8 +37,9 @@ function main() {
   const chat = read("lib/services/chat.service.js");
   const turnCtx = read("lib/services/ai/turn-context.js");
   assert(
-    /selectKnowledgeChunks/.test(chat) || /selectKnowledgeChunks/.test(turnCtx),
-    "chat wires selectKnowledgeChunks"
+    /selectKnowledgeChunks|selectKnowledgeHybrid/.test(chat) ||
+      /selectKnowledgeChunks|selectKnowledgeHybrid/.test(turnCtx),
+    "chat wires selectKnowledgeChunks (or hybrid wrapper)"
   );
   assert(!/function buildKnowledgeBlock/.test(chat), "blind buildKnowledgeBlock removed");
   assert(/usedKnowledge/.test(chat), "usedKnowledge kept");

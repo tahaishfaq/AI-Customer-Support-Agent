@@ -37,8 +37,10 @@ function main() {
   const turnCtx = read("lib/services/ai/turn-context.js");
   assert(/usedKnowledge/.test(chat), "chat returns usedKnowledge");
   assert(
-    /selectKnowledgeChunks|buildKnowledgeBlock/.test(chat) ||
-      /selectKnowledgeChunks/.test(turnCtx),
+    /selectKnowledgeChunks|buildKnowledgeBlock|selectKnowledgeHybrid/.test(
+      chat
+    ) ||
+      /selectKnowledgeChunks|selectKnowledgeHybrid/.test(turnCtx),
     "knowledge block builder"
   );
 

@@ -10,6 +10,7 @@ import {
   CategoryChip,
   SentimentChip,
 } from "@/components/conversations/ConversationChips";
+import { ConversationQaCard } from "@/components/conversations/ConversationQaCard";
 import {
   formatDayLabel,
   formatFullDate,
@@ -283,6 +284,7 @@ export function ConversationThread({
               {formatFullDate(conversation.startedAt)}
             </dd>
           </div>
+          <ConversationQaCard qa={conversation.qa} />
         </dl>
       </aside>
     </div>
