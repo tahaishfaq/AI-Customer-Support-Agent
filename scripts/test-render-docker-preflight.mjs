@@ -102,4 +102,18 @@ const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
   console.log("ok  render.yaml topology");
 }
 
+{
+  const enqueue = read("lib/jobs/enqueue.js");
+  const queues = read("lib/jobs/queues.js");
+  const worker = read("workers/job-worker.mjs");
+  assert.match(
+    enqueue,
+    /export async function enqueueRecrawlSweep/,
+    "enqueueRecrawlSweep must be exported (worker calls it on boot)"
+  );
+  assert.match(queues, /RECRAWL_SWEEP/, "CRAWL_JOBS.RECRAWL_SWEEP must exist");
+  assert.match(worker, /enqueueRecrawlSweep/, "job-worker schedules recrawl sweep");
+  console.log("ok  recrawl sweep wiring");
+}
+
 console.log("render-docker-preflight: ok");

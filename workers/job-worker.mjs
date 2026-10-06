@@ -124,6 +124,12 @@ async function main() {
   const { enqueueRecrawlSweep } = await import("../lib/jobs/enqueue.js");
   const sweep = async () => {
     try {
+      if (typeof enqueueRecrawlSweep !== "function") {
+        logEvent("recrawl_sweep_enqueue_failed", {
+          error: "enqueueRecrawlSweep_missing_from_build",
+        });
+        return;
+      }
       await enqueueRecrawlSweep();
     } catch (err) {
       logEvent("recrawl_sweep_enqueue_failed", { error: String(err?.message || err) });
