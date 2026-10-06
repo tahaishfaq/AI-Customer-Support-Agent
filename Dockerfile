@@ -3,7 +3,16 @@
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    # Cap Next page-data workers — Render build hosts report many CPUs; unbounded
+    # workers OOM during "Collecting page data".
+    NEXT_BUILD_CPUS=2 \
+    NODE_OPTIONS=--max-old-space-size=3072
+
+# Prisma needs OpenSSL on slim images (postinstall prisma generate).
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
 # postinstall runs `prisma generate` (no database needed).
 COPY package.json package-lock.json prisma.config.ts ./
@@ -28,6 +37,10 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=10000
+
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
 # Pruned app: production node_modules (incl. playwright + generated Prisma client) and .next.
 COPY --from=build /app /app

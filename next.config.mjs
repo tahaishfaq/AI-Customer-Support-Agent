@@ -1,8 +1,23 @@
 /** @type {import('next').NextConfig} */
+const buildCpusRaw = Number(process.env.NEXT_BUILD_CPUS);
+const buildCpus =
+  Number.isFinite(buildCpusRaw) && buildCpusRaw > 0
+    ? Math.max(1, Math.min(Math.floor(buildCpusRaw), 8))
+    : null;
+
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
   serverExternalPackages: ["pg", "bcrypt", "@prisma/client", "@prisma/adapter-pg"],
+  // Docker/Render: host CPU count can be huge (e.g. 47) and OOM during
+  // "Collecting page data". Cap workers when NEXT_BUILD_CPUS is set.
+  ...(buildCpus
+    ? {
+        experimental: {
+          cpus: buildCpus,
+        },
+      }
+    : {}),
   devIndicators: false,
   async redirects() {
     return [

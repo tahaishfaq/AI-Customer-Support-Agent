@@ -9,6 +9,7 @@
     "lint": "eslint",
     "preflight:local": "node scripts/production-preflight.js",
     "preflight:production": "node scripts/production-preflight.js --production",
+    "test:render-docker-preflight": "node scripts/test-render-docker-preflight.mjs",
     "prisma:generate": "prisma generate",
     "backfill:action-revisions": "node --import ./scripts/register-aliases.mjs scripts/backfill-action-revisions.mjs",
     "backfill:mcp-tool-risk": "tsx --import ./scripts/register-aliases.mjs scripts/backfill-mcp-tool-risk.mjs",
