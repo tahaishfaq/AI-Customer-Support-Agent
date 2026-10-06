@@ -14,7 +14,10 @@ import {
   detectCapabilityAsk,
   detectSourceAskSignals,
   findSourceRequestUtterance,
+  formatSourceClarifyQuestion,
   inferStickySourcePreference,
+  resolveSourceClarifyReply,
+  stickySourceOverride,
 } from "../lib/services/ai/intent-clarify.js";
 import { relevantToolNames, shortlistToolsForTurn } from "../lib/services/ai/tool-shortlist.js";
 
@@ -124,4 +127,62 @@ test("typo'd ask offers search_repositories without any carry", () => {
   assert.equal(detectSourceAskSignals("how may repositores i ahve").inventoryAsk, true);
   // "repos" is the same noun as the tool's "repositories".
   assert.equal(relevantToolNames(GITHUB_TOOLS, "show my repos")[0], "mcp_github_mcp_search_repositories");
+});
+
+test("edge: explicit web beats sticky github; bare them does nothing; clarify reply wins", () => {
+  // Explicit web ask must not be rewritten to GitHub just because the thread was sticky-github.
+  assert.equal(
+    stickySourceOverride({
+      sticky: "github",
+      inventoryAsk: true,
+      wantsWeb: true,
+      wantsGithub: false,
+    }),
+    null,
+    "explicit web + sticky github → no sticky override"
+  );
+  assert.equal(
+    stickySourceOverride({
+      sticky: "github",
+      inventoryAsk: true,
+      wantsWeb: false,
+    }),
+    "github",
+    "inventory continue with sticky github still applies"
+  );
+  assert.equal(routeSource("search the web for react repositories").signals.wantsWeb, true);
+  assert.equal(routeSource("search the web for react repositories").route, "WEB");
+
+  // Bare "them" is not a follow-up action; without sticky nothing changes.
+  assert.equal(isFollowUpReference("them"), false);
+  assert.equal(
+    stickySourceOverride({
+      sticky: null,
+      referenceFollowUp: isFollowUpReference("them"),
+    }),
+    null
+  );
+  assert.equal(inferStickySourcePreference([], { currentUtterance: "them" }), null);
+
+  // Source-clarify chip reply wins over sticky follow-up preference.
+  const clarifyQ = formatSourceClarifyQuestion(["github", "web"]);
+  const clarified = resolveSourceClarifyReply("Web search", [
+    { role: "ASSISTANT", content: clarifyQ },
+    { role: "USER", content: "show repositories" },
+    {
+      role: "ASSISTANT",
+      content: "Here are your GitHub repos… Sources: Connected GitHub",
+    },
+    { role: "USER", content: "list my github repos" },
+  ]);
+  assert.equal(clarified?.preference, "web");
+  // Once clarify resolved to web, sticky override must not flip back to github.
+  assert.equal(
+    stickySourceOverride({
+      sticky: "github",
+      inventoryAsk: true,
+      wantsWeb: true,
+    }),
+    null
+  );
 });

@@ -62,3 +62,19 @@ test("tampered token is rejected, so tampered traits never load", () => {
   const forgedPayload = Buffer.from(JSON.stringify({ sub: "cust_1", traits: { plan: "Enterprise" }, exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url");
   assert.throws(() => resolveEndUserIdentity({ identityToken: `${header}.${forgedPayload}.${signature}` }), /identity|signature|invalid/i);
 });
+
+test("expired token → no profile traits", async () => {
+  const { signCustomerIdentityToken } = await import("../lib/actions/identity.js");
+  const nowSec = Math.floor(Date.now() / 1000);
+  const token = signCustomerIdentityToken({
+    sub: "cust_exp",
+    iat: nowSec - 120,
+    exp: nowSec - 60,
+    traits: { plan: "Pro" },
+    aud: "aide-embed",
+  });
+  assert.throws(
+    () => resolveEndUserIdentity({ identityToken: token, expectedAud: "aide-embed" }),
+    (err) => err?.code === "IDENTITY_EXPIRED" || /expired/i.test(err?.message || "")
+  );
+});

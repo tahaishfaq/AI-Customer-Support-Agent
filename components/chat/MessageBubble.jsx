@@ -132,6 +132,7 @@ export function MessageBubble({
   initialFeedbackReason = null,
   onFeedback,
   usedKnowledge = null,
+  retrievalMode = null,
   showKnowledgeDetails = false,
   /** Public embed: show clickable knowledge sourceUrl chips without studio Used knowledge chrome. */
   showKnowledgeSourceLinks = false,
@@ -532,6 +533,24 @@ export function MessageBubble({
             Sources:
           </span>{" "}
           {sourceChips.join(" · ")}
+        </p>
+      ) : null}
+
+      {!isUser &&
+      !pending &&
+      showKnowledgeDetails &&
+      (retrievalMode === "keyword" || retrievalMode === "hybrid") ? (
+        <p
+          className={cn(
+            "max-w-[85%] text-[11px] leading-snug sm:max-w-[75%]",
+            showAgentAvatar ? "ml-8" : "ml-1",
+            themed ? "text-[var(--wc-muted)]" : "text-[var(--color-muted)]"
+          )}
+        >
+          <span className="font-medium text-[var(--color-primary)]">
+            Retrieval:
+          </span>{" "}
+          {retrievalMode === "hybrid" ? "hybrid (keyword + meaning)" : "keyword"}
         </p>
       ) : null}
 

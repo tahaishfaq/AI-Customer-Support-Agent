@@ -79,9 +79,31 @@ test("resolution: empty and junk input never divide by zero", () => {
   assert.equal(empty.automationRate, null);
   assert.equal(empty.handoffRate, null);
   assert.equal(empty.csatAverage, null);
+  assert.equal(empty.medianFirstResponseMs, null);
   assert.doesNotThrow(() => summarizeResolution(null));
   assert.doesNotThrow(() => summarizeResolution([{}, { userMessages: 1, lastAt: "not a date" }]));
   assert.equal(summarizeResolution([row({ csatScore: 9 }), row({ csatScore: 0 })], { now: NOW }).csatCount, 0, "out-of-range ratings ignored");
+});
+
+test("resolution: median first response time from firstResponseMs", () => {
+  const summary = summarizeResolution(
+    [
+      row({ id: "a", firstResponseMs: 1000 }),
+      row({ id: "b", firstResponseMs: 3000 }),
+      row({ id: "c", firstResponseMs: 5000 }),
+      row({ id: "d", firstResponseMs: null }),
+      row({ id: "e", userMessages: 0, firstResponseMs: 9999 }),
+    ],
+    { now: NOW }
+  );
+  assert.equal(summary.medianFirstResponseMs, 3000);
+  assert.equal(
+    summarizeResolution(
+      [row({ firstResponseMs: 100 }), row({ firstResponseMs: 400 })],
+      { now: NOW }
+    ).medianFirstResponseMs,
+    250
+  );
 });
 
 test("unanswered questions: grouped, counted, newest link kept, top N", () => {

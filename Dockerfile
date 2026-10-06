@@ -22,12 +22,12 @@ RUN npm run build \
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
+# CRAWL_BROWSER_ENABLED is set per service on Render (0 on web, 1 on aide-jobs).
 ENV NEXT_TELEMETRY_DISABLED=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=10000 \
-    CRAWL_BROWSER_ENABLED=1
+    PORT=10000
 
 # Pruned app: production node_modules (incl. playwright + generated Prisma client) and .next.
 COPY --from=build /app /app
@@ -40,4 +40,5 @@ RUN npx playwright install --with-deps --only-shell chromium \
 EXPOSE 10000
 # Run as a normal user. Only .next/cache is written at runtime.
 USER node
-CMD ["npm", "run", "start"]
+# SERVICE_ROLE=web|jobs selects process (Render Docker cannot set dockerCommand via CLI).
+CMD ["sh", "scripts/render-entrypoint.sh"]

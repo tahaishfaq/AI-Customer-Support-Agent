@@ -95,14 +95,11 @@ async function main() {
     const updated = await prisma.user.findUnique({ where: { id: user.id } });
     assert(updated.emailVerified, "emailVerified set");
 
-    // Reuse rejected
-    let reuseFail = false;
-    try {
-      await verifyEmailWithToken(token);
-    } catch (error) {
-      reuseFail = error.status === 400;
-    }
-    assert(reuseFail, "verify token single-use");
+    // Reuse after verify is idempotent (Strict Mode / re-clicks) when already verified.
+    const reused = await verifyEmailWithToken(token);
+    assert(reused?.ok === true, "verify reuse returns ok when already verified");
+    const stillVerified = await prisma.user.findUnique({ where: { id: user.id } });
+    assert(stillVerified.emailVerified, "emailVerified unchanged after reuse");
 
     // Resend when already verified — silent ok, no new mail
     clearEmailSink();

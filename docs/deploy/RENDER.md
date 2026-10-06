@@ -17,10 +17,11 @@ A chat turn makes ~25 sequential database queries before the model starts. Measu
 
 | Name | Type | Notes |
 | --- | --- | --- |
-| `aide-web` | Web service, **Docker** (standard) | [`Dockerfile`](../../Dockerfile): Node 22 + headless Chromium; `server.js` (Next.js + Socket.IO) on `PORT` 10000; pre-deploy `prisma migrate deploy`; health `/api/health`; `CRAWL_BROWSER_ENABLED=1` |
-| `aide-realtime-publisher` | Background worker | Outbox → Redis stream |
-| `aide-redis` | Key Value, `noeviction` | Rate limits, realtime, BullMQ; private network only |
-| `aide-jobs` | Background worker (commented out) | Enable only after `npm run worker:jobs` boots (below) |
+| `aide-web` | Web, **Docker** (standard) | [`Dockerfile`](../../Dockerfile) + `npm run start` (`server.js`); health `/api/health`; `CRAWL_BROWSER_ENABLED=0` (enqueue only) |
+| `aide-jobs` | Background worker, **Docker** (standard) | `npm run worker:jobs:prod` (no tsx); BullMQ + recrawl sweep + Chromium + realtime outbox child; `CRAWL_BROWSER_ENABLED=1` |
+| Redis | Existing Upstash | Set `REDIS_URL` + `REALTIME_REDIS_URL` as secrets; `REDIS_ENABLED=1`, `BULLMQ_ENABLED=1` |
+
+Neon remains the database. Coral Vercel stays as rollback until Render acceptance.
 
 Free instances sleep (cold starts, dropped WebSockets). The web service runs Chromium during crawls, so use standard (2 GB); starter (512 MB) risks out-of-memory restarts.
 
@@ -45,6 +46,6 @@ The image builds without secrets (verified: `next build` and `prisma generate` p
 
 ## Known gaps
 
-- **BullMQ worker does not boot yet.** `npm run worker:jobs` fails with `does not provide an export named 'BULLMQ_QUEUES'`: under `tsx`, plain `.js` files in `lib/` load as CommonJS. Same root cause as the local `test:f09`/`test:f12` harness failure. Until fixed, keep `BULLMQ_ENABLED` unset; email, billing and crawl run in-process.
-- **Browser crawl** needs the Docker image. JavaScript-only sites (e.g. create-react-app) serve an empty shell to plain HTTP; only a rendered page has text. On a runtime without Chromium the Knowledge page now says so in plain language instead of "Playwright is not installed".
+- **`BULLMQ_QUEUES` exports correctly** (`lib/jobs/queues.js`). `aide-jobs` in this blueprint is still commented out. Live coral (Vercel) had Redis `disabled` on `/api/health` (2026-10-06); independent recrawl sweep requires `REDIS_ENABLED=1`, `BULLMQ_ENABLED=1`, and a running `npm run worker:jobs` process — not Vercel serverless.
+- **Browser crawl** needs the Docker image (or another always-on Chromium host). Do not enable `CRAWL_BROWSER_ENABLED` on Vercel request handlers. JavaScript-only sites serve an empty shell to plain HTTP.
 - **Use a separate database for development.** Point local `.env` at a Neon branch, not production.

@@ -196,6 +196,26 @@ async function main() {
     assert(result.session?.user?.email === email, "session");
   });
 
+  await test("activate local free plan", async () => {
+    const plansRes = await fetch(`${BASE}/api/billing/plans`);
+    const plansBody = await json(plansRes);
+    assert(plansRes.ok, `plans ${plansRes.status}`);
+    const freePlan = (plansBody?.plans || []).find(
+      (plan) => plan.planType === "FREE"
+    );
+    assert(freePlan?.id, "free billing plan missing");
+
+    const subscribeRes = await api(jar, "/api/billing/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ planId: freePlan.id }),
+    });
+    const subscribeBody = await json(subscribeRes);
+    assert(
+      subscribeRes.ok,
+      `free plan ${subscribeRes.status} ${JSON.stringify(subscribeBody)}`
+    );
+  });
+
   await test("auth/me + workspaces + agents CRUD path", async () => {
     assert((await api(jar, "/api/auth/me")).status === 200, "me");
     assert((await api(jar, "/api/workspaces")).status === 200, "workspaces");
@@ -332,6 +352,7 @@ async function main() {
 
   let lockedConvoId;
   let lockedAssistantMsgId;
+  let lockedAccessToken;
 
   await test("public chat with app Origin still works", async () => {
     const appOrigin = new URL(BASE).origin;
@@ -347,13 +368,17 @@ async function main() {
     assert(res.status === 200, `chat ${res.status} ${JSON.stringify(body)}`);
     lockedConvoId = body.conversationId || body.conversation?.id;
     lockedAssistantMsgId = body.message?.id || body.assistantMessage?.id;
+    lockedAccessToken = body.realtimeAccessToken || null;
+    assert(lockedAccessToken, "chat must mint conversation access token");
   });
 
   await test("locked agent: history/feedback/files need Origin", async () => {
     const agent = await loadAgent(jar, agentId);
     const locked = agent.siteKnowledgeOrigin;
+    const appOrigin = new URL(BASE).origin;
     assert(locked, "not locked");
     assert(lockedConvoId, "missing conversation from chat");
+    assert(lockedAccessToken, "missing access token from chat");
 
     const histNoOrigin = await fetch(
       `${BASE}/api/public/agents/${publicKey}/conversations/${lockedConvoId}`
@@ -363,13 +388,32 @@ async function main() {
       `history without Origin expected 404, got ${histNoOrigin.status}`
     );
 
+    const histLockedMismatch = await fetch(
+      `${BASE}/api/public/agents/${publicKey}/conversations/${lockedConvoId}`,
+      {
+        headers: {
+          Origin: locked,
+          "x-aide-conversation-access-token": lockedAccessToken,
+        },
+      }
+    );
+    assert(
+      histLockedMismatch.status === 401,
+      `history locked Origin + app-origin token expected 401, got ${histLockedMismatch.status}`
+    );
+
     const histOk = await fetch(
       `${BASE}/api/public/agents/${publicKey}/conversations/${lockedConvoId}`,
-      { headers: { Origin: locked } }
+      {
+        headers: {
+          Origin: appOrigin,
+          "x-aide-conversation-access-token": lockedAccessToken,
+        },
+      }
     );
     assert(
       histOk.status === 200,
-      `history with Origin ${histOk.status} ${JSON.stringify(await json(histOk))}`
+      `history with mint Origin+token ${histOk.status} ${JSON.stringify(await json(histOk))}`
     );
 
     const fbNoOrigin = await fetch(
@@ -392,7 +436,8 @@ async function main() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Origin: locked,
+        Origin: appOrigin,
+        "x-aide-conversation-access-token": lockedAccessToken,
       },
       body: JSON.stringify({
         messageId: lockedAssistantMsgId || randomUUID(),
@@ -401,7 +446,7 @@ async function main() {
     });
     assert(
       [200, 400, 403].includes(fbOk.status),
-      `feedback with Origin must not be agent-404, got ${fbOk.status}`
+      `feedback with mint Origin+token must not be agent-404, got ${fbOk.status}`
     );
 
     const filesNoOrigin = await fetch(

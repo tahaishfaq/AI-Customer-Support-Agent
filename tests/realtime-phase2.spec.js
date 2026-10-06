@@ -22,10 +22,16 @@ test("one-port app exposes healthy HTTP and realtime readiness", async ({ reques
   await expect(ready.json()).resolves.toMatchObject({ ready: true, service: "aide" });
 });
 
-test("logged-out browser keeps protected desk route behind auth", async ({ page }) => {
-  const response = await page.goto("/inbox");
-  expect(response).not.toBeNull();
-  await expect(page).toHaveURL(/\/login/);
+test("logged-out browser keeps protected desk route behind auth", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    const response = await page.goto("/inbox");
+    expect(response).not.toBeNull();
+    await expect(page).toHaveURL(/\/login/);
+  } finally {
+    await context.close();
+  }
 });
 
 test("two authenticated browser tabs receive one realtime event", async ({ browser }) => {

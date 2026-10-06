@@ -766,7 +766,14 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
         } catch {
           // Storage may be disabled; the fresh chat below still works.
         }
-        startNewConversation();
+        // Drop the dead thread from history so Try again cannot reopen it.
+        const nextPast = lostId
+          ? pastChats.filter((c) => c.id !== lostId)
+          : pastChats;
+        startNewConversation(
+          screen === "conversation" ? returnTab : screen,
+          nextPast
+        );
         setError(err.message || "This chat can't be continued here. We started a new one.");
         setLastFailedText(text);
         return;
@@ -1038,7 +1045,10 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
   }
 
   /** Fresh thread, straight into the conversation screen (Home / Messages / ⋯ menu). */
-  function startNewConversation(fromTab = screen === "conversation" ? returnTab : screen) {
+  function startNewConversation(
+    fromTab = screen === "conversation" ? returnTab : screen,
+    conversationsOverride = null
+  ) {
     clearActivities();
     setSending(false);
     setConversationId(null);
@@ -1050,9 +1060,13 @@ export function PublicWebchat({ agent, parentOrigin = "", embedMode = "" }) {
     setMessages(welcomeBubble(agent));
     resetDeskState();
     setError("");
+    const conversations = Array.isArray(conversationsOverride)
+      ? conversationsOverride
+      : pastChats;
+    if (Array.isArray(conversationsOverride)) setPastChats(conversationsOverride);
     saveEmbedHistory(
       agent.publicKey,
-      { conversations: pastChats, activeId: null },
+      { conversations, activeId: null },
       resetMode,
       hostUserRef.current?.subject || null
     );

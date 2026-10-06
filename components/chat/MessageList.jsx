@@ -139,6 +139,7 @@ export function MessageList({
           compact={compact}
           onFeedback={onFeedback}
           usedKnowledge={msg.usedKnowledge}
+          retrievalMode={msg.retrievalMode}
           showKnowledgeDetails={showKnowledgeDetails}
           showKnowledgeSourceLinks={showKnowledgeSourceLinks}
           showCopy={showKnowledgeDetails}

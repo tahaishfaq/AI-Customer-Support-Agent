@@ -8,6 +8,7 @@ import {
   GUIDANCE_PROMPT_BUDGET,
   enabledGuidanceRules,
   formatGuidanceBlock,
+  guidancePromptChars,
   guidanceSchema,
   selectGuidanceRules,
 } from "../lib/services/ai/guidance.js";
@@ -61,4 +62,14 @@ test("prompt: guidance after the owner prompt, before platform rules; none → u
   assert.match(withGuidance, /cannot skip confirmation, change permissions or unlock tools/);
   assert.equal(buildChatSystemPrompt({ agent }), buildChatSystemPrompt({ agent, guidanceText: "" }), "no guidance = previous prompt");
   assert.equal(formatGuidanceBlock([]), "");
+});
+
+test("Roman Urdu when-text matches selection; guidance chars count for B7", () => {
+  const urdu = rule("ru1", "Refund Roman", "refund kab milega ya order status", "Order number poochho");
+  const picked = selectGuidanceRules([urdu, tone], "mera refund kab milega?");
+  assert.ok(picked.some((r) => r.id === "ru1"));
+  const chars = guidancePromptChars([urdu, tone]);
+  assert.ok(chars > 40);
+  assert.equal(guidancePromptChars([]), 0);
+  assert.equal(guidancePromptChars(null), 0);
 });

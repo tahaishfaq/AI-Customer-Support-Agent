@@ -4,9 +4,9 @@ Yeh file simple language mein hai: **kyun banaya**, **kya improve hua**, aur **u
 
 Tests ke liye technical detail alag file mein hai: `SHIPPED_FEATURES_TEST_APPENDIX.md` (developers / CI only).
 
-**Check sab theek hai:** `npm run test:shipped` · Human desk: `npm run test:f12` · Actions: `npm run test:f11` · Universal: `npm run test:f11u` · Tools hub: `npm run test:f13`
+**Check sab theek hai:** `npm run test:shipped` · Human desk: `npm run test:f12` · Actions: `npm run test:f11` · Universal: `npm run test:f11u` · Tools hub: `npm run test:f13` · Level 3: `npm run test:level3-l1-l4` · `npm run test:level3-l5-l8`
 
-**Aage ka kaam:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md). **Shipped plans (full archive):** [`shipped/`](shipped/README.md). Stand: [`FULL_PATH_STAGE6_TO_PRODUCTION.md`](FULL_PATH_STAGE6_TO_PRODUCTION.md). Realtime: [`features/SOCKET_REALTIME_PLAN.md`](features/SOCKET_REALTIME_PLAN.md).
+**Aage ka kaam:** [`OPEN_SEQUENCE.md`](OPEN_SEQUENCE.md) · Competitive gaps: [`claude/COMPETITIVE_DEEP_AUDIT.md`](claude/COMPETITIVE_DEEP_AUDIT.md). **Shipped plans (full archive):** [`shipped/`](shipped/README.md). Stand: [`FULL_PATH_STAGE6_TO_PRODUCTION.md`](FULL_PATH_STAGE6_TO_PRODUCTION.md). Realtime: [`features/SOCKET_REALTIME_PLAN.md`](features/SOCKET_REALTIME_PLAN.md).
 
 
 ---
@@ -29,6 +29,9 @@ Tests ke liye technical detail alag file mein hai: `SHIPPED_FEATURES_TEST_APPEND
 | F12 | Human desk | AI stuck / angry user — koi insaan nahi | Embed se handoff → owner Inbox → same chat mein human reply |
 | F13 | Tools hub | Actions / MCP / HTTP alag-alag feel | Ek **Tools** surface: Integrations · MCP · HTTP |
 | Extra | Re-crawl schedule | Website ek bar crawl; content purana reh jata | User interval set kare — auto refresh |
+| **L1** | Level 1 Basic (B1–B9) | Galat tool / false UNKNOWN / English-only / fake handoff | Reliable tools, freshness→web, language, honest offline, setup warnings |
+| **L2** | Level 2 Moderate (P1–P8) | Buyers expect metrics, desk, guidance, email, webhooks | Resolution analytics, guidance, assignment/SLA, copilot, versions, email (WhatsApp deferred) |
+| **L3** | Level 3 Advanced (L1–L8) | Leaders (Fin/Decagon) meaning retrieve, QA, procedures, sim | Opt-in smart retrieve, Auto-QA, KB suggestions, procedures, privacy, sim/A/B |
 
 ---
 
@@ -574,6 +577,80 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 
 ---
 
+## Level 1 — Basic (B1–B9) ✅
+
+**Kyun:** Live testing pe pehle dikhne wali answer failures (galat tool, false UNKNOWN, freshness handoff, language, fake “someone joining”).
+
+**Detail archive:** [`shipped/LEVEL_1_BASIC.md`](shipped/LEVEL_1_BASIC.md) · Plan: [`claude/LEVEL_1_BASIC_PLAN.md`](claude/LEVEL_1_BASIC_PLAN.md)
+
+| # | Fix | User ko kya milta hai |
+|---|---|---|
+| B1 | Typos + follow-ups | Right tool even with spelling / “list all of them” |
+| B2 | Entity + not-found | Wrong-subject tools drop; UNKNOWN → “not found” |
+| B3 | Freshness → web | News / weather / today’s price don’t force desk |
+| B4 | Deferred handoff | Multi-part answers finish before escalate |
+| B5 | Reply language | Roman Urdu stays Roman Urdu |
+| B6 | Offline handoff | Honest offline message outside hours |
+| B7 | Setup warnings | Readiness shows knowledge / tools / localhost advice |
+| B8 | Access errors | Expired chat → clear “start a new chat” |
+| B9 | Prod notes | Redis + realtime host documented |
+
+---
+
+## Level 2 — Moderate (P1–P8) ✅
+
+**Kyun:** Serious buyers Intercom / Zendesk / Botpress se compare karte hain — metrics, desk, guidance, email, API.
+
+**Detail archive:** [`shipped/LEVEL_2_MODERATE.md`](shipped/LEVEL_2_MODERATE.md) · Plan: [`claude/LEVEL_2_MODERATE_PLAN.md`](claude/LEVEL_2_MODERATE_PLAN.md) · Email: [`shipped/EMAIL_INBOUND_CHANNEL.md`](shipped/EMAIL_INBOUND_CHANNEL.md)
+
+| Phase | Feature | User ko kya milta hai |
+|---|---|---|
+| P1 | Resolution + unanswered | Analytics cards + unanswered clusters |
+| P2 | Profile · Guidance | JWT traits + owner if/then rules |
+| P3 | Assignment · SLA | Round robin / least-busy + overdue |
+| P4 | Copilot | Suggest reply + summarize |
+| P5 | Versioning | History + restore |
+| P6 | Proactive | URL-targeted bubble |
+| P7 | Webhooks · API keys | Signed events + scoped REST |
+| P8 | Email (Resend) | Inbound email → Inbox |
+
+**Deferred:** M7 WhatsApp + connectors.
+
+---
+
+## Level 3 — Advanced (L1–L8) ✅
+
+**Kyun:** Fin / Decagon / Sierra jaisi advanced retrieve, quality, procedures, aur test tooling buyers expect karte hain — bina freeze todhe.
+
+**Detail archive:** [`shipped/LEVEL_3_ADVANCED.md`](shipped/LEVEL_3_ADVANCED.md) · Plan: [`claude/LEVEL_3_ADVANCED_PLAN.md`](claude/LEVEL_3_ADVANCED_PLAN.md) · Gaps: [`claude/COMPETITIVE_DEEP_AUDIT.md`](claude/COMPETITIVE_DEEP_AUDIT.md)
+
+**Sab features off until configured** — purane agents pehle jaisi behave karte hain.
+
+| Phase | Feature | User ko kya milta hai |
+|---|---|---|
+| L1 | Semantic RAG | Knowledge “meaning” se bhi milti hai jab hybrid on ho; fail → keyword |
+| L2 | Auto-QA / CX | Settled chats sample → quality score; inbox QA card |
+| L3 | Knowledge suggestions | Unanswered clusters → draft FAQ; Owner/Admin approve (auto-publish nahi) |
+| L4 | Procedures | Multi-step ask → tool → say / handoff (Edit agent builder) |
+| L5 | Resolution pricing | Ledger + billing strip jab plan opt-in kare (default off) |
+| L6 | Privacy | PII redact + retention; Inbox Privacy settings |
+| L7 | Tool shortlist | Zyada tools par meaning-based shortlist (optional) |
+| L8 | Simulation + A/B | Dry-run questions; prompt A/B buckets — **kabhi auto-promote nahi** |
+
+**Tests:** `npm run test:level3-l1-l4` · `npm run test:level3-l5-l8`  
+**Migrations:** `20261003120000_level3_l1_l4` · `20261003180000_level3_l5_l8`
+
+### Simple examples
+
+| Pehle | Ab |
+|-------|-----|
+| Sirf keyword FAQ hit | Opt-in hybrid / semantic retrieve |
+| Quality andaza | Auto-QA sample + CX score |
+| Complex refund flow mushkil | Procedures step builder |
+| A/B nahi | Embed bucket A/B + manual restore winner |
+
+---
+
 ## Demo ke liye 5 minute checklist
 
 1. Login → agent → TEXT FAQ add → **Test** → sources dikhen  
@@ -585,6 +662,7 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 7. **Human desk** — embed handoff → inbox reply → embed par human message  
 8. Terminal: `npm run test:shipped` green · `npm run test:f12` · `npm run test:f13`  
 9. **Tools** — demo MCP → enable `get_demo_time` → Test studio  
+10. **Level 3 (optional)** — Edit agent → enable Semantic RAG / Procedures / Simulation; Knowledge → suggestions  
 
 ---
 
@@ -594,15 +672,16 @@ Pehle site **sirf ek bar** crawl hoti thi jab widget pehli dafa lagta tha. Websi
 |------|------------|
 | Errors / logs | `lib/api/error-response.js`, `lib/observability/*` |
 | Chat | `lib/services/chat.service.js` |
-| Knowledge pick | `lib/services/ai/knowledge-retrieve.js` |
+| Knowledge pick | `lib/services/ai/knowledge-retrieve.js`, `embeddings.service.js` |
 | Prompts | `lib/services/ai/prompt-builder.js` |
 | Crawl | `lib/services/embed.service.js`, `lib/services/crawl-schedule.js` |
 | **Human desk** | `lib/services/handoff.service.js`, `lib/desk/*`, `components/desk/*`, `app/(app)/inbox/*` |
 | Embed handoff | `components/embed/PublicWebchat.jsx`, `lib/embed-history.js` |
 | UI | `components/knowledge/KnowledgeList.jsx`, `components/agents/AgentForm.jsx` |
 | **Tools hub** | `components/customization/ActionsForm.jsx`, `McpServersPanel.jsx`, `lib/mcp/*`, `lib/services/mcp.service.js` |
-| Tests | `scripts/test-f*.mjs`, `npm run test:shipped`, `npm run test:f12`, `npm run test:f13` |
+| **Level 3** | `lib/services/ai/{embeddings,qa,procedures,knowledge-suggestion}.*`, `components/agents/{Procedures,Simulation,AbExperiment}Panel.jsx`, `components/desk/{Privacy,Qa}SettingsDialog.jsx` |
+| Tests | `scripts/test-f*.mjs`, `npm run test:shipped`, `npm run test:f12`, `npm run test:f13`, `test:level3-l1-l4`, `test:level3-l5-l8` |
 
 ---
 
-*Last updated: Aug 29, 2026 — F01–F14 + F11-U complete · next F00 live DoD + B26 rehearsal.*
+*Last updated: Oct 5, 2026 — F01–F14 + Levels 1–3 archived · competitive audit in `docs/claude/`.*

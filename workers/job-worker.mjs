@@ -1,8 +1,12 @@
 /**
- * BullMQ worker — email + billing + crawl processors (knowledge stub).
- * Run: BULLMQ_ENABLED=1 REDIS_ENABLED=1 npm run worker:jobs
+ * BullMQ worker — email + billing + crawl processors (+ realtime outbox child).
+ * Local: BULLMQ_ENABLED=1 REDIS_ENABLED=1 npm run worker:jobs
+ * Prod (no tsx): npm run worker:jobs:prod
  */
 
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Worker } from "bullmq";
 import {
   BULLMQ_QUEUES,
@@ -15,8 +19,27 @@ import {
   handleEmailJob,
 } from "../lib/jobs/handlers.js";
 
+const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+
 function logEvent(event, fields = {}) {
   console.log(JSON.stringify({ event, at: new Date().toISOString(), ...fields }));
+}
+
+function startRealtimeOutboxChild() {
+  if (String(process.env.REALTIME_OUTBOX_IN_WORKER || "1").trim() === "0") {
+    return null;
+  }
+  const script = path.join(rootDir, "workers/realtime-outbox-publisher.js");
+  const child = spawn(process.execPath, [script], {
+    cwd: rootDir,
+    env: process.env,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  child.on("exit", (code, signal) => {
+    logEvent("realtime_outbox_child_exit", { code, signal });
+  });
+  logEvent("realtime_outbox_child_started", { pid: child.pid });
+  return child;
 }
 
 async function main() {
@@ -88,15 +111,36 @@ async function main() {
     });
   }
 
+  const outboxChild = startRealtimeOutboxChild();
+
   logEvent("worker_started", {
     queues: Object.values(BULLMQ_QUEUES),
     emailConcurrency,
     billingConcurrency,
     crawlConcurrency,
+    outboxChild: Boolean(outboxChild?.pid),
   });
+
+  const { enqueueRecrawlSweep } = await import("../lib/jobs/enqueue.js");
+  const sweep = async () => {
+    try {
+      await enqueueRecrawlSweep();
+    } catch (err) {
+      logEvent("recrawl_sweep_enqueue_failed", { error: String(err?.message || err) });
+    }
+  };
+  await sweep();
+  setInterval(sweep, 15 * 60 * 1000);
 
   const shutdown = async () => {
     logEvent("worker_shutdown");
+    if (outboxChild && !outboxChild.killed) {
+      try {
+        outboxChild.kill("SIGTERM");
+      } catch {
+        /* best effort */
+      }
+    }
     await Promise.all(workers.map((w) => w.close()));
     process.exit(0);
   };

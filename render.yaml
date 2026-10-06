@@ -1,22 +1,20 @@
-# Render Blueprint — Aide on one always-on Node process (Next.js + Socket.IO), Singapore.
-# Everything runs in `singapore` to sit next to Neon ap-southeast-1 (~1–2 ms per query).
-# `sync: false` values are prompted once when the Blueprint is created; never commit them.
+# Render Blueprint — Aide always-on Node (Next.js + Socket.IO) + BullMQ/Chromium worker.
+# Region singapore sits next to Neon ap-southeast-1.
+# Secrets: sync:false — set via Render dashboard/CLI from local env. Never commit values.
+# Redis: reuse existing Upstash (REDIS_URL / REALTIME_REDIS_URL). No Render Key Value required.
 # Docs: docs/deploy/RENDER.md
 
 envVarGroups:
   - name: aide-shared
     envVars:
-      - key: NODE_VERSION # native-runtime services (workers)
+      - key: NODE_VERSION
         value: "22"
       - key: NODE_ENV
         value: production
-      # Neon: pooled host for the app, direct host for migrations.
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
         sync: false
-      # Must match the values already used with this database: they decrypt stored
-      # credentials and verify customer identity JWTs. Do not generate new ones.
       - key: ACTIONS_CREDENTIALS_KEY
         sync: false
       - key: ACTIONS_IDENTITY_SECRET
@@ -29,56 +27,15 @@ envVarGroups:
         sync: false
       - key: REDIS_ENABLED
         value: "1"
-
-services:
-  - type: web
-    name: aide-web
-    # Docker image = Node 22 + headless Chromium, so SPA sites can be crawled for knowledge.
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    region: singapore
-    # Next.js + Chromium need ~1 GB+ during crawls; starter (512 MB) risks OOM. Free sleeps.
-    plan: standard
-    preDeployCommand: npx prisma migrate deploy
-    healthCheckPath: /api/health
-    envVars:
-      - fromGroup: aide-shared
-      # Always-on process: keep warm DB connections (a new TLS connection costs a few round
-      # trips) and enough of them for one chat turn's parallel reads plus its write transaction.
-      - key: PG_POOL_MAX
-        value: "10"
-      - key: PG_POOL_IDLE_MS
-        value: "300000"
-      # HTTPS origin of this service, e.g. https://aide-web.onrender.com or your domain.
-      # NEXT_PUBLIC_* is baked in at build time: redeploy after changing it.
-      - key: AUTH_URL
+      - key: BULLMQ_ENABLED
+        value: "1"
+      - key: REDIS_URL
         sync: false
-      - key: NEXT_PUBLIC_APP_URL
+      - key: REALTIME_REDIS_URL
         sync: false
-      - key: REALTIME_ALLOWED_ORIGINS
+      - key: REALTIME_TOKEN_SECRET
         sync: false
       - key: AUTH_SECRET
-        generateValue: true
-      - key: REALTIME_ENABLED
-        value: "1"
-      - key: REALTIME_TOKEN_SECRET
-        generateValue: true
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: aide-redis
-          property: connectionString
-      - key: REALTIME_REDIS_URL
-        fromService:
-          type: keyvalue
-          name: aide-redis
-          property: connectionString
-      # Optional integrations — leave empty to keep them off.
-      - key: AUTH_GOOGLE_ID
-        sync: false
-      - key: AUTH_GOOGLE_SECRET
-        sync: false
-      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID # build-time: Google button
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
@@ -99,48 +56,56 @@ services:
       - key: GITHUB_MCP_OAUTH_CLIENT_SECRET
         sync: false
 
-  # Realtime outbox → Redis stream publisher (plain node, no tsx).
-  - type: worker
-    name: aide-realtime-publisher
-    runtime: node
+services:
+  - type: web
+    name: aide-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh scripts/render-entrypoint.sh
     region: singapore
-    plan: starter
-    buildCommand: npm ci
-    startCommand: npm run realtime:publisher
+    plan: standard
+    preDeployCommand: npx prisma migrate deploy
+    healthCheckPath: /api/health
     envVars:
       - fromGroup: aide-shared
+      - key: SERVICE_ROLE
+        value: "web"
+      - key: PG_POOL_MAX
+        value: "10"
+      - key: PG_POOL_IDLE_MS
+        value: "300000"
+      - key: AUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: REALTIME_ALLOWED_ORIGINS
+        sync: false
       - key: REALTIME_ENABLED
         value: "1"
-      - key: REALTIME_REDIS_URL
-        fromService:
-          type: keyvalue
-          name: aide-redis
-          property: connectionString
+      - key: CRAWL_BROWSER_ENABLED
+        value: "0"
+      - key: AUTH_GOOGLE_ID
+        sync: false
+      - key: AUTH_GOOGLE_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
 
-  # Shared Redis: rate limits, realtime adapter/streams, BullMQ.
-  - type: keyvalue
-    name: aide-redis
+  # BullMQ + recrawl sweep + Playwright Chromium + realtime outbox publisher (child).
+  - type: worker
+    name: aide-jobs
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh scripts/render-entrypoint.sh
     region: singapore
-    plan: starter
-    maxmemoryPolicy: noeviction # BullMQ must never lose job keys
-    ipAllowList: [] # private network only
-
-  # BullMQ jobs worker (email/billing/crawl). Uncomment once `npm run worker:jobs`
-  # is verified to boot (it uses tsx + the alias loader; see docs/deploy/RENDER.md),
-  # then set BULLMQ_ENABLED=1 on aide-web too.
-  # - type: worker
-  #   name: aide-jobs
-  #   runtime: node
-  #   region: singapore
-  #   plan: starter
-  #   buildCommand: npm ci --include=dev && npx prisma generate
-  #   startCommand: npm run worker:jobs
-  #   envVars:
-  #     - fromGroup: aide-shared
-  #     - key: BULLMQ_ENABLED
-  #       value: "1"
-  #     - key: REDIS_URL
-  #       fromService:
-  #         type: keyvalue
-  #         name: aide-redis
-  #         property: connectionString
+    plan: standard
+    envVars:
+      - fromGroup: aide-shared
+      - key: SERVICE_ROLE
+        value: "jobs"
+      - key: REALTIME_ENABLED
+        value: "1"
+      - key: CRAWL_BROWSER_ENABLED
+        value: "1"
+      - key: WORKER_CONCURRENCY_CRAWL
+        value: "1"

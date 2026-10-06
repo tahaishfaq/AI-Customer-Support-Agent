@@ -7,7 +7,14 @@ import {
   SETTLE_MS,
   REVERSE_WINDOW_MS,
 } from "../lib/billing/resolution-charge.js";
-import { assignAbBucket, abReadyToStop, normalizeAbTest } from "../lib/ab/bucket.js";
+import {
+  abVisitorKey,
+  assignAbBucket,
+  abReadyToStop,
+  normalizeAbTest,
+} from "../lib/ab/bucket.js";
+import { shortlistToolsForTurn } from "../lib/services/ai/tool-shortlist.js";
+import { shortlistToolsWithMeaning } from "../lib/services/ai/tool-embedding.service.js";
 
 test("L6 Luhn detects valid cards", () => {
   assert.equal(luhnOk("4111111111111111"), true);
@@ -59,10 +66,25 @@ test("L5 charge eligibility and reverse window", () => {
     }),
     false
   );
+  assert.equal(
+    shouldReverseCharge({ chargedAt: new Date(Date.now() - 1000), reason: "handoff" }),
+    true
+  );
+  assert.equal(
+    shouldReverseCharge({ chargedAt: new Date(Date.now() - 1000), reason: "reopen" }),
+    true
+  );
 });
 
-test("L8 A/B bucketing is stable and never auto-promotes", () => {
+test("L8 A/B bucketing prefers visitor subject over conversation id", () => {
   const config = normalizeAbTest({ enabled: true, revisionA: 1, revisionB: 2, minSample: 50 });
+  assert.equal(abVisitorKey({ id: "conv-1", customerSubject: "visitor-abc" }), "visitor-abc");
+  assert.equal(abVisitorKey({ id: "conv-1" }), "conv-1");
+
+  const byVisitor = assignAbBucket(abVisitorKey({ id: "conv-a", customerSubject: "same-visitor" }), config);
+  const otherConv = assignAbBucket(abVisitorKey({ id: "conv-b", customerSubject: "same-visitor" }), config);
+  assert.deepEqual(byVisitor, otherConv);
+
   const first = assignAbBucket("visitor-123", config);
   const second = assignAbBucket("visitor-123", config);
   assert.deepEqual(first, second);
@@ -70,4 +92,38 @@ test("L8 A/B bucketing is stable and never auto-promotes", () => {
   assert.equal(assignAbBucket("x", { enabled: false }), null);
   assert.equal(abReadyToStop({ samplesA: 49, samplesB: 50, minSample: 50 }), false);
   assert.equal(abReadyToStop({ samplesA: 50, samplesB: 50, minSample: 50 }), true);
+});
+
+test("L7 semantic tool shortlist falls back to keyword when flag off", async () => {
+  const actions = [
+    {
+      name: "lookup_order",
+      description: "Look up an order by id",
+      riskLevel: "READ",
+    },
+    {
+      name: "mcp_github_mcp_search_repositories",
+      description: "Search GitHub repositories",
+      riskLevel: "READ",
+      _mcp: { remoteName: "search_repositories", url: "https://api.githubcopilot.com/mcp/" },
+    },
+  ];
+  const keyword = shortlistToolsForTurn(actions, { utterance: "Where is my order?" });
+  const withFlagOff = await shortlistToolsWithMeaning(actions, {
+    utterance: "Where is my order?",
+    semanticToolShortlist: false,
+    agentId: "agent-test",
+  });
+  assert.deepEqual(
+    withFlagOff.map((a) => a.name),
+    keyword.map((a) => a.name)
+  );
+  const missingAgent = await shortlistToolsWithMeaning(actions, {
+    utterance: "Where is my order?",
+    semanticToolShortlist: true,
+  });
+  assert.deepEqual(
+    missingAgent.map((a) => a.name),
+    keyword.map((a) => a.name)
+  );
 });

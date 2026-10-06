@@ -1,6 +1,9 @@
 # Level 2 (Moderate): what serious customers expect when buying
 
+> **Shipped (P1–P8).** M7 WhatsApp deferred. Archive: [`../shipped/LEVEL_2_MODERATE.md`](../shipped/LEVEL_2_MODERATE.md) · Index: [`README.md`](README.md). This file is the historical plan.
+
 ## Context
+
 
 Level 1 made answers reliable (committed B1–B9 on `sami`). Level 2 adds what buyers compare against Intercom, Zendesk and Botpress:
 - measurable resolution

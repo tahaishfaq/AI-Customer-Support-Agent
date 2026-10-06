@@ -1,5 +1,7 @@
 # Level 3 (Advanced): what sets the leaders apart
 
+> **Shipped (L1–L8).** Archive: [`../shipped/LEVEL_3_ADVANCED.md`](../shipped/LEVEL_3_ADVANCED.md) · Levels 1–2: [`../shipped/LEVEL_1_BASIC.md`](../shipped/LEVEL_1_BASIC.md) · [`../shipped/LEVEL_2_MODERATE.md`](../shipped/LEVEL_2_MODERATE.md) · Audit: [`COMPETITIVE_DEEP_AUDIT.md`](COMPETITIVE_DEEP_AUDIT.md). This file is the historical plan + follow-up notes.
+
 ## Context
 
 Level 1 made answers reliable. Level 2 adds what buyers expect: resolution metrics, a team desk, guidance, customer context, copilot, versioning, webhooks, proactive messages and email. M2, M10, M5 and M3 are done; M7 WhatsApp stays deferred.
@@ -46,6 +48,9 @@ Level 3 is what Intercom Fin, Decagon and Sierra sell on:
 - L5: buyer-facing strip on Billing when plan opts in (`ResolutionUsageStrip` + `/api/billing/resolution-usage`); separate invoice line still deferred.
 - L8: A/B panel with min-sample stop cue + sample counts; promotion stays manual via Version history.
 - Live E2E against the fixture agent after each deploy (unit suites are green).
+
+**Competitive deep audit (2026-10-05):** [`COMPETITIVE_DEEP_AUDIT.md`](COMPETITIVE_DEEP_AUDIT.md) — Fin/Decagon/Sierra/Zendesk gaps + speed plan.  
+**Catalog:** [`../SHIPPED_FEATURES.md`](../SHIPPED_FEATURES.md).
 
 ---
 

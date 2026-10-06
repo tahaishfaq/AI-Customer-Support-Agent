@@ -236,4 +236,13 @@ test('B8: access / ownership errors get their own code and a clear message; unkn
   const unknown = Object.assign(new Error('boom SECRET'), { status: 500, details: { code: 'SOMETHING_NEW' } });
   assert.equal(safeChatStreamError(unknown).code, 'CHAT_FAILED');
   assert.doesNotMatch(safeChatStreamError(unknown).message, /SECRET/);
+  const disabled = Object.assign(new Error('This agent is unavailable right now.'), {
+    status: 403,
+    details: { code: 'AGENT_UNAVAILABLE' },
+  });
+  const mappedDisabled = safeChatStreamError(disabled);
+  assert.equal(mappedDisabled.code, 'AGENT_UNAVAILABLE');
+  assert.equal(mappedDisabled.status, 403);
+  assert.match(mappedDisabled.message, /unavailable/i);
+  assert.doesNotMatch(mappedDisabled.message, /disabled/i, 'internal wording is not shown');
 });

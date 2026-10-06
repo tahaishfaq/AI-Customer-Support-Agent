@@ -21,12 +21,19 @@ async function startRun(agentId, body) {
   });
 }
 
+async function cancelRun(agentId, runId) {
+  return apiFetch(`/api/agents/${agentId}/simulations/${runId}/cancel`, {
+    method: "POST",
+  });
+}
+
 /** Level 3 · L8 — dry-run simulation (never bills). */
 export function SimulationPanel({ agentId }) {
   const queryClient = useQueryClient();
   const [questionsText, setQuestionsText] = useState("");
   const [persona, setPersona] = useState("customer");
   const [busy, setBusy] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
   const query = useQuery({
     queryKey: queryKeys.agents.simulations(agentId),
     queryFn: () => listRuns(agentId),
@@ -48,6 +55,19 @@ export function SimulationPanel({ agentId }) {
       toast.error(err.message || "Could not start simulation");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function cancel(runId) {
+    setCancellingId(runId);
+    try {
+      await cancelRun(agentId, runId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.agents.simulations(agentId) });
+      toast.success("Cancellation requested");
+    } catch (err) {
+      toast.error(err.message || "Could not cancel simulation");
+    } finally {
+      setCancellingId(null);
     }
   }
 
@@ -83,17 +103,34 @@ export function SimulationPanel({ agentId }) {
         {busy ? "Starting…" : "Run simulation"}
       </Button>
       <ul className="divide-y divide-border text-sm">
-        {(query.data?.runs || []).slice(0, 8).map((run) => (
-          <li key={run.id} className="flex items-center justify-between gap-2 py-2">
-            <span>
-              {run.status} · {run.completedCount}/{run.questionCount}
-              {run.avgCxScore != null ? ` · CX ${Math.round(run.avgCxScore)}` : ""}
-            </span>
-            <span className="text-xs text-muted-foreground" suppressHydrationWarning>
-              {new Date(run.createdAt).toLocaleString("en-US")}
-            </span>
-          </li>
-        ))}
+        {(query.data?.runs || []).slice(0, 8).map((run) => {
+          const canCancel = run.status === "RUNNING" || run.status === "PENDING";
+          return (
+            <li key={run.id} className="flex items-center justify-between gap-2 py-2">
+              <span>
+                {run.status} · {run.completedCount}/{run.questionCount}
+                {run.avgCxScore != null ? ` · CX ${Math.round(run.avgCxScore)}` : ""}
+              </span>
+              <span className="flex items-center gap-2">
+                {canCancel ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={cancellingId === run.id}
+                    onClick={() => cancel(run.id)}
+                  >
+                    {cancellingId === run.id ? "Cancelling…" : "Cancel"}
+                  </Button>
+                ) : null}
+                <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                  {new Date(run.createdAt).toLocaleString("en-US")}
+                </span>
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

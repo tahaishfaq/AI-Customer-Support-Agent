@@ -7,6 +7,7 @@ import { getAgent } from "@/lib/api/agents";
 import { AgentForm } from "@/components/agents/AgentForm";
 import { GuidanceEditor } from "@/components/agents/GuidanceEditor";
 import { ProceduresEditor } from "@/components/agents/ProceduresEditor";
+import { SemanticToolShortlistPanel } from "@/components/agents/SemanticToolShortlistPanel";
 import { SimulationPanel } from "@/components/agents/SimulationPanel";
 import { EmailChannelPanel } from "@/components/agents/EmailChannelPanel";
 import { AbExperimentPanel } from "@/components/agents/AbExperimentPanel";
@@ -115,6 +116,15 @@ export default function EditAgentPage() {
           onSaved={(updated) => {
             setAgent((current) => ({ ...current, ...updated }));
             void queryClient.invalidateQueries({ queryKey: queryKeys.agents.revisions(agent.id) });
+          }}
+        />
+      </div>
+      <div className="mt-6 max-w-3xl">
+        <SemanticToolShortlistPanel
+          agentId={agent.id}
+          semanticToolShortlist={agent.semanticToolShortlist}
+          onSaved={(value) => {
+            setAgent((current) => ({ ...current, semanticToolShortlist: value }));
           }}
         />
       </div>

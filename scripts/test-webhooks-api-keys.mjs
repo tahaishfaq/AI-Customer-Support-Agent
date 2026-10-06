@@ -70,6 +70,8 @@ test("retries back off 1m → 12h, then DEAD; auto-disable threshold", () => {
 test("webhook URLs: https only, no credentials", () => {
   assert.equal(isAllowedWebhookUrl("https://hooks.example.com/aide"), true);
   assert.equal(isAllowedWebhookUrl("http://hooks.example.com/aide"), false);
+  assert.equal(isAllowedWebhookUrl("http://localhost:3000/hook"), false, "localhost http rejected");
+  assert.equal(isAllowedWebhookUrl("https://127.0.0.1/hook"), true, "shape allows https; SSRF pin rejects private DNS at send");
   assert.equal(isAllowedWebhookUrl("https://user:pass@hooks.example.com/"), false);
   assert.equal(isAllowedWebhookUrl("ftp://x"), false);
   assert.equal(isAllowedWebhookUrl("not a url"), false);

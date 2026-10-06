@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { CircleCheck, HelpCircle, Star, UserRound } from "lucide-react";
+import { CircleCheck, HelpCircle, Star, Timer, UserRound } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { ChartCard } from "@/components/analytics/AnalyticsCharts";
 import { AnalyticsError } from "@/components/analytics/analytics-shared";
@@ -11,6 +11,13 @@ import { getResolution } from "@/lib/api/analytics";
 import { queryKeys } from "@/lib/query/keys";
 
 const percent = (value) => (value == null ? "—" : `${value}%`);
+
+function formatFirstReply(ms) {
+  if (ms == null || !Number.isFinite(ms)) return "—";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
+  return `${Math.round(ms / 60_000)} m`;
+}
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -47,7 +54,7 @@ export function ResolutionPanel({ agentId, range }) {
 
       <AnalyticsError error={query.error?.message || ""} onRetry={query.refetch} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <MetricCard
           compact
           label="Resolved by AI"
@@ -74,6 +81,14 @@ export function ResolutionPanel({ agentId, range }) {
           loading={loading}
           tone="info"
           icon={UserRound}
+        />
+        <MetricCard
+          compact
+          label="Median first reply"
+          value={formatFirstReply(data?.medianFirstResponseMs)}
+          hint="First AI reply time"
+          loading={loading}
+          icon={Timer}
         />
         <MetricCard
           compact

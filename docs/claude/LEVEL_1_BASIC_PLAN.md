@@ -1,6 +1,9 @@
 # Level 1 (Basic) fixes: reliable answers before new features
 
+> **Shipped.** Archive: [`../shipped/LEVEL_1_BASIC.md`](../shipped/LEVEL_1_BASIC.md) · Index: [`README.md`](README.md). This file is the historical plan.
+
 ## Context
+
 
 Live testing (Help Center Assistant, AIDE Support Assistant, and the real-world edge-case plan) showed basic failures that customers notice first:
 - the wrong tool, or no tool, gets picked

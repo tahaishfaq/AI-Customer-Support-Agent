@@ -95,3 +95,35 @@ test("settings: invalid stored data falls back to owner routing with no SLA", ()
   });
   assert.equal(resolveDeskSettings({ slaFirstReplyMinutes: 1441 }).slaFirstReplyMinutes, null);
 });
+
+test("desk state: missing or out-of-workspace assignee shows unassigned", async () => {
+  const { serializeDeskState } = await import("../lib/desk/conversation-desk.js");
+  const base = {
+    status: "WAITING_HUMAN",
+    handoffAt: new Date().toISOString(),
+    handoffCount: 1,
+    assignedUserId: "gone-user",
+    claimedAt: new Date().toISOString(),
+    _viewerUserId: "owner",
+  };
+  const ghost = serializeDeskState({ ...base, assignedUser: null });
+  assert.equal(ghost.assignedUserId, null);
+  assert.equal(ghost.assignedUserName, null);
+  assert.equal(ghost.claimedAt, null);
+  assert.equal(ghost.claimedByOther, false);
+
+  const notMember = serializeDeskState({
+    ...base,
+    assignedUser: { id: "gone-user", name: "Left" },
+    _workspaceMemberIds: ["owner", "teammate"],
+  });
+  assert.equal(notMember.assignedUserId, null);
+
+  const ok = serializeDeskState({
+    ...base,
+    assignedUser: { id: "gone-user", name: "Still here" },
+    _workspaceMemberIds: ["owner", "gone-user"],
+  });
+  assert.equal(ok.assignedUserId, "gone-user");
+  assert.equal(ok.assignedUserName, "Still here");
+});

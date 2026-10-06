@@ -289,6 +289,42 @@ test("L4 ask validation and broken tools", () => {
   ]);
 });
 
+test("L4 procedure handoff effect offers team (effects only, no desk mutation)", () => {
+  const stored = [
+    {
+      id: "p1",
+      name: "Escalate",
+      trigger: "talk to a human",
+      enabled: true,
+      version: 1,
+      steps: [
+        { type: "handoff", reason: "customer asked for a person" },
+        { type: "end" },
+      ],
+    },
+  ];
+  const started = advanceProcedure({
+    stored,
+    state: null,
+    message: "I want to talk to a human",
+  });
+  assert.equal(started.state?.procedureId, "p1");
+  assert.equal(started.effects.handoff, false);
+
+  const advanced = advanceProcedure({
+    stored,
+    state: started.state,
+    message: "yes please",
+  });
+  assert.equal(advanced.effects.handoff, true);
+  assert.equal(advanced.effects.handoffReason, "customer asked for a person");
+  assert.equal(advanced.state?.paused, true);
+  assert.ok(String(advanced.instruction || "").toLowerCase().includes("handoff"));
+  // Offer-only: effects flag the UI path; no conversation/desk fields are mutated here.
+  assert.equal(advanced.effects.deskMutation, undefined);
+  assert.equal(advanced.effects.triggerHandoff, undefined);
+});
+
 test("L4 mid-run version snapshot is retained on state", () => {
   const state = { procedureId: "p1", version: 1, stepIndex: 0, fields: {}, startedAt: new Date().toISOString() };
   const stored = [

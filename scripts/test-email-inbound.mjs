@@ -60,6 +60,23 @@ test("loop detection: auto-submitted, bulk, noreply", () => {
     shouldIgnoreInbound({}, { from: "Customer <user@example.com>" }).ignore,
     false
   );
+  assert.equal(
+    shouldIgnoreInbound(
+      {},
+      {
+        from: "Support <support@help.example.com>",
+        ownAddresses: ["support@help.example.com"],
+      }
+    ).reason,
+    "own-address"
+  );
+  assert.equal(
+    shouldIgnoreInbound(
+      {},
+      { from: "Customer <user@example.com>", ownAddresses: ["support@help.example.com"] }
+    ).ignore,
+    false
+  );
 });
 
 test("thread hints: In-Reply-To, References, subject token", () => {
