@@ -104,7 +104,8 @@ function testSourceWiring() {
   const scheduleUi = read("components/knowledge/CrawlSchedulePanel.jsx");
   assert(/CRAWL_RECRAWL_OPTIONS/.test(scheduleUi), "schedule select options");
   assert(/Once only/.test(scheduleUi), "once-only option");
-  assert(/Scheduled refresh/.test(scheduleUi), "scheduled refresh option");
+  assert(/Scheduled/.test(scheduleUi), "scheduled refresh option");
+  assert(/next widget visit|Re-crawl now/.test(scheduleUi), "honest visitor/manual recrawl copy");
 
   const deployUi = read("components/customization/DeployForm.jsx");
   assert(/CrawlSchedulePanel/.test(deployUi), "Deploy tab schedule panel");

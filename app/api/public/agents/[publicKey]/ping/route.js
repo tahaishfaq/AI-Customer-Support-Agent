@@ -34,6 +34,9 @@ function denyMessage(reason) {
   if (reason === "origin_taken") {
     return "This website is already linked to another agent";
   }
+  if (reason === "allowlist_required") {
+    return "Set an allowed website origin in Deploy before embedding";
+  }
   if (reason === "missing") {
     return "Agent not found";
   }
@@ -54,16 +57,6 @@ export async function POST(request, { params }) {
       `pub-ping:${publicKey}:${ip}`,
       pubPingLimitOpts()
     );
-    if (!limited.ok) {
-      // Soft-limit: do not break embed UX; still attach request id.
-      return jsonOk(
-        request,
-        { ok: true, queued: false, reason: "rate-limit" },
-        200,
-        corsHeaders
-      );
-    }
-
     // Bind only from browser Origin/Referer — never from client body.origin.
     const trustedOrigin = originFromRequest(request);
     const agent = await getPublicAgentByKey(publicKey, {
@@ -71,6 +64,26 @@ export async function POST(request, { params }) {
     });
     if (!agent) {
       return jsonError(request, 404, "Agent not found", {}, corsHeaders);
+    }
+
+    if (!limited.ok) {
+      // Unlocked agents must not silently skip first claim — ask the host to retry.
+      if (!agent.siteKnowledgeOrigin) {
+        return jsonError(
+          request,
+          429,
+          "Too many ping requests — retry shortly",
+          { ok: false, queued: false, reason: "rate-limit", retryable: true },
+          corsHeaders
+        );
+      }
+      // Soft-limit for already-locked agents: do not break embed UX.
+      return jsonOk(
+        request,
+        { ok: true, queued: false, reason: "rate-limit", retryable: true },
+        200,
+        corsHeaders
+      );
     }
 
     const result = await claimEmbedOrigin(agent.id, trustedOrigin, {

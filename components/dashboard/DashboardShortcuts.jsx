@@ -16,7 +16,7 @@ const ACTIONS = [
   },
   {
     href: "/inbox",
-    title: "Human desk",
+    title: "Inbox",
     description: "Claim and reply to handoffs",
     icon: ArrowUpRight,
   },

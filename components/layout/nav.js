@@ -6,7 +6,7 @@ export const PRIMARY_NAV = [
 ];
 
 export const MONITOR_NAV = [
-  { href: "/inbox", label: "Human desk" },
+  { href: "/inbox", label: "Inbox" },
   { href: "/analytics", label: "Analytics" },
 ];
 
@@ -70,12 +70,12 @@ export function getBreadcrumbs(pathname, { agentName } = {}) {
   }
 
   if (pathname === "/inbox") {
-    return [workspace, { label: "Human desk" }];
+    return [workspace, { label: "Inbox" }];
   }
   if (pathname.startsWith("/inbox/")) {
     return [
       workspace,
-      { href: "/inbox", label: "Human desk" },
+      { href: "/inbox", label: "Inbox" },
       { label: "Thread" },
     ];
   }

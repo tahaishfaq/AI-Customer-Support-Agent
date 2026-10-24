@@ -81,6 +81,16 @@ async function testCrawlLock() {
   assert.equal(c.ok, true);
   await releaseCrawlLock(agentId, c.token);
 
+  const exploding = {
+    async set() {
+      throw new Error("redis down");
+    },
+  };
+  __setCrawlLockRedisForTests(exploding);
+  const closed = await acquireCrawlLock("agent_fail_closed", { ttlSec: 120 });
+  assert.equal(closed.ok, false);
+  assert.equal(closed.backend, "error-closed");
+
   __setCrawlLockRedisForTests(null);
   console.log("ok  crawl lock acquire/release");
 }
@@ -107,6 +117,8 @@ function testWiring() {
   const enqueue = read("lib/jobs/enqueue.js");
   assert.match(enqueue, /enqueueSiteCrawlJob/);
   assert.match(enqueue, /CRAWL_JOBS\.RUN_SITE_CRAWL/);
+  assert.match(enqueue, /enqueueRecrawlSweep/);
+  assert.match(enqueue, /CRAWL_JOBS\.RECRAWL_SWEEP/);
   assert.doesNotMatch(
     enqueue.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""),
     /\bhtml\b|password|otp\b/i
@@ -115,6 +127,7 @@ function testWiring() {
   const worker = read("workers/job-worker.mjs");
   assert.match(worker, /handleCrawlJob/);
   assert.match(worker, /WORKER_CONCURRENCY_CRAWL/);
+  assert.match(worker, /enqueueRecrawlSweep/);
 
   const ping = read("app/api/public/agents/[publicKey]/ping/route.js");
   assert.match(ping, /enqueueSiteCrawlJob/);

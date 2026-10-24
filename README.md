@@ -33,6 +33,12 @@ Copy variable names from `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL`,
 
 ## Node production deployment
 
+Current Render mode (2026-10-16): HTTP-only Next.js, Redis and BullMQ disabled,
+no dedicated worker. `npm run dev` / `npm run start` launch Next.js directly.
+Socket updates and automatic worker sweeps are disabled; HTTP/SSE chat remains.
+See [`docs/deploy/RENDER.md`](docs/deploy/RENDER.md) for current flags and rollback.
+The one-port Socket.IO instructions below describe the retained, disabled setup.
+
 1. Deploy the repository to an always-on Node host/container with Node **22.x**.
 2. Start it with `npm run start`; `server.js` serves Next.js and Socket.IO on the same `PORT`.
 3. Set `AUTH_URL` / `NEXT_PUBLIC_APP_URL` to the HTTPS app origin. `REALTIME_URL` is optional and defaults to the same origin.
@@ -86,11 +92,13 @@ rm prisma/admins.local.json
 
 ## Embed
 
-Agent → **Customization** → **Deploy** — copy the snippet (`embed.js` + `data-aide-key`). Legacy `data-hapy-key` still works. First load on a new origin locks that site and queues a website crawl.
+Agent → **Customization** → **Deploy** — set an **allowed origin allowlist**, copy the snippet (`embed.js` + `data-aide-key`). Legacy `data-hapy-key` still works. First successful ping on an allowlisted origin locks that site and queues a website crawl.
 
 Agent → **Customization** → **Appearance** — choose separate agent and user message bubble colors. The preview updates immediately; save to apply them to that agent's public widget.
 
-Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / weekly / etc.). When due, the next widget visit refreshes website knowledge automatically.
+Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / weekly / etc.). When due, the next widget visit (or Re-crawl now) refreshes website knowledge. Background sweep requires Redis + jobs worker.
+
+**Crawl SLA (launch):** static/SSR HTTPS help sites + TEXT/PDF uploads. SPA/JS sites need Chromium (`CRAWL_BROWSER_ENABLED` on Render Docker) — not available on Vercel serverless. PDF upload requires Cloudinary.
 
 ## Product map
 
@@ -124,7 +132,7 @@ Agent → **Knowledge** — set **Website re-crawl schedule** (once / daily / we
 | Classification | LLM category labels after reply (F09) |
 | Sentiment | POSITIVE / NEUTRAL / NEGATIVE on conversation |
 | Insights | Aggregates on `/analytics` (topics, trends, KPIs) |
-| Knowledge retrieve | F08 lexical + fuzzy ranking (**not** vector RAG yet) |
+| Knowledge retrieve | F08 lexical + fuzzy ranking; optional hybrid RAG when `semanticRagEnabled` (Level 3 · L1) |
 
 ## Go-live smoke
 

@@ -186,7 +186,7 @@ export function InboxShell({ selectedId, children }) {
               </span>
               <div>
                 <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
-                  Human desk
+                  Inbox
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {loading

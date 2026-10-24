@@ -138,10 +138,10 @@ test("studio confirmation UI approves once and resumes the action", async ({
 
   try {
     await page.goto(`/agents/${agentId}/test`);
-    const input = page.locator("textarea[placeholder*='test message'], textarea[placeholder*='visitor']").first();
-    await expect(input).toBeVisible();
+    const input = page.getByRole("textbox", { name: /message/i });
+    await expect(input).toBeVisible({ timeout: 30_000 });
     await input.fill("Cancel my subscription");
-    await input.press("Enter");
+    await page.getByRole("button", { name: "Send message" }).click();
 
     await expect(page.getByText("Confirmation required")).toBeVisible();
     await expect(page.getByText("cancel your subscription", { exact: true })).toBeVisible();

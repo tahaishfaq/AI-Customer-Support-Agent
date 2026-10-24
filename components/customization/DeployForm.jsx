@@ -403,8 +403,9 @@ export function DeployForm({
               </p>
             ) : (
               <p className="mt-1.5 text-[12px] text-muted-foreground">
-                Leave empty to allow any site until the first live visit locks
-                the agent (or switch Features → Embed origins to Allowlist).
+                Add at least one https origin above before going live. Public
+                embed claim is blocked until an allowlist is set (www and apex
+                count as the same site).
               </p>
             )}
           </FieldBlock>

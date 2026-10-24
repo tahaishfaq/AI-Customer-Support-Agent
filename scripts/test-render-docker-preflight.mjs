@@ -84,16 +84,23 @@ const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
   const entry = read("scripts/render-entrypoint.sh");
   assert.match(entry, /SERVICE_ROLE/, "entrypoint switches on SERVICE_ROLE");
   assert.match(entry, /worker:jobs:prod/, "jobs role starts BullMQ worker");
-  assert.match(entry, /npm run start/, "web role starts server.js");
+  assert.match(entry, /npm run start/, "web role starts the configured app runtime");
   console.log("ok  render-entrypoint.sh roles");
 }
 
 {
   const yaml = read("render.yaml");
+  const pkg = JSON.parse(read("package.json"));
   assert.match(yaml, /name:\s*aide-web/, "blueprint defines aide-web");
-  assert.match(yaml, /name:\s*aide-jobs/, "blueprint defines aide-jobs");
-  assert.match(yaml, /SERVICE_ROLE/, "blueprint sets SERVICE_ROLE");
-  assert.match(yaml, /BULLMQ_ENABLED/, "blueprint enables BullMQ");
+  assert.doesNotMatch(yaml, /name:\s*aide-jobs/, "blueprint must not recreate the removed worker");
+  assert.doesNotMatch(yaml, /type:\s*(?:worker|keyvalue|redis)\b/, "HTTP-only deployment has no worker or Redis resource");
+  assert.match(yaml, /dockerCommand: node node_modules\/next\/dist\/bin\/next start/, "existing images bypass the Redis-dependent custom server");
+  for (const flag of ["REDIS_ENABLED", "BULLMQ_ENABLED", "REALTIME_ENABLED", "REALTIME_DESK_ENABLED", "REALTIME_EMBED_ENABLED", "REALTIME_BILLING_ENABLED"]) {
+    assert.match(yaml, new RegExp(`key: ${flag}\\s+value: "0"`), `${flag} must be disabled`);
+  }
+  assert.doesNotMatch(yaml, /key:\s*(?:REDIS_URL|REALTIME_REDIS_URL)\b/, "removed Redis credentials are not requested");
+  assert.match(pkg.scripts.dev, /^next dev\b/, "local development starts without Redis");
+  assert.match(pkg.scripts.start, /^next start\b/, "production startup starts without Redis");
   assert.doesNotMatch(
     yaml,
     /generateValue:\s*true/,

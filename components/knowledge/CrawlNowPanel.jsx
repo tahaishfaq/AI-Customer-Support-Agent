@@ -136,11 +136,9 @@ export function CrawlNowPanel({
             Crawl / re-crawl website
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Paste one or more public https page URLs from the same site (one per
-            line). Aide indexes public HTML first; JavaScript SPA shells need
-            browser crawl (`CRAWL_BROWSER_ENABLED`). Login/admin URLs are skipped.
-            To index Aide help, crawl <span className="font-mono">/docs</span>{" "}
-            on this host — not the app home URL.
+            Paste public https page URLs from the same site (one per line). Aide
+            reads normal HTML first and uses enhanced rendering only when a page
+            needs JavaScript. Login and admin URLs are skipped.
           </p>
         </div>
         {status ? (

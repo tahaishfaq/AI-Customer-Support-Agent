@@ -10,6 +10,8 @@ import {
   createTextKnowledgeSchema,
   zodErrorDetails,
 } from "@/lib/validations/knowledge";
+import { rateLimit } from "@/lib/rate-limit";
+import { knowledgeWriteLimitOpts } from "@/lib/rate-limit-config";
 
 export async function GET(_request, { params }) {
   try {
@@ -43,6 +45,21 @@ export async function POST(request, { params }) {
     if (authResult.error) return authResult.error;
 
     const { id } = await params;
+    const limited = await rateLimit(
+      `knowledge-write:${authResult.user.id}:${id}`,
+      knowledgeWriteLimitOpts()
+    );
+    if (!limited.ok) {
+      return NextResponse.json(
+        {
+          error: {
+            message: "Too many knowledge uploads — try again shortly",
+            details: { code: "RATE_LIMITED" },
+          },
+        },
+        { status: 429 }
+      );
+    }
     const contentType = request.headers.get("content-type") || "";
 
     if (contentType.includes("multipart/form-data")) {

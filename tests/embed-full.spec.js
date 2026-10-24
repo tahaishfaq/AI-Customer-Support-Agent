@@ -202,23 +202,24 @@ test("actual local embed runs guest, RAG, logged-in, handoff, stream, and realti
   await expect(iframe, JSON.stringify({ embedDiagnostics, embedRuntime, realtimeResponses, messages: await page.evaluate(() => window.__aideEmbedMessages || []) })).toBeVisible({ timeout: 15_000 });
   await expect(frame().getByRole("button", { name: "Open chat widget" })).toBeVisible();
   await frame().getByRole("button", { name: "Open chat widget" }).click();
-  await expect(frame().getByText("AIDE Embedded Full E2E").first()).toBeVisible();
-  await frame().getByRole("button", { name: "Start conversation" }).click();
+  const startChat = frame().getByRole("button", { name: /Send us a message|Start conversation/i });
+  await expect(startChat).toBeVisible({ timeout: 15_000 });
+  await startChat.click();
 
-  const input = frame().locator('textarea[placeholder="Type your message..."]');
-  await expect(input).toBeVisible();
+  const input = frame().getByRole("textbox", { name: /message/i });
+  await expect(input).toBeVisible({ timeout: 15_000 });
 
   await input.fill("What does AIDE support? Include the FAQ marker.");
-  await input.press("Enter");
+  await frame().getByRole("button", { name: "Send message" }).click();
   await expect(frame().getByText(/EMBED-FAQ-5182/)).toBeVisible({ timeout: 30_000 });
 
   await input.fill("Explain the long guide and include the far-end marker.");
-  await input.press("Enter");
+  await frame().getByRole("button", { name: "Send message" }).click();
   await expect(frame().getByText(/EMBED-LONG-9347/)).toBeVisible({ timeout: 30_000 });
 
   if (process.env.OPENAI_WEB_SEARCH_ENABLED === "true") {
     await input.fill("Search online for the current OpenAI API documentation homepage and cite your sources.");
-    await input.press("Enter");
+    await frame().getByRole("button", { name: "Send message" }).click();
     await expect(frame().getByTestId("agent-activity")).toBeVisible({ timeout: 10_000 });
     await expect(frame().getByText(/OpenAI API documentation/i)).toBeVisible({ timeout: 30_000 });
     const webSources = frame().locator('[aria-label="Web sources"]');
@@ -229,7 +230,7 @@ test("actual local embed runs guest, RAG, logged-in, handoff, stream, and realti
   }
 
   await input.fill("I am very happy with this support.");
-  await input.press("Enter");
+  await frame().getByRole("button", { name: "Send message" }).click();
   await expect(frame().getByText("I am very happy with this support.")).toBeVisible();
 
   const realtimeMetrics = await page.evaluate(() =>
@@ -240,29 +241,40 @@ test("actual local embed runs guest, RAG, logged-in, handoff, stream, and realti
     JSON.stringify({ realtimeResponses, realtimeSockets, realtimeHandshakeOrigins, realtimeMetrics })
   ).toBeVisible({ timeout: 15_000 });
 
-  const conversationId = await frame().locator("[data-realtime-conversation]").getAttribute("data-realtime-conversation");
-  const publicAccessToken = await frame().locator("body").evaluate(
-    (_, { publicKey, conversationId }) =>
-      localStorage.getItem(`aide:realtime-access:${publicKey}:${conversationId}`),
+  const conversationId = await frame()
+    .locator("[data-realtime-conversation]")
+    .getAttribute("data-realtime-conversation");
+  expect(conversationId, "realtime conversation id missing").toBeTruthy();
+
+  // Call handoff from inside the widget frame so Origin + access token match issuance.
+  const handoffResult = await page.locator(frameSelector).evaluate(
+    async (iframe, { publicKey, conversationId: cid }) => {
+      const win = iframe.contentWindow;
+      const token = win.localStorage.getItem(`aide:realtime-access:${publicKey}:${cid}`);
+      const res = await win.fetch(
+        `/api/public/agents/${publicKey}/conversations/${cid}/handoff`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-aide-conversation-access-token": token || "",
+          },
+          body: JSON.stringify({ reason: "Customer requested human support" }),
+        }
+      );
+      return {
+        status: res.status,
+        body: await res.json().catch(() => ({})),
+        hasToken: Boolean(token),
+        origin: win.location.origin,
+      };
+    },
     { publicKey: agent.publicKey, conversationId }
   );
-  const handoffResponse = await request.post(
-    `/api/public/agents/${agent.publicKey}/conversations/${conversationId}/handoff`,
-    {
-      headers: {
-        Origin: "http://127.0.0.1:4333",
-        Referer: "http://127.0.0.1:4333/",
-        "x-aide-conversation-access-token": publicAccessToken || "",
-      },
-      data: { reason: "Customer requested human support" },
-    }
-  );
-  const handoffResult = {
-    status: handoffResponse.status(),
-    body: await handoffResponse.json().catch(() => ({})),
-  };
-  expect(handoffResult.status, JSON.stringify(handoffResult.body)).toBe(200);
-  await expect(frame().getByText(/waiting|human support|connected/i).first()).toBeVisible({ timeout: 15_000 });
+  expect(handoffResult.status, JSON.stringify(handoffResult)).toBe(200);
+  await expect(frame().getByText(/waiting|human support|connected/i).first()).toBeVisible({
+    timeout: 15_000,
+  });
 
   const loggedInPage = await page.context().newPage();
   const loggedDiagnostics = [];
@@ -303,14 +315,16 @@ test("actual local embed runs guest, RAG, logged-in, handoff, stream, and realti
     });
   });
   await loggedFrame().getByRole("button", { name: "Open chat widget" }).click();
-  const loggedStart = loggedFrame().getByRole("button", { name: "Start conversation" });
-  if (await loggedStart.isVisible({ timeout: 3_000 }).catch(() => false)) {
+  const loggedStart = loggedFrame().getByRole("button", {
+    name: /Send us a message|Start conversation/i,
+  });
+  if (await loggedStart.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await loggedStart.click();
   }
-  const loggedInput = loggedFrame().locator('textarea[placeholder="Type your message..."]');
-  await expect(loggedInput).toBeVisible();
+  const loggedInput = loggedFrame().getByRole("textbox", { name: /message/i });
+  await expect(loggedInput).toBeVisible({ timeout: 15_000 });
   await loggedInput.fill("I am logged in on the customer website. What support features are available?");
-  await loggedInput.press("Enter");
+  await loggedFrame().getByRole("button", { name: "Send message" }).click();
   await expect(loggedFrame().getByText(/I am logged in on the customer website/)).toBeVisible();
   await expect(loggedFrame().locator('[data-realtime-status="connected"]')).toBeVisible({ timeout: 15_000 });
   await loggedInPage.close();

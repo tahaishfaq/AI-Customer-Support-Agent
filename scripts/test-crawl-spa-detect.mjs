@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 
-const { looksLikeThinSpaShell } = await import(
+const { looksLikeThinSpaShell, isHashClientRoute, looksLikeLowQualityPage } = await import(
   "../lib/services/site-crawler.js"
 );
 const browserMod = await import("../lib/services/site-crawler-browser.js");
@@ -25,12 +25,31 @@ assert.equal(
 );
 assert.equal(
   looksLikeThinSpaShell(
-    "<html><body><h1>Refund policy</h1><p>Returns within 30 days.</p></body></html>",
-    "Refund policy\nReturns within 30 days."
+    `<html><body><div id="app"></div><script src="/js/app.js"></script></body></html>`,
+    ""
   ),
-  false,
-  "normal HTML is not SPA shell"
+  true,
+  "empty #app is thin SPA shell"
 );
+assert.equal(
+  looksLikeThinSpaShell(
+    `<html><body><div id="__next"></div><script src="/_next/static/chunks/main.js"></script><script src="/_next/static/chunks/pages.js"></script><script src="/_next/static/chunks/webpack.js"></script></body></html>`,
+    ""
+  ),
+  true,
+  "empty #__next CSR shell is thin SPA"
+);
+assert.equal(isHashClientRoute("#/pricing"), true);
+assert.equal(isHashClientRoute("#features"), false);
+assert.equal(looksLikeLowQualityPage("404 Not Found", "page not found"), "soft_404");
+assert.equal(looksLikeLowQualityPage("Sign in", "Enter your password to continue"), "login_wall");
+
+const { isBlockedBrowserTarget } = browserMod.default || browserMod;
+assert.equal(isBlockedBrowserTarget("http://example.com/", { navigationOrigin: "https://example.com" }), true);
+assert.equal(isBlockedBrowserTarget("https://127.0.0.1/", { navigationOrigin: "https://example.com" }), true);
+assert.equal(isBlockedBrowserTarget("https://169.254.169.254/latest/meta-data", { navigationOrigin: "https://example.com" }), true);
+assert.equal(isBlockedBrowserTarget("https://cdn.example.net/app.js"), false);
+assert.equal(isBlockedBrowserTarget("https://other.com/escape", { navigationOrigin: "https://example.com" }), true);
 
 const prev = process.env.CRAWL_BROWSER_ENABLED;
 process.env.CRAWL_BROWSER_ENABLED = "0";

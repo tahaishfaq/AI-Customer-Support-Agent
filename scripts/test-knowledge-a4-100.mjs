@@ -30,9 +30,18 @@ function runCase(item) {
   } else if (item.category === "document_injection") {
     check(selected.used.length >= 1, item.id + " retrieves document");
     const signals = detectInjectionSignals(item.docs[0].content);
-    const fenced = fenceUntrustedText(item.docs[0].content, { source: "knowledge" });
     check(signals.length >= 1, item.id + " detects document injection");
-    check(fenced.includes("UNTRUSTED_KNOWLEDGE_DATA") && fenced.includes("neutralized-instruction-like-text"), item.id + " fences document data");
+    check(
+      selected.text.includes("UNTRUSTED_KNOWLEDGE_DATA") &&
+        selected.text.includes("neutralized-instruction-like-text"),
+      item.id + " packed text fences and neutralizes injection"
+    );
+    const fenced = fenceUntrustedText(item.docs[0].content, { source: "knowledge" });
+    check(fenced.includes("UNTRUSTED_KNOWLEDGE_DATA"), item.id + " fence helper still works");
+  } else if (item.category === "unsupported_clarify") {
+    check(route.mayInvokeWebSearch === false, item.id + " does not use web for ambiguity");
+    check(selected.used.length === 0, item.id + " soft-fallback does not stuff used docs");
+    check(selected.text === "", item.id + " soft-fallback returns empty text");
   } else if (item.category === "provenance" || item.category === "conflict_precedence") {
     check(selected.used.length >= 1, item.id + " retrieves source");
     const evidence = buildKnowledgeEvidence({ used: selected.used, docs: item.docs, route: "STORE", crawlStatus: "DONE" });
@@ -42,10 +51,11 @@ function runCase(item) {
   } else if (item.category === "chunk_budget") {
     check(selected.used.length >= 1, item.id + " retrieves large document");
     check(selected.text.length <= 12000, item.id + " respects knowledge budget");
-    check(selected.text.includes("Document DATA only"), item.id + " includes untrusted knowledge banner");
-  } else if (item.category === "unsupported_clarify") {
-    check(route.mayInvokeWebSearch === false, item.id + " does not use web for ambiguity");
-    check(selected.used.length === 0 || selected.text.length > 0, item.id + " has an explicit retrieval outcome");
+    check(
+      selected.text.includes("Document DATA only") ||
+        selected.text.includes("UNTRUSTED_KNOWLEDGE_DATA"),
+      item.id + " includes untrusted knowledge fencing"
+    );
   } else {
     check(selected.used.length >= 1, item.id + " retrieves multilingual/fuzzy knowledge");
     check(selected.text.includes("Agent knowledge"), item.id + " returns knowledge context");

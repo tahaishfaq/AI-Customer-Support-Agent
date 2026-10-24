@@ -28,8 +28,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Schedule website knowledge refresh.
- * Note: Aide does not watch the live site for edits — refresh runs when the
- * interval is due and a visitor loads the embedded widget.
+ * Current deploy (Redis/BullMQ off): due recrawl runs on the next widget visit
+ * or when you click Re-crawl now. Background sweep needs the jobs worker.
  */
 export function CrawlSchedulePanel({
   agentId,
@@ -57,6 +57,7 @@ export function CrawlSchedulePanel({
   const mode = autoRefresh ? "scheduled" : "once";
 
   async function save(nextValue = value) {
+    if (saving) return;
     setSaving(true);
     try {
       await updateAgent(agentId, { crawlRecrawlHours: nextValue });
@@ -96,8 +97,8 @@ export function CrawlSchedulePanel({
 
       <p className="text-xs text-muted-foreground">
         {autoRefresh
-          ? "Re-crawl on an interval when visitors load the widget."
-          : "Crawl when first embedded. Site edits will not refresh knowledge."}
+          ? "When due, refreshes on the next widget visit or Re-crawl now (unless a jobs worker is enabled). Site edits are not watched live."
+          : "Crawl from Knowledge when you click Re-crawl now. Site edits will not refresh knowledge until you recrawl."}
       </p>
 
       <div
@@ -152,14 +153,16 @@ export function CrawlSchedulePanel({
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Embed the widget on your live https site first. Scheduled refresh
-          runs after the interval on the next visitor visit.
+          Crawl your website from Knowledge first. After that, a schedule marks
+          when a refresh is due — it runs on the next widget visit or Re-crawl
+          now (unless a background jobs worker is enabled).
         </p>
       )}
 
       {autoRefresh ? (
         <p className="text-xs text-muted-foreground">
-          {labelForCrawlRecrawlHours(value)} · no separate cron needed.
+          {labelForCrawlRecrawlHours(value)} · refreshes when the widget is used
+          after the interval (or via Re-crawl now).
         </p>
       ) : null}
     </div>
@@ -170,7 +173,7 @@ export function CrawlSchedulePanel({
       <FormSection title="Website knowledge">
         <FieldBlock
           label="Re-crawl schedule"
-          hint="Keep FAQ-from-website fresh. We refresh on a schedule when the widget loads — not the moment someone edits a page."
+          hint="Keep website answers fresh. When due, the next widget visit or Re-crawl now refreshes pages (not the moment someone edits a page)."
         >
           {scheduleControls}
         </FieldBlock>
@@ -184,8 +187,8 @@ export function CrawlSchedulePanel({
         Website re-crawl schedule
       </p>
       <p className="mt-0.5 text-xs text-muted-foreground">
-        Default is once on first embed. Choose Scheduled to refresh when
-        visitors load the widget.
+        Default is a one-time crawl. Choose Scheduled to refresh on the next
+        widget visit after the interval (or use Re-crawl now).
       </p>
       <div className="mt-3">{scheduleControls}</div>
     </div>

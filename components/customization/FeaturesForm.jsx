@@ -165,7 +165,7 @@ export function FeaturesForm({ features, onChange, support, onSupportChange }) {
       <FormSection title="Embed origins">
         <FieldBlock
           label="Origin policy"
-          hint="All = first live HTTPS site claim locks the agent (existing behavior). Allowlist = only listed origins may call public embed APIs or claim the lock. Localhost / Aide app preview still allowed. You can also set the base URL under Deploy → Website base URL."
+          hint="Allowlist is required before the first public claim/crawl lock (set origins here or under Deploy → Website base URL). All = public chat may load from any origin until locked, but claim still needs an allowlist. Localhost / Aide app preview still allowed."
         >
           <Select
             value={features.allowedOriginsMode || "all"}
@@ -178,7 +178,7 @@ export function FeaturesForm({ features, onChange, support, onSupportChange }) {
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all">All (auto-lock first site)</SelectItem>
+                <SelectItem value="all">All (chat open; claim needs allowlist)</SelectItem>
                 <SelectItem value="allowlist">Allowlist only</SelectItem>
               </SelectGroup>
             </SelectContent>

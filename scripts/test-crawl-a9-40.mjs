@@ -30,16 +30,33 @@ async function runDiscovery(variant) {
         if (variant === 2) return response("<urlset><url><loc>" + origin + "/duplicate</loc></url></urlset>", 200, { "content-type": "application/xml" });
         return response(variant === 3 ? "missing" : "<urlset><url><loc>" + origin + "/home</loc></url></urlset>", variant === 3 ? 404 : 200, { "content-type": "application/xml" });
       }
-      if (parsed.pathname === "/duplicate") return response("<html><head><link rel=\"canonical\" href=\"/home\"></head><body>Duplicate page</body></html>", 200, { "content-type": "text/html" });
+      if (parsed.pathname === "/duplicate") return response("<html><head><link rel=\"canonical\" href=\"/home\"></head><body>Duplicate page body unique for canonical test.</body></html>", 200, { "content-type": "text/html" });
       if (parsed.pathname === "/home") return response("<html><head><title>Support</title></head><body><h1>Returns</h1><a href=\"/linked\">Linked</a><a href=\"https://other.example.test/no\">External</a><a href=\"/private\">Private</a></body></html>", 200, { "content-type": "text/html" });
       if (parsed.pathname === "/private") return response("<html><body>private</body></html>", 200, { "content-type": "text/html" });
+      if (parsed.pathname === "/pricing") {
+        return response(
+          "<html><body>Pricing page unique body for sitemap dedupe: plans start at ten dollars monthly.</body></html>",
+          200,
+          { "content-type": "text/html" }
+        );
+      }
+      if (parsed.pathname === "/resumed") {
+        return response(
+          "<html><body>Resumed frontier page unique body with enough support detail for indexing.</body></html>",
+          200,
+          { "content-type": "text/html" }
+        );
+      }
       return response("<html><body>Public support content with enough detail for indexing safely.</body></html>", 200, { "content-type": "text/html" });
     };
     const result = await crawlPublicOrigin(origin, {
       resumeUrls: variant === 4 ? [{ url: origin + "/resumed", depth: 1 }] : [],
     });
     if (variant === 0) check(!result.pages.some((page) => page.url.endsWith("/private")), "robots denied path excluded");
-    if (variant === 1) check(result.pages.filter((page) => page.url.endsWith("/pricing")).length === 1, "duplicate sitemap URL deduped");
+    if (variant === 1) {
+      check(result.pages.filter((page) => page.url.endsWith("/pricing")).length === 1, "duplicate sitemap URL deduped");
+      check(result.coverage.sitemapUrls === 1 || result.coverage.sitemapUrls === 2, "sitemap locs recorded before enqueue dedupe");
+    }
     if (variant === 2) check(result.pages.length > 0 && result.coverage.sitemapUrls >= 1, "canonical source is processed with sitemap coverage");
     if (variant === 3) check(result.pages.length > 0, "link discovery works without sitemap");
     if (variant === 4) check(result.pages.some((page) => page.url.endsWith("/resumed")), "frontier resume works");

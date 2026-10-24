@@ -52,6 +52,7 @@ export function KnowledgeSuggestionsPanel({ agentId }) {
   }
 
   async function review(id, action) {
+    if (busyId) return;
     setBusyId(id);
     try {
       const edit = edits[id] || {};
@@ -79,7 +80,7 @@ export function KnowledgeSuggestionsPanel({ agentId }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3">
           <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <Lightbulb className="size-4" />
+            <Lightbulb className="size-4" aria-hidden />
           </span>
           <div className="min-w-0">
             <h2 id="gap-heading" className="text-sm font-semibold text-foreground">
@@ -98,7 +99,28 @@ export function KnowledgeSuggestionsPanel({ agentId }) {
       </div>
 
       {query.isPending ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground" role="status">
+          Loading…
+        </p>
+      ) : query.isError ? (
+        <div
+          className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-4 text-sm"
+          role="alert"
+        >
+          <p className="font-medium text-destructive">Could not load suggestions</p>
+          <p className="mt-1 text-muted-foreground">
+            {query.error?.message || "Something went wrong. Try again."}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="mt-3"
+            onClick={() => query.refetch()}
+          >
+            Retry
+          </Button>
+        </div>
       ) : suggestions.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           No pending suggestions.

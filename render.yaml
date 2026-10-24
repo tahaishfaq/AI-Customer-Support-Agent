@@ -1,7 +1,7 @@
-# Render Blueprint — Aide always-on Node (Next.js + Socket.IO) + BullMQ/Chromium worker.
+# Render Blueprint — Aide HTTP-only Next.js app with inline Chromium crawls.
 # Region singapore sits next to Neon ap-southeast-1.
 # Secrets: sync:false — set via Render dashboard/CLI from local env. Never commit values.
-# Redis: reuse existing Upstash (REDIS_URL / REALTIME_REDIS_URL). No Render Key Value required.
+# Redis, Socket.IO, and BullMQ workers are disabled to reduce hosting costs.
 # Docs: docs/deploy/RENDER.md
 
 envVarGroups:
@@ -26,15 +26,9 @@ envVarGroups:
       - key: EMAIL_FROM
         sync: false
       - key: REDIS_ENABLED
-        value: "1"
+        value: "0"
       - key: BULLMQ_ENABLED
-        value: "1"
-      - key: REDIS_URL
-        sync: false
-      - key: REALTIME_REDIS_URL
-        sync: false
-      - key: REALTIME_TOKEN_SECRET
-        sync: false
+        value: "0"
       - key: AUTH_SECRET
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
@@ -61,10 +55,11 @@ services:
     name: aide-web
     runtime: docker
     dockerfilePath: ./Dockerfile
-    dockerCommand: sh scripts/render-entrypoint.sh
+    dockerCommand: node node_modules/next/dist/bin/next start --hostname 0.0.0.0
     region: singapore
-    plan: standard
-    preDeployCommand: npx prisma migrate deploy
+    plan: starter
+    # Use DIRECT_URL — pooler advisory locks fail (P1002).
+    preDeployCommand: sh scripts/render-predeploy-migrate.sh
     healthCheckPath: /api/health
     envVars:
       - fromGroup: aide-shared
@@ -81,31 +76,18 @@ services:
       - key: REALTIME_ALLOWED_ORIGINS
         sync: false
       - key: REALTIME_ENABLED
-        value: "1"
-      - key: CRAWL_BROWSER_ENABLED
         value: "0"
+      - key: REALTIME_DESK_ENABLED
+        value: "0"
+      - key: REALTIME_EMBED_ENABLED
+        value: "0"
+      - key: REALTIME_BILLING_ENABLED
+        value: "0"
+      - key: CRAWL_BROWSER_ENABLED
+        value: "1"
       - key: AUTH_GOOGLE_ID
         sync: false
       - key: AUTH_GOOGLE_SECRET
         sync: false
       - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
         sync: false
-
-  # BullMQ + recrawl sweep + Playwright Chromium + realtime outbox publisher (child).
-  - type: worker
-    name: aide-jobs
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerCommand: sh scripts/render-entrypoint.sh
-    region: singapore
-    plan: standard
-    envVars:
-      - fromGroup: aide-shared
-      - key: SERVICE_ROLE
-        value: "jobs"
-      - key: REALTIME_ENABLED
-        value: "1"
-      - key: CRAWL_BROWSER_ENABLED
-        value: "1"
-      - key: WORKER_CONCURRENCY_CRAWL
-        value: "1"

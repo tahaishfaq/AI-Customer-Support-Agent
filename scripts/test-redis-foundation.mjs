@@ -52,7 +52,8 @@ function testWiring() {
   assert.match(rl, /async function rateLimit/);
   assert.match(rl, /rateLimitRedis/);
   assert.match(rl, /export function rateLimitMemory/);
-  assert.match(rl, /fail through to memory|fall through to memory/);
+  assert.match(rl, /backend: "redis-unavailable"/);
+  assert.match(rl, /failClosed: true/);
 
   const chat = read("app/api/public/agents/[publicKey]/chat/route.js");
   assert.match(chat, /await rateLimit\(/);

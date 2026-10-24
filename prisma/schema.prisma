@@ -89,6 +89,15 @@ enum CrawlPageStatus {
 enum ActionHttpMethod {
   GET
   POST
+  PUT
+  PATCH
+  DELETE
+}
+
+enum ActionProtocol {
+  REST_JSON
+  GRAPHQL
+  XML
 }
 
 enum ActionCredentialType {
@@ -665,6 +674,7 @@ model AgentAction {
   name                   String
   description            String
   method                 ActionHttpMethod       @default(GET)
+  protocol               ActionProtocol         @default(REST_JSON)
   urlTemplate            String
   frozenHost             String?
   connectionId           String?
@@ -675,6 +685,10 @@ model AgentAction {
   inputSchemaJson        Json?
   outputSchemaJson       Json?
   responseProjectionJson Json?
+  graphqlOperation       String?
+  graphqlOperationName   String?
+  resultInstructions     String?
+  paginationJson         Json?
   enabled                Boolean                @default(true)
   timeoutMs              Int                    @default(8000)
   credentialId           String?
@@ -715,6 +729,7 @@ model ActionRevision {
   name                   String
   description            String
   method                 ActionHttpMethod
+  protocol               ActionProtocol       @default(REST_JSON)
   urlTemplate            String
   frozenHost             String?
   connectionId           String?
@@ -726,6 +741,10 @@ model ActionRevision {
   inputSchemaJson        Json?
   outputSchemaJson       Json?
   responseProjectionJson Json?
+  graphqlOperation       String?
+  graphqlOperationName   String?
+  resultInstructions     String?
+  paginationJson         Json?
   enabled                Boolean              @default(true)
   timeoutMs              Int                  @default(8000)
   credentialId           String?

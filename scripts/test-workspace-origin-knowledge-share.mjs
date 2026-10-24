@@ -18,8 +18,7 @@ function pass(name) {
   const list = parseAllowedOriginsList(
     "https://www.brandly.pk\nbrandly.pk\nhttps://www.brandly.pk"
   );
-  assert.equal(list.length, 2, "dedupe + normalize");
-  assert.ok(list.includes("https://www.brandly.pk"));
+  assert.equal(list.length, 1, "www and apex dedupe to one origin");
   assert.ok(list.includes("https://brandly.pk"));
   pass("parseAllowedOriginsList normalizes");
 }

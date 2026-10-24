@@ -16,10 +16,30 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSurface } from "@/components/ui/loading-surface";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CRAWL_PAGE_KNOWLEDGE_PREFIX } from "@/lib/services/crawl-knowledge";
+import { CRAWL_PAGE_KNOWLEDGE_PREFIX } from "@/lib/validations/knowledge";
 import { LARGE_DOC_CHARS, isLargeKnowledgeDoc } from "@/lib/services/ai/knowledge-retrieve";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateKnowledgeQuery } from "@/lib/query/invalidation";
+
+function ownerWebsiteStatus({ latestCrawl, crawlDocuments, crawlActive }) {
+  if (crawlActive) {
+    return { code: "CRAWLING", label: "Crawling" };
+  }
+  const indexed = crawlDocuments.length;
+  if (latestCrawl?.status === "FAILED" && indexed === 0) {
+    return { code: "FAILED", label: "Failed" };
+  }
+  if (latestCrawl?.status === "FAILED") {
+    return { code: "NEEDS ATTENTION", label: "Needs attention" };
+  }
+  if (latestCrawl?.status === "PARTIAL" || (indexed > 0 && latestCrawl?.status === "DONE" && Number(latestCrawl?.skippedCount || 0) > 0)) {
+    return { code: "PARTIALLY INDEXED", label: "Partially indexed" };
+  }
+  if (indexed > 0 || latestCrawl?.status === "DONE") {
+    return { code: "READY", label: "Ready" };
+  }
+  return null;
+}
 
 function CrawlStatusBadge({ status }) {
   if (!status) return null;
@@ -93,6 +113,11 @@ export function KnowledgeList({
   );
   const crawlActive =
     latestCrawl?.status === "QUEUED" || latestCrawl?.status === "RUNNING";
+  const websiteStatus = ownerWebsiteStatus({
+    latestCrawl,
+    crawlDocuments,
+    crawlActive,
+  });
 
   function handleCrawlQueued(result) {
     queryClient.setQueryData(queryKeys.knowledge.list(agentId), (previous) => ({
@@ -146,9 +171,14 @@ export function KnowledgeList({
         <p className="text-sm text-muted-foreground">
           FAQ text, PDFs, and website pages this agent can use.
           {hasWeb && siteCrawledAt
-            ? ` Website knowledge saved from ${String(siteKnowledgeOrigin || "").replace(/^https?:\/\//, "") || "embed"} on ${new Date(siteCrawledAt).toLocaleDateString()}.`
-            : " Embed the widget on a live https site to learn public pages once. Set a re-crawl schedule below to refresh website knowledge automatically."}
+            ? ` Website knowledge saved from ${String(siteKnowledgeOrigin || "").replace(/^https?:\/\//, "") || "your site"} on ${new Date(siteCrawledAt).toLocaleDateString()}.`
+            : " Add your website below and click Crawl now. Installing the chat widget is separate."}
         </p>
+        {websiteStatus ? (
+          <span className="shrink-0 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            Website knowledge: {websiteStatus.label}
+          </span>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -204,6 +234,24 @@ export function KnowledgeList({
         />
       </div>
 
+      {latestCrawl && !crawlActive ? (
+        <p className="mt-3 text-[12px] text-muted-foreground">
+          {Number(latestCrawl.discoveredCount || 0)
+            ? `${latestCrawl.discoveredCount} discovered`
+            : "Pages discovered —"}
+          {" · "}
+          {Number(latestCrawl.indexedCount || crawlDocuments.length) || 0} indexed
+          {" · "}
+          {Number(latestCrawl.skippedCount || 0)} skipped
+          {" · "}
+          {Number(latestCrawl.fetchedCount || 0) >= 0 && latestCrawl.status === "FAILED"
+            ? "last attempt failed"
+            : latestCrawl.finishedAt
+              ? `last crawl ${new Date(latestCrawl.finishedAt).toLocaleString()}`
+              : "last crawl pending"}
+        </p>
+      ) : null}
+
       {latestCrawl?.status === "FAILED" ? (
         <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -215,11 +263,12 @@ export function KnowledgeList({
           <p className="mt-1 text-sm text-muted-foreground">
             {(latestCrawl.error || "")
               .replace(/^CRAWL_FAILED:\s*/i, "")
-              .trim() || "The one-time site crawl could not finish."}{" "}
-            Use <span className="font-medium">Re-crawl now</span> above with
-            public https page URLs (help, pricing, docs). JavaScript-only SPAs
-            with an empty HTML shell usually fail — add knowledge manually or
-            publish real HTML pages.
+              .replace(/CRAWL_BROWSER_ENABLED=\S+/g, "")
+              .trim() || "Aide could not read this website yet."}{" "}
+            Use <span className="font-medium">Crawl now</span> above with public
+            pages (help, pricing, docs). If the site builds pages with
+            JavaScript, Aide will try enhanced rendering when available — or add
+            those pages as text.
           </p>
         </div>
       ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   Download,
@@ -30,6 +31,8 @@ import { welcomeBubble } from "@/lib/chat/welcome-bubble";
 import { playNotificationBeep, widgetIntro } from "@/lib/customization/theme";
 import { PreviewKnowledgeDialog } from "@/components/knowledge/PreviewKnowledgeDialog";
 import { listKnowledge } from "@/lib/api/knowledge";
+import { queryKeys } from "@/lib/query/keys";
+import { CRAWL_PAGE_KNOWLEDGE_PREFIX } from "@/lib/validations/knowledge";
 import { useMinWidth } from "@/hooks/use-mobile";
 import { listAgentMcpServers } from "@/lib/api/mcp";
 import { githubMcpAuthIssues } from "@/lib/mcp/github-auth-status";
@@ -311,6 +314,33 @@ export function AgentTestStudio({ agent }) {
     () => buildSessionLogEntries(messages, chatExtras),
     [messages, chatExtras]
   );
+  const knowledgeQuery = useQuery({
+    queryKey: queryKeys.knowledge.list(agent.id),
+    queryFn: () => listKnowledge(agent.id),
+    enabled: Boolean(agent.id),
+  });
+  const websiteKnowledgeUnavailable = useMemo(() => {
+    const docs = knowledgeQuery.data?.documents || [];
+    const latest = knowledgeQuery.data?.latestCrawl || null;
+    const crawlDocs = docs.filter(
+      (doc) =>
+        !doc.isShared &&
+        doc.type === "WEB" &&
+        (String(doc.name || "").startsWith(CRAWL_PAGE_KNOWLEDGE_PREFIX) ||
+          Boolean(doc.crawlJobId) ||
+          Boolean(doc.origin))
+    );
+    if (crawlDocs.length > 0) return false;
+    if (latest?.status === "FAILED" || latest?.status === "QUEUED" || latest?.status === "RUNNING") {
+      return true;
+    }
+    if (agent.siteKnowledgeOrigin && !agent.siteCrawledAt) return true;
+    return false;
+  }, [
+    knowledgeQuery.data,
+    agent.siteKnowledgeOrigin,
+    agent.siteCrawledAt,
+  ]);
 
   const ensureStudioIdentityToken = useCallback(async () => {
     if (!asSignedIn || !agent?.id || !authUser?.id) return null;
@@ -1305,6 +1335,11 @@ export function AgentTestStudio({ agent }) {
                     ? "Reconstruct a turn timeline from TurnRun + tools + message previews — no provider bodies."
                     : "Train → test → deploy: run questions, inspect knowledge used, export results."}
               </CardDescription>
+              {websiteKnowledgeUnavailable ? (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                  Website knowledge is not available yet. General conversation may still work.
+                </p>
+              ) : null}
             </div>
             <Button
               type="button"

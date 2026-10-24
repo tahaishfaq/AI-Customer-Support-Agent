@@ -58,7 +58,7 @@ export function KnowledgeItem({ document, agentId, onDeleted, onUnshared }) {
 
   return (
     <>
-      <article className="flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-b-0">
+      <article className="flex flex-col gap-2 border-b border-border px-4 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:gap-3">
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
@@ -120,7 +120,7 @@ export function KnowledgeItem({ document, agentId, onDeleted, onUnshared }) {
           </span>
         </button>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex w-full flex-wrap items-center gap-0.5 sm:w-auto sm:shrink-0 sm:flex-nowrap">
           <button
             type="button"
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"

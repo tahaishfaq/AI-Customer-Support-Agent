@@ -8,9 +8,10 @@ Generated: 2026-09-04T17:28:19.729Z
 | Gate | Result |
 | --- | --- |
 | Stages 5.1–5.6, 5.8 | PASS |
-| Stage 5.7 RAG | SKIP (deferred — accepted) |
+| Stage 5.7 RAG | **SHIPPED** (Level 3 hybrid / semantic RAG — optional per agent) |
 | Stages 6.1–6.6 | PASS / FROZEN |
 | Required env (DB, AUTH_SECRET, OPENAI) | OK |
+| Production Redis rate limits | **Required** — `REDIS_ENABLED=1` + Redis URL (`preflight:production`) |
 | Open CRITICAL harness failures | None |
 | Architecture freeze | `docs/ARCHITECTURE_FREEZE_STAGE6.md` |
 
@@ -28,12 +29,29 @@ Go-live still requires **owner** completion of the checklist below (manual UI, b
 | Question | Answer |
 | --- | --- |
 | Security CRITICAL open? | **No** (harness pack) |
-| Stage 5 residuals accepted? | **Yes** — RAG deferred; generator TC-* noise labeled |
+| Stage 5 residuals accepted? | **Yes** — generator TC-* noise labeled; hybrid RAG shipped (L3) |
 | Embed + studio smoke OK? | **Owner TODO** (manual §5) |
 | Billing OK? | **Owner TODO** |
-| RAG needed before launch? | **No** (default) — revisit `FULL_PATH` §7 if KB pain |
+| RAG needed before launch? | **Optional** — lexical default; hybrid when `semanticRagEnabled` |
 | Architecture frozen? | **Yes** |
 | **PRODUCTION READY?** | **CONDITIONAL_YES** — flip to **YES** only after owner checklist |
+
+### Tool runtime principle (2026-10-06)
+
+The model may choose an approved capability and supply validated arguments.
+It never defines identity, permissions, endpoint authority, arbitrary hosts, transport security, GraphQL operation authority, XML parser behavior, confirmation validity, or execution policy.
+Code owns parsing and enforcement. Policy owns authorization. The model owns bounded reasoning and user-facing language.
+
+| Protocol | Status |
+| --- | --- |
+| REST/JSON (GET/POST/PUT/PATCH/DELETE) | Supported |
+| GraphQL | Fixed stored operation + variables only |
+| XML | Explicit protocol + safe parser (XXE/DTD blocked) |
+| SOAP | **ACCEPTED_POST_MVP** — unsupported; use REST gateway or MCP |
+
+Limits SSOT: `lib/actions/limits.js` — raw network bytes ≠ HTTP processed chars ≠ LLM-visible tool result chars.
+
+External cutover still **EXTERNAL_BLOCKED** until owner verifies live OpenAI credits, SafePay webhook, Resend, production embed ping, and signs YES.
 
 ---
 
@@ -45,7 +63,7 @@ Go-live still requires **owner** completion of the checklist below (manual UI, b
 [x] Production secrets: ACTIONS_IDENTITY_SECRET, ACTIONS_CREDENTIALS_KEY, AUTH_URL HTTPS — local `preflight:production` PASS 2026-09-18 (confirm same values on host before YES)
 [x] Migrations applied on prod DB (`prisma migrate deploy`) — Neon up to date incl. `20260917010000_workspace_members` (2026-09-18)
 [ ] Accept RAG 5.7 deferred (or schedule F10)
-[ ] Accept in-memory rate limits (no Redis yet)
+[x] Production Redis required (`REDIS_ENABLED=1`) — fail-closed rate limits and crawl lock when Redis is on; `preflight:production` checks Redis URL
 [ ] Monitoring / error sampling plan agreed
 [ ] Owner signs PRODUCTION READY = YES
 
@@ -53,9 +71,9 @@ Go-live still requires **owner** completion of the checklist below (manual UI, b
 
 ## Residual risks (accepted for CONDITIONAL_YES)
 
-1. **Semantic RAG not shipped** — lexical knowledge stuffing only
+1. **Hybrid RAG is shipped** — lexical + semantic retrieve (`selectKnowledgeHybrid`); owner can still disable semantic RAG per agent
 2. **Web search** — OpenAI hosted Responses path implemented; local live provider probe passed; staging/browser validation was skipped by owner
-3. **Rate limits** — in-memory per serverless instance (not global Redis)
+3. **Rate limits** — Redis when `REDIS_ENABLED=1` (fail-closed); in-memory only when Redis is off (dev)
 4. **Live LLM p95 / 100-concurrent chat** — not load-tested against OpenAI in Stage 6
 5. **ACTIONS_* secrets** — ensure dedicated values in production
 6. Matrix `cross_user` generator labels — noise; live PEP uses utterance/args

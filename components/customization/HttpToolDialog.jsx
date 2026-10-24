@@ -281,6 +281,9 @@ export function HttpToolDialog({
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                  <option value="DELETE">DELETE</option>
                 </select>
                 <Input
                   value={base}
@@ -297,6 +300,82 @@ export function HttpToolDialog({
                 in development only.
               </FieldDescription>
             </Field>
+
+            <Field>
+              <FieldLabel htmlFor="http-tool-protocol">Protocol</FieldLabel>
+              <select
+                id="http-tool-protocol"
+                value={form.protocol || "REST_JSON"}
+                onChange={(e) => patchForm({ protocol: e.target.value })}
+                className={cn(selectClass, "w-full")}
+                aria-label="Action protocol"
+              >
+                <option value="REST_JSON">REST / JSON</option>
+                <option value="GRAPHQL">GraphQL (fixed operation)</option>
+                <option value="XML">XML response</option>
+              </select>
+              <FieldDescription>
+                SOAP is not supported. Use a REST gateway or MCP wrapper instead.
+              </FieldDescription>
+            </Field>
+
+            {String(form.protocol || "").toUpperCase() === "GRAPHQL" ? (
+              <Field>
+                <FieldLabel htmlFor="http-tool-gql">
+                  GraphQL operation (fixed — AI provides variables only)
+                </FieldLabel>
+                <textarea
+                  id="http-tool-gql"
+                  value={form.graphqlOperation || ""}
+                  onChange={(e) => patchForm({ graphqlOperation: e.target.value })}
+                  rows={8}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs"
+                  placeholder={"query GetOrder($orderId: ID!) {\n  order(id: $orderId) { id status }\n}"}
+                />
+                <FieldDescription>
+                  GraphQL operation is fixed. The AI can provide variables only.
+                  Never put {"{{query}}"} placeholders in the operation.
+                </FieldDescription>
+              </Field>
+            ) : null}
+
+            {String(form.protocol || "").toUpperCase() === "GRAPHQL" ? (
+              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                This GraphQL operation is fixed. AI can supply variables only.
+              </p>
+            ) : null}
+
+            <details className="rounded-md border border-border px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium">
+                Advanced (mapping, result notes)
+              </summary>
+              <div className="mt-3 space-y-4">
+            <Field>
+              <FieldLabel htmlFor="http-tool-result-instructions">
+                Result instructions (optional)
+              </FieldLabel>
+              <Input
+                id="http-tool-result-instructions"
+                value={form.resultInstructions || ""}
+                onChange={(e) =>
+                  patchForm({ resultInstructions: e.target.value })
+                }
+                placeholder="Explain status simply; mention tracking only if present"
+              />
+              <FieldDescription>
+                Semantic guidance for the model — not authority. Prefer response
+                projection fields for deterministic extraction.
+              </FieldDescription>
+            </Field>
+
+            {!String(form.responseProjectionJsonText || "").trim() ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Strongly recommended: set response projection fields so the model
+                only sees allowlisted paths (not the full API payload).
+              </p>
+            ) : null}
+              </div>
+            </details>
 
             <Field>
               <FieldLabel>Connected system</FieldLabel>

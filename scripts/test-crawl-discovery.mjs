@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import crawler from "../lib/services/site-crawler.js";
-
-const { crawlPublicOrigin } = crawler;
+import { gzipSync } from "node:zlib";
+import { crawlPublicOrigin } from "../lib/services/site-crawler.js";
 const origin = "https://93.184.216.34";
 const page = (name, extra = "") =>
   `<html><head><title>${name}</title></head><body><h1>${name}</h1>${name} public support information with enough detail to index safely. ${extra}</body></html>`;
@@ -12,11 +11,17 @@ try {
     const path = new URL(url).pathname;
     if (path === "/robots.txt") {
       return new Response(
-        `User-agent: *\nDisallow: /private\nSitemap: ${origin}/sitemap-index.xml`,
+        `User-agent: *\nDisallow: /private\nSitemap: ${origin}/sitemap-index.xml\nSitemap: ${origin}/sitemap.xml.gz`,
         { headers: { "content-type": "text/plain" } }
       );
     }
     if (path === "/sitemap.xml") return new Response("missing", { status: 404 });
+    if (path === "/sitemap.xml.gz") {
+      const xml = `<urlset><url><loc>${origin}/gz-only</loc></url></urlset>`;
+      return new Response(gzipSync(xml), {
+        headers: { "content-type": "application/gzip" },
+      });
+    }
     if (path === "/sitemap-index.xml") {
       return new Response(
         `<sitemapindex><sitemap><loc>${origin}/sitemap-a.xml</loc></sitemap><sitemap><loc>/sitemap-b.xml</loc></sitemap></sitemapindex>`,
@@ -25,7 +30,7 @@ try {
     }
     if (path === "/sitemap-a.xml") {
       return new Response(
-        `<urlset><url><loc>/pricing</loc></url><url><loc>/about</loc></url><url><loc>/linked</loc></url><url><loc>/duplicate</loc></url></urlset>`,
+        `<urlset><url><loc>/pricing</loc></url><url><loc>/about</loc></url><url><loc>/linked</loc></url><url><loc>/duplicate</loc></url><url><loc>/same-a</loc></url><url><loc>/same-b</loc></url></urlset>`,
         { headers: { "content-type": "application/xml" } }
       );
     }
@@ -36,7 +41,14 @@ try {
       );
     }
     if (path === "/duplicate") {
-      return new Response(page("Duplicate", `<link rel="canonical" href="/about">`), { headers: { "content-type": "text/html" } });
+      return new Response(page("Duplicate", `<link rel="canonical" href="/about">`), {
+        headers: { "content-type": "text/html" },
+      });
+    }
+    if (path === "/same-a" || path === "/same-b") {
+      return new Response(page("Same shell", "identical body for hash-dedupe"), {
+        headers: { "content-type": "text/html" },
+      });
     }
     if (path === "/") {
       return new Response(page("Home", `<ul><li>First support step</li><li>Second support step</li></ul><table><tr><th>Plan</th><th>Price</th></tr><tr><td>Starter</td><td>$10</td></tr></table><a href="/linked">Linked</a><a href="/private">Private</a><a href="https://other.example/nope">External</a>`), { headers: { "content-type": "text/html" } });
@@ -52,6 +64,7 @@ try {
     onPage: (item) => indexed.push(item),
   });
   const urls = result.pages.map((item) => new URL(item.url).pathname);
+  assert.ok(urls.includes("/gz-only"), "gzip sitemap URLs are discovered");
   assert.ok(urls.includes("/features"), "non-help sitemap page is discovered");
   assert.ok(urls.includes("/linked"), "same-origin internal link is discovered");
   assert.ok(urls.includes("/trap"), "bounded pagination query is discovered");
@@ -68,6 +81,7 @@ try {
   assert.match(home.text, /- First support step/);
   assert.match(home.text, /Starter.*\$10/s);
   assert.ok(indexed.some((item) => ["canonicalized", "canonical_duplicate"].includes(item.skipReason)), "canonical source is marked skipped");
+  assert.ok(indexed.some((item) => item.skipReason === "content_duplicate"), "identical body is content-deduped");
 } finally {
   globalThis.fetch = originalFetch;
 }

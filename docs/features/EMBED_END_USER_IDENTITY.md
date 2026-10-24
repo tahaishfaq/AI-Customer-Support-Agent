@@ -63,10 +63,10 @@ Returns `{ token, expiresAt, strategy: "hs256_jwt" }`.
 
 Customization **Features → Embed origins**:
 
-- `allowedOriginsMode: all` (default) — first live HTTPS site still claims `siteKnowledgeOrigin`.
+- `allowedOriginsMode: all` (default) — public embed chat/history may load from any origin until locked; **first claim of `siteKnowledgeOrigin` still requires allowlist** (`claimEmbedOrigin` → `allowlist_required` if unlocked without a non-empty list).
 - `allowedOriginsMode: allowlist` — public embed APIs and claim require Origin on the list (empty list = deny). Localhost / Aide app preview still allowed.
 
-Enforced in `getPublicAgentByKey` + `claimEmbedOrigin` via `lib/embed/allowed-origins.js`. Does not replace the locked-origin rule.
+Enforced in `getPublicAgentByKey` + `claimEmbedOrigin` via `lib/embed/allowed-origins.js`. Does not replace the locked-origin rule. Set Website base URL under Deploy (or Features allowlist) before going live.
 
 ## Related
 
