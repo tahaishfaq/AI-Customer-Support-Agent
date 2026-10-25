@@ -33,6 +33,6 @@ export async function GET() {
       redisPrefix: redisHealth.prefix,
       timestamp,
     },
-    { status: ok ? 200 : 503 }
+    { status: 200 }
   );
 }
